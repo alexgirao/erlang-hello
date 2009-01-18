@@ -1,0 +1,5 @@
+- arguments
+- stdin, stdout and stderr
+- file io
+- network io
+- subprocess io

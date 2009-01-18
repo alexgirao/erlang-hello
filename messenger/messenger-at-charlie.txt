@@ -1,0 +1,10 @@
+$ erl -sname charlie
+Erlang (BEAM) emulator version 5.6.3 [source] [smp:2] [async-threads:0] [hipe] [kernel-poll:false]
+
+Eshell V5.6.3  (abort with ^G)
+(charlie@giga)1> messenger:logon(james).
+true
+logged_on        
+(charlie@giga)2> messenger:message(fred, "peter doesn't like you").
+ok
+receiver_not_found

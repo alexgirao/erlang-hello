@@ -1,0 +1,12 @@
+$ erl -sname bravo
+Erlang (BEAM) emulator version 5.6.3 [source] [smp:2] [async-threads:0] [hipe] [kernel-poll:false]
+
+Eshell V5.6.3  (abort with ^G)
+(bravo@giga)1> messenger:logon(peter).
+true
+logged_on      
+(bravo@giga)2> 
+(bravo@giga)2> messenger:message(fred, "hello").
+ok
+sent           
+msg from fred: "go away, I'm busy"

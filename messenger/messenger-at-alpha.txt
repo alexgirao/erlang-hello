@@ -1,0 +1,11 @@
+$ erl -sname alpha
+Erlang (BEAM) emulator version 5.6.3 [source] [smp:2] [async-threads:0] [hipe] [kernel-poll:false]
+
+Eshell V5.6.3  (abort with ^G)
+(alpha@giga)1> c(messenger).
+{ok,messenger}
+(alpha@giga)2> messenger:start_server().
+true
+list is now: [{<8085.38.0>,fred},{<8083.38.0>,james},{<8081.38.0>,peter}]
+list is now: [{<8085.38.0>,fred},{<8083.38.0>,james},{<8081.38.0>,peter}]
+list is now: [{<8083.38.0>,james},{<8081.38.0>,peter}]

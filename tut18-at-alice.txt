@@ -1,0 +1,37 @@
+$ erl -sname alice
+Erlang (BEAM) emulator version 5.6.3 [source] [smp:2] [async-threads:0] [hipe] [kernel-poll:false]
+
+Eshell V5.6.3  (abort with ^G)
+(alice@giga)1> c(tut18).
+{ok,tut18}
+(alice@giga)2> tut18:start(bob@dfi).   
+pong received ping
+<8011.46.0>
+ping received pong
+pong received ping
+ping received pong
+pong received ping
+ping received pong
+ping finished  
+pong finished  
+(alice@giga)3> tut18:start(alice@giga).
+pong received ping
+<0.53.0>
+ping received pong
+pong received ping
+ping received pong
+pong received ping
+ping received pong
+ping finished  
+pong finished  
+(alice@giga)4> tut18:start(bob@dfi).   
+<8011.54.0>
+pong received ping
+ping received pong
+pong received ping
+ping received pong
+pong received ping
+ping received pong
+pong finished  
+ping finished  
+(alice@giga)5> 

@@ -1,0 +1,6 @@
+hello "world!"
+hello 'world!'
+flushing unknown message from process <0.28.0>: discard_me
+flushing unknown message from process <0.28.0>: {discard_me,too}
+flushing unknown message from process <0.28.0>: "discard_me_too"
+finishing main process <0.1.0>

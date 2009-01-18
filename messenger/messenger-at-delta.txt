@@ -1,0 +1,13 @@
+$ erl -sname delta
+Erlang (BEAM) emulator version 5.6.3 [source] [smp:2] [async-threads:0] [hipe] [kernel-poll:false]
+
+Eshell V5.6.3  (abort with ^G)
+(delta@giga)1> messenger:logon(fred).
+true
+logged_on      
+msg from peter: "hello"
+(delta@giga)2> messenger:message(peter, "go away, I'm busy").
+ok
+sent           
+(delta@giga)3> messenger:logoff().
+logoff
