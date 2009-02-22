@@ -1,0 +1,442 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- This document was generated using DocBuilder-0.9.8.4 -->
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>Records and Macros</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"/>
+  <script type="text/javascript" src="../../doc/erlresolvelinks.js"></script>
+  <style type="text/css">
+<!--
+    body          { font-family: Verdana, Arial, Helvetica, sans-serif }
+    span.bold_code        { font-family: courier;font-weight: bold}
+    span.code        { font-family: courier;font-weight: normal}
+
+.note, .warning {
+  border: solid black 1px;
+  margin: 1em 3em;
+}
+
+.note .label {
+  background: #30d42a;
+  color: white;
+  font-weight: bold;
+  padding: 5px 10px;
+}
+.note .content {
+  background: #eafeea;
+  color: black;
+  line-height: 120%;
+  font-size: 90%;
+  padding: 5px 10px;
+}
+.warning .label {
+  background: #C00;
+  color: white;
+  font-weight: bold;
+  padding: 5px 10px;
+}
+.warning .content {
+  background: #FFF0F0;
+  color: black;
+  line-height: 120%;
+  font-size: 90%;
+  padding: 5px 10px;
+}
+
+    .example     { background-color:#eeeeff } 
+    pre          { font-family: courier; font-weight: normal }
+    .REFBODY     { margin-left: 13mm }
+    .REFTYPES    { margin-left: 8mm }
+-->
+  </style>
+</head>
+<body bgcolor="#FFFFFF" text="#000000" link="#0000FF" vlink="#FF00FF" alink="#FF0000">
+<center>
+<a href="http://www.ericsson.com/technology/opensource/erlang"><img border="0" alt="[Ericsson AB]" src="min_head.gif"/></a>
+</center><a name="5"><!-- Empty --></a>
+<h2>5 Records and Macros</h2>
+
+<p>Larger programs are usually written as a collection of files with
+a well defined interface between the various parts.
+</p><a name="5.1"><!-- Empty --></a>
+<h3>5.1 The Larger Example Divided into Several Files</h3>
+
+<p>To illustrate this, we will divide the messenger example from
+the previous chapter into five files.
+</p>
+<dl>
+
+<dt>
+<span class="code">mess_config.hrl</span>
+</dt>
+
+<dd>
+header file for configuration data
+</dd>
+
+<dt>
+<span class="code">mess_interface.hrl</span>
+</dt>
+
+<dd>
+interface definitions between the client and the messenger
+</dd>
+
+<dt>
+<span class="code">user_interface.erl</span>
+</dt>
+
+<dd>
+functions for the user interface
+</dd>
+
+<dt>
+<span class="code">mess_client.erl</span>
+</dt>
+
+<dd>
+functions for the client side of the messenger
+</dd>
+
+<dt>
+<span class="code">mess_server.erl</span>
+</dt>
+
+<dd>
+functions for the server side of the messenger
+</dd>
+
+</dl>
+
+<p>While doing this we will also clean up the message passing
+interface between the shell, the client and the server and define
+it using <strong>records</strong>, we will also introduce <strong>macros</strong>.
+</p>
+<div class="example"><pre>
+%%%----FILE mess_config.hrl----
+
+%%% Configure the location of the server node,
+-define(server_node, messenger@super).
+
+%%%----END FILE----
+</pre></div>
+
+<div class="example"><pre>
+%%%----FILE mess_interface.hrl----
+
+%%% Message interface between client and server and client shell for
+%%% messenger program 
+
+%%%Messages from Client to server received in server/1 function.
+-record(logon,{client_pid, username}).
+-record(message,{client_pid, to_name, message}).
+%%% {'EXIT', ClientPid, Reason}  (client terminated or unreachable.
+
+%%% Messages from Server to Client, received in await_result/0 function 
+-record(abort_client,{message}).
+%%% Messages are: user_exists_at_other_node, 
+%%%               you_are_not_logged_on
+-record(server_reply,{message}).
+%%% Messages are: logged_on
+%%%               receiver_not_found
+%%%               sent  (Message has been sent (no guarantee)
+%%% Messages from Server to Client received in client/1 function
+-record(message_from,{from_name, message}).
+
+%%% Messages from shell to Client received in client/1 function
+%%% spawn(mess_client, client, [server_node(), Name])
+-record(message_to,{to_name, message}).
+%%% logoff
+
+%%%----END FILE----
+</pre></div>
+
+<div class="example"><pre>
+%%%----FILE user_interface.erl----
+
+%%% User interface to the messenger program
+%%% login(Name)
+%%%     One user at a time can log in from each Erlang node in the
+%%%     system messenger: and choose a suitable Name. If the Name
+%%%     is already logged in at another node or if someone else is
+%%%     already logged in at the same node, login will be rejected
+%%%     with a suitable error message.
+
+%%% logoff()
+%%%     Logs off anybody at at node
+
+%%% message(ToName, Message)
+%%%     sends Message to ToName. Error messages if the user of this 
+%%%     function is not logged on or if ToName is not logged on at
+%%%     any node.
+
+-module(user_interface).
+-export([logon/1, logoff/0, message/2]).
+-include(&#34;mess_interface.hrl&#34;).
+-include(&#34;mess_config.hrl&#34;).
+
+logon(Name) -&#62;
+    case whereis(mess_client) of 
+        undefined -&#62;
+            register(mess_client, 
+                     spawn(mess_client, client, [?server_node, Name]));
+        _ -&#62; already_logged_on
+    end.
+
+logoff() -&#62;
+    mess_client ! logoff.
+
+message(ToName, Message) -&#62;
+    case whereis(mess_client) of % Test if the client is running
+        undefined -&#62;
+            not_logged_on;
+        _ -&#62; mess_client ! #message_to{to_name=ToName, message=Message},
+             ok
+end.
+
+%%%----END FILE----
+</pre></div>
+
+<div class="example"><pre>
+%%%----FILE mess_client.erl----
+
+%%% The client process which runs on each user node
+
+-module(mess_client).
+-export([client/2]).
+-include(&#34;mess_interface.hrl&#34;).
+
+client(Server_Node, Name) -&#62;
+    {messenger, Server_Node} ! #logon{client_pid=self(), username=Name},
+    await_result(),
+    client(Server_Node).
+
+client(Server_Node) -&#62;
+    receive
+        logoff -&#62;
+            exit(normal);
+        #message_to{to_name=ToName, message=Message} -&#62;
+            {messenger, Server_Node} ! 
+                #message{client_pid=self(), to_name=ToName, message=Message},
+            await_result();
+        {message_from, FromName, Message} -&#62;
+            io:format(&#34;Message from ~p: ~p~n&#34;, [FromName, Message])
+    end,
+    client(Server_Node).
+
+%%% wait for a response from the server
+await_result() -&#62;
+    receive
+        #abort_client{message=Why} -&#62;
+            io:format(&#34;~p~n&#34;, [Why]),
+            exit(normal);
+        #server_reply{message=What} -&#62;
+            io:format(&#34;~p~n&#34;, [What])
+    after 5000 -&#62;
+            io:format(&#34;No response from server~n&#34;, []),
+            exit(timeout)
+    end.
+
+%%%----END FILE---
+</pre></div>
+
+<div class="example"><pre>
+%%%----FILE mess_server.erl----
+
+%%% This is the server process of the messenger service
+
+-module(mess_server).
+-export([start_server/0, server/0]).
+-include(&#34;mess_interface.hrl&#34;).
+
+server() -&#62;
+    process_flag(trap_exit, true),
+    server([]).
+
+%%% the user list has the format [{ClientPid1, Name1},{ClientPid22, Name2},...]
+server(User_List) -&#62;
+    io:format(&#34;User list = ~p~n&#34;, [User_List]),
+    receive
+        #logon{client_pid=From, username=Name} -&#62;
+            New_User_List = server_logon(From, Name, User_List),
+            server(New_User_List);
+        {'EXIT', From, _} -&#62;
+            New_User_List = server_logoff(From, User_List),
+            server(New_User_List);
+        #message{client_pid=From, to_name=To, message=Message} -&#62;
+            server_transfer(From, To, Message, User_List),
+            server(User_List)
+    end.
+
+%%% Start the server
+start_server() -&#62;
+    register(messenger, spawn(?MODULE, server, [])).
+
+%%% Server adds a new user to the user list
+server_logon(From, Name, User_List) -&#62;
+    %% check if logged on anywhere else
+    case lists:keymember(Name, 2, User_List) of
+        true -&#62;
+            From ! #abort_client{message=user_exists_at_other_node},
+            User_List;
+        false -&#62;
+            From ! #server_reply{message=logged_on},
+            link(From),
+            [{From, Name} | User_List]        %add user to the list
+    end.
+
+%%% Server deletes a user from the user list
+server_logoff(From, User_List) -&#62;
+    lists:keydelete(From, 1, User_List).
+
+%%% Server transfers a message between user
+server_transfer(From, To, Message, User_List) -&#62;
+    %% check that the user is logged on and who he is
+    case lists:keysearch(From, 1, User_List) of
+        false -&#62;
+            From ! #abort_client{message=you_are_not_logged_on};
+        {value, {_, Name}} -&#62;
+            server_transfer(From, Name, To, Message, User_List)
+    end.
+%%% If the user exists, send the message
+server_transfer(From, Name, To, Message, User_List) -&#62;
+    %% Find the receiver and send the message
+    case lists:keysearch(To, 2, User_List) of
+        false -&#62;
+            From ! #server_reply{message=receiver_not_found};
+        {value, {ToPid, To}} -&#62;
+            ToPid ! #message_from{from_name=Name, message=Message}, 
+            From !  #server_reply{message=sent} 
+    end.
+
+%%%----END FILE---
+</pre></div>
+<a name="5.2"><!-- Empty --></a>
+<h3>5.2 Header Files</h3>
+
+<p>You will see some files above with extension <span class="code">.hrl</span>. These
+are header files which are included in the <span class="code">.erl</span> files by:
+</p>
+<div class="example"><pre>
+-include(&#34;File_Name&#34;).
+</pre></div>
+
+<p>for example:
+</p>
+<div class="example"><pre>
+-include(&#34;mess_interface.hrl&#34;).
+</pre></div>
+
+<p>In our case above the file is fetched from the same directory as
+all the other files in the messenger example. (*manual*).
+</p>
+<p>.hrl files can contain any valid Erlang code but are most often
+used for record and macro definitions.
+</p><a name="5.3"><!-- Empty --></a>
+<h3>5.3 Records</h3>
+
+<p>A record is defined as:
+</p>
+<div class="example"><pre>
+-record(name_of_record,{field_name1, field_name2, field_name3, ......}).
+</pre></div>
+
+<p>For example:
+</p>
+<div class="example"><pre>
+-record(message_to,{to_name, message}).
+</pre></div>
+
+<p>This is exactly equivalent to:
+</p>
+<div class="example"><pre>
+{message_to, To_Name, Message}
+</pre></div>
+
+<p>Creating record, is best illustrated by an example:
+</p>
+<div class="example"><pre>
+#message_to{message=&#34;hello&#34;, to_name=fred)
+</pre></div>
+
+<p>This will create:
+</p>
+<div class="example"><pre>
+{message_to, fred, &#34;hello&#34;}
+</pre></div>
+
+<p>Note that you don't have to worry about the order you assign
+values to the various parts of the records when you create it.
+The advantage of using records is that by placing their
+definitions in header files you can conveniently define
+interfaces which are easy to change. For example, if you want to
+add a new field to the record, you will only have to change
+the code where the new field is used and not at every place
+the record is referred to. If you leave out a field when creating
+a record, it will get the value of the atom undefined. (*manual*)
+</p>
+<p>Pattern matching with records is very similar to creating
+records. For example inside a <span class="code">case</span> or <span class="code">receive</span>:
+</p>
+<div class="example"><pre>
+#message_to{to_name=ToName, message=Message} -&#62;
+</pre></div>
+
+<p>is the same as:
+</p>
+<div class="example"><pre>
+{message_to, ToName, Message}
+</pre></div>
+<a name="5.4"><!-- Empty --></a>
+<h3>5.4 Macros</h3>
+
+<p>The other thing we have added to the messenger is a macro.
+The file <span class="code">mess_config.hrl</span> contains the definition:
+</p>
+<div class="example"><pre>
+%%% Configure the location of the server node,
+-define(server_node, messenger@super).
+</pre></div>
+
+<p>We include this file in mess_server.erl:
+</p>
+<div class="example"><pre>
+-include(&#34;mess_config.hrl&#34;).
+</pre></div>
+
+<p>Every occurrence of <span class="code">?server_node</span> in <span class="code">mess_server.erl</span>
+will now be replaced by <span class="code">messenger@super</span>.
+</p>
+<p>The other place a macro is used is when we spawn the server
+process:
+</p>
+<div class="example"><pre>
+spawn(?MODULE, server, [])
+</pre></div>
+
+<p>This is a standard macro (i.e. defined by the system, not
+the user). <span class="code">?MODULE</span> is always replaced by the name of
+current module (i.e. the <span class="code">-module</span> definition near the start
+of the file). There are more advanced ways of using macros with,
+for example parameters (*manual*).
+</p>
+<p>The three Erlang (<span class="code">.erl</span>) files in the messenger example are
+individually compiled into object code file (<span class="code">.beam</span>).
+The Erlang system loads and links these files into the system
+when they are referred to during execution of the code. In our
+case we simply have put them in the same directory which is our
+current working directory (i.e. the place we have done &#34;cd&#34; to).
+There are ways of putting the <span class="code">.beam</span> files in other
+directories.
+</p>
+<p>In the messenger example, no assumptions have been made about
+what the message being sent is. It could be any valid Erlang term.
+</p><center>
+<hr/>
+<small>
+  Copyright &copy; 1991-2008
+  <a href="http://www.ericsson.com/technology/opensource/erlang">Ericsson AB</a><br/ >
+</small>
+</center></body>
+</html>

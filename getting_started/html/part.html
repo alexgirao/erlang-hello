@@ -1,0 +1,113 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- This document was generated using DocBuilder-0.9.8.4 -->
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>Getting Started With Erlang</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"/>
+  
+  <style type="text/css">
+<!--
+    body          { font-family: Verdana, Arial, Helvetica, sans-serif }
+    span.bold_code        { font-family: courier;font-weight: bold}
+    span.code        { font-family: courier;font-weight: normal}
+
+.note, .warning {
+  border: solid black 1px;
+  margin: 1em 3em;
+}
+
+.note .label {
+  background: #30d42a;
+  color: white;
+  font-weight: bold;
+  padding: 5px 10px;
+}
+.note .content {
+  background: #eafeea;
+  color: black;
+  line-height: 120%;
+  font-size: 90%;
+  padding: 5px 10px;
+}
+.warning .label {
+  background: #C00;
+  color: white;
+  font-weight: bold;
+  padding: 5px 10px;
+}
+.warning .content {
+  background: #FFF0F0;
+  color: black;
+  line-height: 120%;
+  font-size: 90%;
+  padding: 5px 10px;
+}
+
+    .example     { background-color:#eeeeff } 
+    pre          { font-family: courier; font-weight: normal }
+    .REFBODY     { margin-left: 13mm }
+    .REFTYPES    { margin-left: 8mm }
+-->
+  </style>
+</head>
+<body bgcolor="#FFFFFF" text="#000000" link="#0000FF" vlink="#FF00FF" alink="#FF0000">
+<center>
+<p>
+<strong>Getting Started With Erlang</strong>
+</p>
+<p>
+<small> Version 5.6.3<br />
+</small>
+</p>
+<p>
+<small>
+  <a target="document" href="part_cite.html">Bibliography</a> |
+  <a target="document" href="part_term.html">Glossary</a> |
+  <a target="document" href="part_first.html">Cover</a> | <a target="_top" href="../../doc/index.html">Top</a></small>
+</p>
+</center>
+<p>
+<small>
+<strong>Table of Contents</strong>
+</small>
+</p>
+<hr/>
+<small>1 <a target="document" href="intro.html#1">Introduction</a></small><br/>
+<small>1.1 <a target="document" href="intro.html#1.1">Introduction</a></small><br/>
+<small>1.2 <a target="document" href="intro.html#1.2">Things Left Out</a></small><br/>
+<hr/>
+<small>2 <a target="document" href="seq_prog.html#2">Sequential Programming</a></small><br/>
+<small>2.1 <a target="document" href="seq_prog.html#2.1">The Erlang Shell</a></small><br/>
+<small>2.2 <a target="document" href="seq_prog.html#2.2">Modules and Functions</a></small><br/>
+<small>2.3 <a target="document" href="seq_prog.html#2.3">Atoms</a></small><br/>
+<small>2.4 <a target="document" href="seq_prog.html#2.4">Tuples</a></small><br/>
+<small>2.5 <a target="document" href="seq_prog.html#2.5">Lists</a></small><br/>
+<small>2.6 <a target="document" href="seq_prog.html#2.6">Standard Modules and Manual Pages</a></small><br/>
+<small>2.7 <a target="document" href="seq_prog.html#2.7">Writing Output to a Terminal</a></small><br/>
+<small>2.8 <a target="document" href="seq_prog.html#2.8">A Larger Example</a></small><br/>
+<small>2.9 <a target="document" href="seq_prog.html#2.9">Matching, Guards and Scope of Variables</a></small><br/>
+<small>2.10 <a target="document" href="seq_prog.html#2.10">More About Lists</a></small><br/>
+<small>2.11 <a target="document" href="seq_prog.html#2.11">If and Case</a></small><br/>
+<small>2.12 <a target="document" href="seq_prog.html#2.12">Built In Functions (BIFs)</a></small><br/>
+<small>2.13 <a target="document" href="seq_prog.html#2.13">Higher Order Functions (Funs)</a></small><br/>
+<hr/>
+<small>3 <a target="document" href="conc_prog.html#3">Concurrent Programming</a></small><br/>
+<small>3.1 <a target="document" href="conc_prog.html#3.1">Processes</a></small><br/>
+<small>3.2 <a target="document" href="conc_prog.html#3.2">Message Passing</a></small><br/>
+<small>3.3 <a target="document" href="conc_prog.html#3.3">Registered Process Names</a></small><br/>
+<small>3.4 <a target="document" href="conc_prog.html#3.4">Distributed Programming</a></small><br/>
+<small>3.5 <a target="document" href="conc_prog.html#3.5">A Larger Example</a></small><br/>
+<hr/>
+<small>4 <a target="document" href="robustness.html#4">Robustness</a></small><br/>
+<small>4.1 <a target="document" href="robustness.html#4.1">Timeouts</a></small><br/>
+<small>4.2 <a target="document" href="robustness.html#4.2">Error Handling</a></small><br/>
+<small>4.3 <a target="document" href="robustness.html#4.3">The Larger Example with Robustness Added</a></small><br/>
+<hr/>
+<small>5 <a target="document" href="records_macros.html#5">Records and Macros</a></small><br/>
+<small>5.1 <a target="document" href="records_macros.html#5.1">The Larger Example Divided into Several Files</a></small><br/>
+<small>5.2 <a target="document" href="records_macros.html#5.2">Header Files</a></small><br/>
+<small>5.3 <a target="document" href="records_macros.html#5.3">Records</a></small><br/>
+<small>5.4 <a target="document" href="records_macros.html#5.4">Macros</a></small><br/>
+</body >
+</html>
