@@ -1,3 +1,5 @@
+#!/usr/bin/env escript
+%% -*- erlang -*-
 
 io() ->
     "no conflict will happen".

@@ -1,0 +1,1318 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" dir="ltr" lang="en-US">
+<head profile="http://gmpg.org/xfn/11">
+<meta name="verify-v1" content="4uzVB0ukhcDlDNoeyFYH/ILLXLk1ltHxtvrdRrY+QM4=" />
+<meta name="verify-v1" content="2lobpM4gSMNCJG01lEHxblGeIQ6USppRxGg9kEtO7sk=" />
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<title>Network Programming in Erlang | 20bits</title>
+<script src="/include/js/prototype-1.6.0.2.js" type="text/javascript"></script>
+<script src="/include/js/scriptaculous.js?load=effects" type="text/javascript"></script>
+<script src="/include/js/lightbox/builder.js" type="text/javascript"></script>
+<script src="/include/js/lightbox/lightbox.js" type="text/javascript"></script>
+<meta name="generator" content="WordPress 2.6.2" /> <!-- leave this for stats -->
+<link rel="stylesheet" href="http://20bits.com/wp-content/themes/20bits3/style.css" type="text/css" media="screen" />
+<link rel="stylesheet" href="/include/js/lightbox/css/lightbox.css" type="text/css" media="screen" />
+<link rel="alternate" type="application/rss+xml" title="20bits RSS Feed" href="http://20bits.com/feed/" />
+<link rel="pingback" href="http://20bits.com/xmlrpc.php" />
+<link rel="EditURI" type="application/rsd+xml" title="RSD" href="http://20bits.com/xmlrpc.php?rsd" />
+<link rel="wlwmanifest" type="application/wlwmanifest+xml" href="http://20bits.com/wp-includes/wlwmanifest.xml" /> 
+<meta name="generator" content="WordPress 2.6.2" />
+
+
+<!-- all in one seo pack 1.4.6.7 [449,495] -->
+<meta name="description" content="Since I'm learning Erlang I thought my first non-trivial piece of code would be in an area where the language excels: network programming. Network" />
+<meta name="keywords" content="chargen,echo,erlang,network programming,socket programming" />
+<!-- /all in one seo pack -->
+<script src="http://www.google-analytics.com/urchin.js" type="text/javascript">
+</script>
+<script type="text/javascript">
+_uacct = "UA-1586549-1";
+urchinTracker();
+</script><link rel="stylesheet" href="http://20bits.com/wp-content/plugins/source-code-syntax-highlighting-plugin-for-wordpress/geshi.css"  type="text/css" /></head>
+<body>
+<div id="page">
+	<div id="header">
+		<div class="inside">
+			<h1><a href="http://20bits.com/">20bits</a>
+			by Jesse Farmer
+			</h1>
+		</div>
+	</div>
+
+<div id="content">
+	<div class="inside clearfix">
+							<div class="articles post">
+					<h2 class="post-title">
+						<a href="http://20bits.com/articles/network-programming-in-erlang/">Network Programming in Erlang </a>
+						<div class="date">by <a href="/about/">Jesse Farmer</a> on May 02, 2008</div>
+					</h2>
+					<div class="post-body clearfix">
+						<p>
+Since I'm learning Erlang I thought my first non-trivial piece of code would be in an area where the language excels: network programming.
+</p>
+
+<p>
+Network programming (or socket programming) is a pain in the ass in most languages.  I first learned how to do it in C using <a href="http://beej.us/guide/bgnet/">Beej's Guide to Network Programming</a>.  Read it if you dare.
+</p>
+
+<p>
+The big roadblock for most server applications is concurrency.  Languages like, where concurrency was an afterthought, make developing robust server software more difficult than it has to be. 
+</p>
+
+<p>
+Even so-called modern languages like Java, Ruby, or Python don't handle it all <em>that</em> well, although you are relieved from the pain of managing all the minute details of the network connections.  Erlang, on the other hand, was built with this purpose on mind.
+</p>
+
+<p>
+I won't be writing any user-facing applications in Erlang any time soon, but I thought, "If I'm going to learn Erlang I may as well learn its strong points first."
+</p>
+
+<p>
+To that end I decided to try to replicate the suite of classic UNIX daemons like <tt>echo</tt> and <tt>chargen</tt>.
+</p>
+
+<h3>echo</h3>
+<p>
+Echo is a service that spits back whatever data is handed to it over a TCP connection, bit-for-bit.  Here it is in Erlang. <div class="dean_ch" style="white-space: wrap;">-<span class="re3">module</span><span class="br0">&#40;</span>echo<span class="br0">&#41;</span>.<br />
+-<span class="re3">author</span><span class="br0">&#40;</span><span class="re0">'Jesse <span class="re1">E</span>.<span class="re1">I</span>. <span class="re1">Farmer</span> &lt;jesse@20bits.<span class="me1">com</span>&gt;'</span><span class="br0">&#41;</span>.<br />
+<br />
+-<span class="re3">export</span><span class="br0">&#40;</span><span class="br0">&#91;</span>listen/<span class="nu0">1</span><span class="br0">&#93;</span><span class="br0">&#41;</span>.<br />
+<br />
+-<span class="re3">define</span><span class="br0">&#40;</span><span class="re1">TCP_OPTIONS</span>, <span class="br0">&#91;</span>binary, <span class="br0">&#123;</span>packet, <span class="nu0">0</span><span class="br0">&#125;</span>, <span class="br0">&#123;</span>active, false<span class="br0">&#125;</span>, <span class="br0">&#123;</span>reuseaddr, true<span class="br0">&#125;</span><span class="br0">&#93;</span><span class="br0">&#41;</span>.<br />
+<br />
+<span class="co1">% Call echo:listen(Port) to start the service.</span><br />
+<span class="re4">listen</span><span class="br0">&#40;</span><span class="re1">Port</span><span class="br0">&#41;</span> -&gt;<br />
+&nbsp; &nbsp; <span class="br0">&#123;</span>ok, <span class="re1">LSocket</span><span class="br0">&#125;</span> = gen_tcp:listen<span class="br0">&#40;</span><span class="re1">Port</span>, ?<span class="re2">TCP_OPTIONS</span><span class="br0">&#41;</span>,<br />
+&nbsp; &nbsp; accept<span class="br0">&#40;</span><span class="re1">LSocket</span><span class="br0">&#41;</span>.<br />
+<br />
+<span class="co1">% Wait for incoming connections and spawn the echo loop when we get one.</span><br />
+<span class="re4">accept</span><span class="br0">&#40;</span><span class="re1">LSocket</span><span class="br0">&#41;</span> -&gt;<br />
+&nbsp; &nbsp; <span class="br0">&#123;</span>ok, <span class="re1">Socket</span><span class="br0">&#125;</span> = gen_tcp:accept<span class="br0">&#40;</span><span class="re1">LSocket</span><span class="br0">&#41;</span>,<br />
+&nbsp; &nbsp; <span class="kw2">spawn</span><span class="br0">&#40;</span><span class="re4">fun</span><span class="br0">&#40;</span><span class="br0">&#41;</span> -&gt; loop<span class="br0">&#40;</span><span class="re1">Socket</span><span class="br0">&#41;</span> <span class="kw1">end</span><span class="br0">&#41;</span>,<br />
+&nbsp; &nbsp; accept<span class="br0">&#40;</span><span class="re1">LSocket</span><span class="br0">&#41;</span>.<br />
+<br />
+<span class="co1">% Echo back whatever data we receive on Socket.</span><br />
+<span class="re4">loop</span><span class="br0">&#40;</span><span class="re1">Socket</span><span class="br0">&#41;</span> -&gt;<br />
+&nbsp; &nbsp; <span class="kw1">case</span> gen_tcp:recv<span class="br0">&#40;</span><span class="re1">Socket</span>, <span class="nu0">0</span><span class="br0">&#41;</span> <span class="kw1">of</span><br />
+&nbsp; &nbsp; &nbsp; &nbsp; <span class="br0">&#123;</span>ok, <span class="re1">Data</span><span class="br0">&#125;</span> -&gt;<br />
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; gen_tcp:send<span class="br0">&#40;</span><span class="re1">Socket</span>, <span class="re1">Data</span><span class="br0">&#41;</span>,<br />
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; loop<span class="br0">&#40;</span><span class="re1">Socket</span><span class="br0">&#41;</span>;<br />
+&nbsp; &nbsp; &nbsp; &nbsp; <span class="br0">&#123;</span>error, closed<span class="br0">&#125;</span> -&gt;<br />
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; ok<br />
+&nbsp; &nbsp; <span class="kw1">end</span>.</div>
+</p>
+
+<p>
+We can start this service by calling <tt>echo:listen(&lt;port number&gt;).</tt> from the Erlang shell, e.g., <tt>echo:listen(8888).</tt> will start the <tt>echo</tt> service on port 8888 of your machine.  You can then telnet to port 8888 &mdash; <tt>telnet 127.0.0.1 8888</tt> &mdash; and see it in action.
+</p>
+
+<p>
+Here's the breakdown of the program, by function.
+<dl>
+	<dt>listen(Port)</dt>
+	<dd>
+	Creates a socket that listens for incoming connections on port <strong>Port</strong> and passes off control to <strong>accept</strong>.
+	</dd>
+	<dt>accept(LSocket)</dt>
+	<dd>
+	Waits for incoming connections on <strong>LSocket</strong>.  Once it receives a connection it spawns a new process that runs the <strong>loop</strong> function and then waits for the next connection.
+	</dd>
+	<dt>loop(Socket)</dt>
+	<dd>
+	Waits for incoming data on <strong>Socket</strong>.  Once it receives the data it immediately sends the same data back across the socket.  If there is an error it exits.
+	</dd>
+</dl>
+</p>
+
+<p>
+There are a few things worth discussing in this example.
+</p>
+
+<h3>Spawning Processes</h3>
+<p>
+Processes in Erlang are a basic data type.  They follow the <a href="http://en.wikipedia.org/wiki/Actor_model">actor model</a> of concurrent computation and make network processes a breeze.
+</p>
+
+<p>
+We create new processes using <strong>spawn</strong>, which takes a <strong>Fun</strong>, or functional object, as its input.  You can think of them as functions. Control of the process is handed off to the functional object passed in, like a callback.
+</p>
+
+<h3>Functional Objects</h3>
+<p>
+Erlang, being a functional programming language, supports functions as first-class objects via the <strong>Fun</strong>, or functional object, data type.  Functions can create new functions, return functions, modify functions, and pass functions around.
+</p>
+
+<p>
+The syntax to create a new functional object is like this: <div class="dean_ch" style="white-space: wrap;"><span class="re1">MyFunction</span> = <span class="re4">fun</span><span class="br0">&#40;</span>&#8230;<span class="br0">&#41;</span> -&gt;<br />
+&nbsp; &nbsp; <span class="co1">% Your Erlang code here</span><br />
+&nbsp; &nbsp; <span class="kw1">end</span>.</div>
+</p>
+
+<h3>CHARGEN</h3>
+<p>
+<tt>chargen</tt> is a service that spews back a stream of characters when you connect to it.  You can read <a href="http://en.wikipedia.org/wiki/CHARGEN">all about it</a>, but it's not that interesting.  There's a canonical pattern that it prints out.
+</p>
+
+<p>
+Here it is in Erlang. <div class="dean_ch" style="white-space: wrap;">-<span class="re3">module</span><span class="br0">&#40;</span>chargen<span class="br0">&#41;</span>.<br />
+-<span class="re3">author</span><span class="br0">&#40;</span><span class="re0">'Jesse <span class="re1">E</span>.<span class="re1">I</span>. <span class="re1">Farmer</span> &lt;jesse@20bits.<span class="me1">com</span>&gt;'</span><span class="br0">&#41;</span>.<br />
+<br />
+-<span class="re3">export</span><span class="br0">&#40;</span><span class="br0">&#91;</span>listen/<span class="nu0">1</span><span class="br0">&#93;</span><span class="br0">&#41;</span>.<br />
+<br />
+-<span class="re3">define</span><span class="br0">&#40;</span><span class="re1">START_CHAR</span>, <span class="nu0">33</span><span class="br0">&#41;</span>.<br />
+-<span class="re3">define</span><span class="br0">&#40;</span><span class="re1">END_CHAR</span>, <span class="nu0">127</span><span class="br0">&#41;</span>.<br />
+-<span class="re3">define</span><span class="br0">&#40;</span><span class="re1">LINE_LENGTH</span>, <span class="nu0">72</span><span class="br0">&#41;</span>.<br />
+<br />
+-<span class="re3">define</span><span class="br0">&#40;</span><span class="re1">TCP_OPTIONS</span>, <span class="br0">&#91;</span>binary, <span class="br0">&#123;</span>packet, <span class="nu0">0</span><span class="br0">&#125;</span>, <span class="br0">&#123;</span>active, false<span class="br0">&#125;</span>, <span class="br0">&#123;</span>reuseaddr, true<span class="br0">&#125;</span><span class="br0">&#93;</span><span class="br0">&#41;</span>.<br />
+<br />
+<span class="co1">% Call chargen:listen(Port) to start the service.</span><br />
+<span class="re4">listen</span><span class="br0">&#40;</span><span class="re1">Port</span><span class="br0">&#41;</span> -&gt;<br />
+&nbsp; &nbsp; <span class="br0">&#123;</span>ok, <span class="re1">LSocket</span><span class="br0">&#125;</span> = gen_tcp:listen<span class="br0">&#40;</span><span class="re1">Port</span>, ?<span class="re2">TCP_OPTIONS</span><span class="br0">&#41;</span>,<br />
+&nbsp; &nbsp; accept<span class="br0">&#40;</span><span class="re1">LSocket</span><span class="br0">&#41;</span>.<br />
+<br />
+<span class="co1">% Wait for incoming connections and spawn the chargen loop when we get one.</span><br />
+<span class="re4">accept</span><span class="br0">&#40;</span><span class="re1">LSocket</span><span class="br0">&#41;</span> -&gt;<br />
+&nbsp; &nbsp; <span class="br0">&#123;</span>ok, <span class="re1">Socket</span><span class="br0">&#125;</span> = gen_tcp:accept<span class="br0">&#40;</span><span class="re1">LSocket</span><span class="br0">&#41;</span>,<br />
+&nbsp; &nbsp; <span class="kw2">spawn</span><span class="br0">&#40;</span><span class="re4">fun</span><span class="br0">&#40;</span><span class="br0">&#41;</span> -&gt; loop<span class="br0">&#40;</span><span class="re1">Socket</span><span class="br0">&#41;</span> <span class="kw1">end</span><span class="br0">&#41;</span>,<br />
+&nbsp; &nbsp; accept<span class="br0">&#40;</span><span class="re1">LSocket</span><span class="br0">&#41;</span>.<br />
+<br />
+<span class="re4">loop</span><span class="br0">&#40;</span><span class="re1">Socket</span><span class="br0">&#41;</span> -&gt;<br />
+&nbsp; &nbsp; loop<span class="br0">&#40;</span><span class="re1">Socket</span>, ?<span class="re2">START_CHAR</span><span class="br0">&#41;</span>.<br />
+<br />
+<span class="re4">loop</span><span class="br0">&#40;</span><span class="re1">Socket</span>, ?<span class="re2">END_CHAR</span><span class="br0">&#41;</span> -&gt;<br />
+&nbsp; &nbsp; loop<span class="br0">&#40;</span><span class="re1">Socket</span>, ?<span class="re2">START_CHAR</span><span class="br0">&#41;</span>;<br />
+<span class="re4">loop</span><span class="br0">&#40;</span><span class="re1">Socket</span>, <span class="re1">StartChar</span><span class="br0">&#41;</span> -&gt;<br />
+&nbsp; &nbsp; <span class="re1">Line</span> = make_line<span class="br0">&#40;</span><span class="re1">StartChar</span><span class="br0">&#41;</span>,<br />
+&nbsp; &nbsp; <span class="kw1">case</span> gen_tcp:send<span class="br0">&#40;</span><span class="re1">Socket</span>, <span class="re1">Line</span><span class="br0">&#41;</span> <span class="kw1">of</span><br />
+&nbsp; &nbsp; &nbsp; &nbsp; <span class="br0">&#123;</span>error, <span class="re1">_Reason</span><span class="br0">&#125;</span> -&gt;<br />
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <span class="kw2">exit</span><span class="br0">&#40;</span>normal<span class="br0">&#41;</span>;<br />
+&nbsp; &nbsp; &nbsp; &nbsp; ok -&gt;<br />
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; loop<span class="br0">&#40;</span><span class="re1">Socket</span>, <span class="re1">StartChar</span><span class="nu0">+1</span><span class="br0">&#41;</span><br />
+&nbsp; &nbsp; <span class="kw1">end</span>.<br />
+<br />
+<br />
+<span class="re4">make_line</span><span class="br0">&#40;</span><span class="re1">StartChar</span><span class="br0">&#41;</span> -&gt;<br />
+&nbsp; &nbsp; make_line<span class="br0">&#40;</span><span class="re1">StartChar</span>, <span class="nu0">0</span><span class="br0">&#41;</span>.<br />
+<br />
+<span class="co1">% Generate a new chargen line &#8212; [13, 10] is CRLF.</span><br />
+<span class="re4">make_line</span><span class="br0">&#40;</span><span class="re1">_</span>, ?<span class="re2">LINE_LENGTH</span><span class="br0">&#41;</span> -&gt;<br />
+&nbsp; &nbsp; <span class="br0">&#91;</span><span class="nu0">13</span>, <span class="nu0">10</span><span class="br0">&#93;</span>;<br />
+<span class="re4">make_line</span><span class="br0">&#40;</span>?<span class="re2">END_CHAR</span>, <span class="re1">Pos</span><span class="br0">&#41;</span> -&gt;<br />
+&nbsp; &nbsp; make_line<span class="br0">&#40;</span>?<span class="re2">START_CHAR</span>, <span class="re1">Pos</span><span class="br0">&#41;</span>;<br />
+<span class="re4">make_line</span><span class="br0">&#40;</span><span class="re1">StartChar</span>, <span class="re1">Pos</span><span class="br0">&#41;</span> -&gt;<br />
+&nbsp; &nbsp; <span class="br0">&#91;</span><span class="re1">StartChar</span> | make_line<span class="br0">&#40;</span><span class="re1">StartChar</span> + <span class="nu0">1</span>, <span class="re1">Pos</span> + <span class="nu0">1</span><span class="br0">&#41;</span><span class="br0">&#93;</span>.</div>
+</p>
+
+<p>
+As with <tt>echo</tt> we can start this by dropping into the Erlang shell and running <tt>chargen:listen(8888)</tt> to start chargen running on port 8888 (or another port of your choice).
+</p>
+
+<p>
+<strong>accept</strong> and <strong>listen</strong> are identical to the functions in <tt>echo</tt>, but here are the differences:
+<dl>
+	<dt>loop(Socket, StartChar)</dt>
+	<dd>
+	Calls <strong>make_line(StartChar)</strong> to get the CHARGEN line starting with StartChar, writes it to the socket, and then advances to the next line. 
+	</dd>
+	<dt>make_line(StartChar, Pos)</dt>
+	<dd>
+	Recursively generates a CHARGEN line, keeping track of the current position in the line with <strong>Pos</strong>.
+	</dd>
+</dl>
+</p>
+
+<p>
+There are a few key conceptual differences, too.
+</p>
+
+<h3>Definitions</h3>
+<p>
+As in C we can define constants in Erlang with the <tt>-define</tt> directive.  These are resolved at compile-time.  You can reference the definition by prefixing it with a question mark, <tt>?</tt>, so as to differentiate it from a variable.
+</p>
+
+<h3>Function Definition Matching</h3>
+<p>
+As with assignment, function calls are done via matching.  When you call a function it looks for the first matching definition.  For example, if we invoke <tt>loop(Socket)</tt> it finds the appropriate definition, viz., the definition that takes a single argument.
+</p>
+
+<p>
+We can fix arguments, too, which is how you deal with loop control in Erlang.  <tt>?END_CHAR</tt> is 127, so if we call <tt>loop(Socket, 127)</tt> it first matches that definition rather than the more general <tt>loop(Socket, StartChar)</tt> definition.
+</p>
+
+<p>
+<strong>make_line</strong> works the same way.  If we're at the last position in the line we return a carriage return and line feed and stop recursing.
+</p>
+
+<h3>Conclusion</h3>
+<p>
+I created these to be legible and easily understood.  Working through them helped me understand a lot about the inner workings of Erlang and hopefully they'll do the same for you.  A full-on project page will be coming shortly, but for now you can download the package here.
+</p>
+
+<div class="download"><a href="http://20bits.com/downloads/erlang-services-0.1.zip">erlang-services-0.1.zip</a> or <a href="http://20bits.com/downloads/erlang-services-0.1.tar.gz">erlang-services-0.1.tar.gz</a></div><p class="akpc_pop"></p>					</div>
+					<ul class="post-info after clearfix">
+					<!-- AddThis Button for Post BEGIN -->
+				<li>	
+					<script type="text/javascript">reddit_url='http://20bits.com/articles/network-programming-in-erlang/'</script>
+					<script type="text/javascript">reddit_title='Network Programming in Erlang'</script>
+					<script type="text/javascript" src="http://reddit.com/button.js?t=1"></script>
+				</li>
+				<li>
+					<script type="text/javascript">
+					digg_url = 'http://20bits.com/articles/network-programming-in-erlang/';
+					digg_title = 'Network Programming in Erlang';
+					digg_skin = 'compact';
+					digg_window = 'new';
+					</script>
+					<script src="http://digg.com/tools/diggthis.js" type="text/javascript"></script>
+				</li>
+				<li>	
+				<!-- ADDTHIS BUTTON BEGIN -->
+				<script type="text/javascript">
+				addthis_pub             = 'jfarmer'; 
+				addthis_logo_background = 'EFEFFF';
+				addthis_logo_color      = '666699';
+				addthis_brand           = '20bits';
+				addthis_options         = 'delicious, facebook, digg, technorati, stumbleupon, twitter, more';
+				</script>
+				<a href="http://www.addthis.com/bookmark.php" onmouseover="return addthis_open(this, '', '[URL]', '[TITLE]')" onmouseout="addthis_close()" onclick="return addthis_sendto()"><img src="http://s9.addthis.com/button1-share.gif" width="125" height="16" border="0" alt="" /></a>
+				<script type="text/javascript" src="http://s7.addthis.com/js/152/addthis_widget.js"></script>
+				<!-- ADDTHIS BUTTON END -->
+				                                  
+					<!-- AddThis Button for Post END -->
+					</li>
+					</ul>
+					
+<link rel="stylesheet" href="http://disqus.com/stylesheets/20bits/disqus.css" type="text/css" media="screen" />
+
+<div id="disqus_thread">
+	<div id="dsq-content">
+		<div id="dsq-post-top" style="display: none">
+							<div id="dsq-auth">
+					<div class="dsq-by"><a href="http://disqus.com/" target="_blank"><img src="http://media.disqus.com/images/embed/dsq-button-120x19.png" alt="discussion by DISQUS" /></a></div>
+					<div class="dsq-auth-header">
+						<h3 id="dsq-add-new-comment">Add New Comment</h3>
+						<span id="dsq-auth-as"><noscript><br />You must have JavaScript enabled to comment.</noscript></span>
+					</div>
+				</div>
+					</div>
+		<div style="margin:10px 0">
+			<a id="dsq-options-toggle" href="#" onclick="Dsq.Thread.toggleOptions(); return false"><img src="http://media.disqus.com/images/embed/dsq-options-plus.png" /></a>
+		</div>
+
+		<div id="dsq-options" style="display:none">
+			<span id="dsq-auth-wrap"></span>
+			<div id="dsq-extra-links">
+				<li>
+					<img src="http://media.disqus.com/images/embed/bullet-feed.png" /><strong>Subscribe</strong>:&nbsp;
+					<a href="http://20bits.disqus.com/network_programming_in_erlang_20bits/latest.rss">This Thread</a>
+				</li>
+				<li>
+					<img src="http://media.disqus.com/images/embed/bullet-go.png" /><strong>Go to</strong>:&nbsp;
+					<a href="http://disqus.com/track/">My Comments</a>&nbsp;&middot;&nbsp;
+					<a href="http://20bits.disqus.com/network_programming_in_erlang_20bits/">Community Page</a>
+				</li>
+			</div>
+			<div class="dsq-extra-meta">
+									Sort thread by:
+					<select onchange="Dsq.Thread.sortBy(this.value);">
+						<option value="hot" >Hot comments</option>
+						<option value="best" >Best comments</option>
+						<option value="newest" >Newest first</option>
+						<option value="oldest" >Oldest first</option>
+					</select>
+							</div>
+		</div>
+
+		<h3 id="dsq-comments-count">
+							Viewing 10 Comments					</h3>
+
+		<div id="dsq-alerts">
+			<p id="dsq-alerts-approve" style="display: none">Thanks. Your comment is awaiting approval by a moderator.</p>
+			<p id="dsq-alerts-claim" style="display: none">Do you already have an account? <a href="http://disqus.com/claim/">Log in and claim this comment</a>.</p>
+		</div>
+
+		<ul id="dsq-comments">
+															<div id="comment-3793520"></div>
+					<li id="dsq-comment-3793520" style="margin-left:0px" class="dsq-comment">
+						<ul class="dsq-comment-rate" id="dsq-rate-loading-3793520" style="display: none"><img src="http://media.disqus.com/images/loading-small.gif" /></ul>
+						<ul class="dsq-comment-rate" id="dsq-rate-3793520">
+							<li id="dsq-rate-up-3793520"><a id="dsq-rate-up-a-3793520" class="dsq-arrows" href="#" title="Rate Up"><img src="http://media.disqus.com/images/embed/arrow2-up.png" alt="^" /></a></li>
+							<li id="dsq-rate-down-3793520"><a id="dsq-rate-down-a-3793520" class="dsq-arrows" href="#" title="Rate Down"><img src="http://media.disqus.com/images/embed/arrow2-down.png" alt="v" /></a></li>
+						</ul>
+						<div id="dsq-comment-header-3793520" class="dsq-comment-header">
+							<div class="dsq-header-avatar" id="dsq-header-avatar-3793520">
+								<a id="dsq-avatar-3793520" href="http://disqus.com/people/98d59cb0d26c7166763d5ee51704563b/" title="Profile">
+									<img src="http://www.gravatar.com/avatar.php?gravatar_id=98d59cb0d26c7166763d5ee51704563b&size=32&default=http://media.disqus.com/images/noavatar32.png" />
+								</a>
+								<ul id="dsq-menu-3793520" class="dsq-menu" style="display:none">
+																		<li><a href="#comment-3793520">Permalink</a></li>
+									<li style="display: none">
+										<a id="dsq-admin-toggle-3793520" class="dsq-admin-toggle" href="#">
+											Admin<img src="http://media.disqus.com/images/embed/pointer-right.png" />
+										</a>
+									</li>
+									<li id="dsq-admin-panel-3793520" class="dsq-admin-panel" style="display: none">
+										<ul>
+											<li id="dsq-admin-email-3793520" class="dsq-admin-email"></li>
+											<li id="dsq-admin-ip-3793520" class="dsq-admin-ip"></li>
+											<li><a id="dsq-remove-3793520" href="#">Remove&nbsp;Post</a></li>
+																						<li><a id="dsq-block-email-3793520" href="#">Block email</a></li>
+											<li><a id="dsq-block-ip-3793520" href="#">Block IP address</a></li>
+										</ul>
+									</li>
+								</ul>
+							</div>
+
+							<cite id="dsq-cite-3793520">
+																	<a id="dsq-author-user-3793520" href="http://bicosyes.com">
+										Blaxter									</a>
+															</cite>
+
+							<span class="dsq-header-meta">
+								<a id="dsq-time-3793520" class="dsq-header-time" href="#comment-3793520" title="Permalink">8 months ago</a>
+								<span id="dsq-points-3793520" class="dsq-header-points" style="display: none">1 point</span>
+							</span>
+						</div>
+
+						<div class="dsq-comment-body">
+							<p id="dsq-login-3793520" style="display:none">Please <a href="http://disqus.com/login/?next=article:7093340">login</a> to rate.</p>
+							<p id="dsq-comment-alert-3793520" class="dsq-comment-alert" style="display: none">
+								Do you already have an account? <a href="http://disqus.com/claim/">Log in and claim this comment</a>.
+							</p>
+							<div id="dsq-comment-message-3793520" class="dsq-comment-message">I&#39;m right now also learning Erlang (with programming erlang of Joe Amstrong :D). Cool examples, thanks!</div>
+
+													</div>
+
+						<div class="dsq-comment-footer" id="dsq-comment-footer-3793520">
+															<a href="#" id="dsq-reply-link-3793520">reply</a>
+								<span id="dsq-edit-wrap-3793520" style="display: none">
+									&nbsp;<a href="#" id="dsq-edit-3793520" style="display: none">edit</a>
+								</span>
+								<span id="dsq-reblog-wrap-3793520" style="display: none">
+									&nbsp;<a href="#" id="dsq-reblog-3793520" class="dsq-reblog">reblog</a>
+								</span>
+								<span id="dsq-post-report-3793520" style="display: none">
+									&nbsp;<a id="dsq-post-report-a-3793520" href="#" class="dsq-post-report">flag</a>
+								</span>
+								
+								<div id="dsq-reply-3793520"><!-- iframe .dsq-post-reply  injected here --></div>
+													</div>
+
+						<div id="dsq-hidden-data-3793520" style="display:none">
+															<span style="display: none" id="dsq-hidden-blog-3793520">http://bicosyes.com</span>
+								<span style="display: none" id="dsq-hidden-userurl-3793520">/people/98d59cb0d26c7166763d5ee51704563b/</span>
+								<span style="display: none" id="dsq-hidden-facebook-3793520"></span>
+								<span style="display: none" id="dsq-hidden-linkedin-3793520"></span>
+								<span style="display: none" id="dsq-hidden-twitter-3793520"></span>
+								<span style="display: none" id="dsq-hidden-delicious-3793520"></span>
+								<span style="display: none" id="dsq-hidden-flickr-3793520"></span>
+								<span style="display: none" id="dsq-hidden-tumblr-3793520"></span>
+														<span style="display: none" id="dsq-hidden-avatar-3793520"><img src="http://www.gravatar.com/avatar.php?gravatar_id=98d59cb0d26c7166763d5ee51704563b&size=32&default=http://media.disqus.com/images/noavatar32.png" /></span>
+						</div>
+					</li>
+																			<div id="comment-3793519"></div>
+					<li id="dsq-comment-3793519" style="margin-left:0px" class="dsq-comment">
+						<ul class="dsq-comment-rate" id="dsq-rate-loading-3793519" style="display: none"><img src="http://media.disqus.com/images/loading-small.gif" /></ul>
+						<ul class="dsq-comment-rate" id="dsq-rate-3793519">
+							<li id="dsq-rate-up-3793519"><a id="dsq-rate-up-a-3793519" class="dsq-arrows" href="#" title="Rate Up"><img src="http://media.disqus.com/images/embed/arrow2-up.png" alt="^" /></a></li>
+							<li id="dsq-rate-down-3793519"><a id="dsq-rate-down-a-3793519" class="dsq-arrows" href="#" title="Rate Down"><img src="http://media.disqus.com/images/embed/arrow2-down.png" alt="v" /></a></li>
+						</ul>
+						<div id="dsq-comment-header-3793519" class="dsq-comment-header">
+							<div class="dsq-header-avatar" id="dsq-header-avatar-3793519">
+								<a id="dsq-avatar-3793519" href="http://disqus.com/people/04293a0ffec7db1b3ec9097b52ba69ae/" title="Profile">
+									<img src="http://www.gravatar.com/avatar.php?gravatar_id=04293a0ffec7db1b3ec9097b52ba69ae&size=32&default=http://media.disqus.com/images/noavatar32.png" />
+								</a>
+								<ul id="dsq-menu-3793519" class="dsq-menu" style="display:none">
+																		<li><a href="#comment-3793519">Permalink</a></li>
+									<li style="display: none">
+										<a id="dsq-admin-toggle-3793519" class="dsq-admin-toggle" href="#">
+											Admin<img src="http://media.disqus.com/images/embed/pointer-right.png" />
+										</a>
+									</li>
+									<li id="dsq-admin-panel-3793519" class="dsq-admin-panel" style="display: none">
+										<ul>
+											<li id="dsq-admin-email-3793519" class="dsq-admin-email"></li>
+											<li id="dsq-admin-ip-3793519" class="dsq-admin-ip"></li>
+											<li><a id="dsq-remove-3793519" href="#">Remove&nbsp;Post</a></li>
+																						<li><a id="dsq-block-email-3793519" href="#">Block email</a></li>
+											<li><a id="dsq-block-ip-3793519" href="#">Block IP address</a></li>
+										</ul>
+									</li>
+								</ul>
+							</div>
+
+							<cite id="dsq-cite-3793519">
+																	<a id="dsq-author-user-3793519" href="http://20bits.com">
+										Jesse									</a>
+															</cite>
+
+							<span class="dsq-header-meta">
+								<a id="dsq-time-3793519" class="dsq-header-time" href="#comment-3793519" title="Permalink">8 months ago</a>
+								<span id="dsq-points-3793519" class="dsq-header-points" style="display: none">1 point</span>
+							</span>
+						</div>
+
+						<div class="dsq-comment-body">
+							<p id="dsq-login-3793519" style="display:none">Please <a href="http://disqus.com/login/?next=article:7093340">login</a> to rate.</p>
+							<p id="dsq-comment-alert-3793519" class="dsq-comment-alert" style="display: none">
+								Do you already have an account? <a href="http://disqus.com/claim/">Log in and claim this comment</a>.
+							</p>
+							<div id="dsq-comment-message-3793519" class="dsq-comment-message">Blaxter,<br><br>Glad to be of service.  There&#39;s a real lack of information about Erlang on the web outside of the official documentation.</div>
+
+													</div>
+
+						<div class="dsq-comment-footer" id="dsq-comment-footer-3793519">
+															<a href="#" id="dsq-reply-link-3793519">reply</a>
+								<span id="dsq-edit-wrap-3793519" style="display: none">
+									&nbsp;<a href="#" id="dsq-edit-3793519" style="display: none">edit</a>
+								</span>
+								<span id="dsq-reblog-wrap-3793519" style="display: none">
+									&nbsp;<a href="#" id="dsq-reblog-3793519" class="dsq-reblog">reblog</a>
+								</span>
+								<span id="dsq-post-report-3793519" style="display: none">
+									&nbsp;<a id="dsq-post-report-a-3793519" href="#" class="dsq-post-report">flag</a>
+								</span>
+								
+								<div id="dsq-reply-3793519"><!-- iframe .dsq-post-reply  injected here --></div>
+													</div>
+
+						<div id="dsq-hidden-data-3793519" style="display:none">
+															<span style="display: none" id="dsq-hidden-blog-3793519">http://20bits.com</span>
+								<span style="display: none" id="dsq-hidden-userurl-3793519">/people/04293a0ffec7db1b3ec9097b52ba69ae/</span>
+								<span style="display: none" id="dsq-hidden-facebook-3793519"></span>
+								<span style="display: none" id="dsq-hidden-linkedin-3793519"></span>
+								<span style="display: none" id="dsq-hidden-twitter-3793519"></span>
+								<span style="display: none" id="dsq-hidden-delicious-3793519"></span>
+								<span style="display: none" id="dsq-hidden-flickr-3793519"></span>
+								<span style="display: none" id="dsq-hidden-tumblr-3793519"></span>
+														<span style="display: none" id="dsq-hidden-avatar-3793519"><img src="http://www.gravatar.com/avatar.php?gravatar_id=04293a0ffec7db1b3ec9097b52ba69ae&size=32&default=http://media.disqus.com/images/noavatar32.png" /></span>
+						</div>
+					</li>
+																			<div id="comment-3793523"></div>
+					<li id="dsq-comment-3793523" style="margin-left:0px" class="dsq-comment">
+						<ul class="dsq-comment-rate" id="dsq-rate-loading-3793523" style="display: none"><img src="http://media.disqus.com/images/loading-small.gif" /></ul>
+						<ul class="dsq-comment-rate" id="dsq-rate-3793523">
+							<li id="dsq-rate-up-3793523"><a id="dsq-rate-up-a-3793523" class="dsq-arrows" href="#" title="Rate Up"><img src="http://media.disqus.com/images/embed/arrow2-up.png" alt="^" /></a></li>
+							<li id="dsq-rate-down-3793523"><a id="dsq-rate-down-a-3793523" class="dsq-arrows" href="#" title="Rate Down"><img src="http://media.disqus.com/images/embed/arrow2-down.png" alt="v" /></a></li>
+						</ul>
+						<div id="dsq-comment-header-3793523" class="dsq-comment-header">
+							<div class="dsq-header-avatar" id="dsq-header-avatar-3793523">
+								<a id="dsq-avatar-3793523" href="http://disqus.com/people/de3713d9f21c7ec7788a71abb04151c9/" title="Profile">
+									<img src="http://www.gravatar.com/avatar.php?gravatar_id=de3713d9f21c7ec7788a71abb04151c9&size=32&default=http://media.disqus.com/images/noavatar32.png" />
+								</a>
+								<ul id="dsq-menu-3793523" class="dsq-menu" style="display:none">
+																		<li><a href="#comment-3793523">Permalink</a></li>
+									<li style="display: none">
+										<a id="dsq-admin-toggle-3793523" class="dsq-admin-toggle" href="#">
+											Admin<img src="http://media.disqus.com/images/embed/pointer-right.png" />
+										</a>
+									</li>
+									<li id="dsq-admin-panel-3793523" class="dsq-admin-panel" style="display: none">
+										<ul>
+											<li id="dsq-admin-email-3793523" class="dsq-admin-email"></li>
+											<li id="dsq-admin-ip-3793523" class="dsq-admin-ip"></li>
+											<li><a id="dsq-remove-3793523" href="#">Remove&nbsp;Post</a></li>
+																						<li><a id="dsq-block-email-3793523" href="#">Block email</a></li>
+											<li><a id="dsq-block-ip-3793523" href="#">Block IP address</a></li>
+										</ul>
+									</li>
+								</ul>
+							</div>
+
+							<cite id="dsq-cite-3793523">
+																	<span id="dsq-author-user-3793523">
+										Greg M									</span>
+															</cite>
+
+							<span class="dsq-header-meta">
+								<a id="dsq-time-3793523" class="dsq-header-time" href="#comment-3793523" title="Permalink">8 months ago</a>
+								<span id="dsq-points-3793523" class="dsq-header-points" style="display: none">1 point</span>
+							</span>
+						</div>
+
+						<div class="dsq-comment-body">
+							<p id="dsq-login-3793523" style="display:none">Please <a href="http://disqus.com/login/?next=article:7093340">login</a> to rate.</p>
+							<p id="dsq-comment-alert-3793523" class="dsq-comment-alert" style="display: none">
+								Do you already have an account? <a href="http://disqus.com/claim/">Log in and claim this comment</a>.
+							</p>
+							<div id="dsq-comment-message-3793523" class="dsq-comment-message">"so-called modern languages like Java, Ruby, or Python"<br><br>What? Who so-called them that? None of those were even modern when they were designed, let alone now.</div>
+
+													</div>
+
+						<div class="dsq-comment-footer" id="dsq-comment-footer-3793523">
+															<a href="#" id="dsq-reply-link-3793523">reply</a>
+								<span id="dsq-edit-wrap-3793523" style="display: none">
+									&nbsp;<a href="#" id="dsq-edit-3793523" style="display: none">edit</a>
+								</span>
+								<span id="dsq-reblog-wrap-3793523" style="display: none">
+									&nbsp;<a href="#" id="dsq-reblog-3793523" class="dsq-reblog">reblog</a>
+								</span>
+								<span id="dsq-post-report-3793523" style="display: none">
+									&nbsp;<a id="dsq-post-report-a-3793523" href="#" class="dsq-post-report">flag</a>
+								</span>
+								
+								<div id="dsq-reply-3793523"><!-- iframe .dsq-post-reply  injected here --></div>
+													</div>
+
+						<div id="dsq-hidden-data-3793523" style="display:none">
+															<span style="display: none" id="dsq-hidden-blog-3793523"></span>
+								<span style="display: none" id="dsq-hidden-userurl-3793523">/people/de3713d9f21c7ec7788a71abb04151c9/</span>
+								<span style="display: none" id="dsq-hidden-facebook-3793523"></span>
+								<span style="display: none" id="dsq-hidden-linkedin-3793523"></span>
+								<span style="display: none" id="dsq-hidden-twitter-3793523"></span>
+								<span style="display: none" id="dsq-hidden-delicious-3793523"></span>
+								<span style="display: none" id="dsq-hidden-flickr-3793523"></span>
+								<span style="display: none" id="dsq-hidden-tumblr-3793523"></span>
+														<span style="display: none" id="dsq-hidden-avatar-3793523"><img src="http://www.gravatar.com/avatar.php?gravatar_id=de3713d9f21c7ec7788a71abb04151c9&size=32&default=http://media.disqus.com/images/noavatar32.png" /></span>
+						</div>
+					</li>
+																			<div id="comment-4670377"></div>
+					<li id="dsq-comment-4670377" style="margin-left:30px" class="dsq-comment">
+						<ul class="dsq-comment-rate" id="dsq-rate-loading-4670377" style="display: none"><img src="http://media.disqus.com/images/loading-small.gif" /></ul>
+						<ul class="dsq-comment-rate" id="dsq-rate-4670377">
+							<li id="dsq-rate-up-4670377"><a id="dsq-rate-up-a-4670377" class="dsq-arrows" href="#" title="Rate Up"><img src="http://media.disqus.com/images/embed/arrow2-up.png" alt="^" /></a></li>
+							<li id="dsq-rate-down-4670377"><a id="dsq-rate-down-a-4670377" class="dsq-arrows" href="#" title="Rate Down"><img src="http://media.disqus.com/images/embed/arrow2-down.png" alt="v" /></a></li>
+						</ul>
+						<div id="dsq-comment-header-4670377" class="dsq-comment-header">
+							<div class="dsq-header-avatar" id="dsq-header-avatar-4670377">
+								<a id="dsq-avatar-4670377" href="http://disqus.com/people/ngerakines/" title="Profile">
+									<img src="http://www.gravatar.com/avatar.php?gravatar_id=0764d8fb09760f0bec8800b15f284274&size=32&default=http://media.disqus.com/images/noavatar32.png" />
+								</a>
+								<ul id="dsq-menu-4670377" class="dsq-menu" style="display:none">
+																			<li><a href="#comment-3793523">Parent</a></li>
+																		<li><a href="#comment-4670377">Permalink</a></li>
+									<li style="display: none">
+										<a id="dsq-admin-toggle-4670377" class="dsq-admin-toggle" href="#">
+											Admin<img src="http://media.disqus.com/images/embed/pointer-right.png" />
+										</a>
+									</li>
+									<li id="dsq-admin-panel-4670377" class="dsq-admin-panel" style="display: none">
+										<ul>
+											<li id="dsq-admin-email-4670377" class="dsq-admin-email"></li>
+											<li id="dsq-admin-ip-4670377" class="dsq-admin-ip"></li>
+											<li><a id="dsq-remove-4670377" href="#">Remove&nbsp;Post</a></li>
+																							<li><a id="dsq-block-username-4670377" href="#">Block username</a></li>
+																						<li><a id="dsq-block-email-4670377" href="#">Block email</a></li>
+											<li><a id="dsq-block-ip-4670377" href="#">Block IP address</a></li>
+										</ul>
+									</li>
+								</ul>
+							</div>
+
+							<cite id="dsq-cite-4670377">
+																	<a id="dsq-author-user-4670377" href="http://socklabs.com/">
+										Nick Gerakines									</a>
+															</cite>
+
+							<span class="dsq-header-meta">
+								<a id="dsq-time-4670377" class="dsq-header-time" href="#comment-4670377" title="Permalink">3 weeks ago</a>
+								<span id="dsq-points-4670377" class="dsq-header-points" style="display: none">1 point</span>
+							</span>
+						</div>
+
+						<div class="dsq-comment-body">
+							<p id="dsq-login-4670377" style="display:none">Please <a href="http://disqus.com/login/?next=article:7093340">login</a> to rate.</p>
+							<p id="dsq-comment-alert-4670377" class="dsq-comment-alert" style="display: none">
+								Do you already have an account? <a href="http://disqus.com/claim/">Log in and claim this comment</a>.
+							</p>
+							<div id="dsq-comment-message-4670377" class="dsq-comment-message">I think he meant to say "so-called popular languages like Java, Ruby or Python"</div>
+
+													</div>
+
+						<div class="dsq-comment-footer" id="dsq-comment-footer-4670377">
+															<a href="#" id="dsq-reply-link-4670377">reply</a>
+								<span id="dsq-edit-wrap-4670377" style="display: none">
+									&nbsp;<a href="#" id="dsq-edit-4670377" style="display: none">edit</a>
+								</span>
+								<span id="dsq-reblog-wrap-4670377" style="display: none">
+									&nbsp;<a href="#" id="dsq-reblog-4670377" class="dsq-reblog">reblog</a>
+								</span>
+								<span id="dsq-post-report-4670377" style="display: none">
+									&nbsp;<a id="dsq-post-report-a-4670377" href="#" class="dsq-post-report">flag</a>
+								</span>
+								
+								<div id="dsq-reply-4670377"><!-- iframe .dsq-post-reply  injected here --></div>
+													</div>
+
+						<div id="dsq-hidden-data-4670377" style="display:none">
+															<span style="display: none" id="dsq-hidden-clout-4670377">0</span>
+								<span style="display: none" id="dsq-hidden-userurl-4670377">/people/ngerakines/</span>
+								<span style="display: none" id="dsq-hidden-follow-4670377">/people/ngerakines/following/</span>
+
+								<span style="display: none" id="dsq-hidden-blog-4670377">http://socklabs.com/</span>
+								<span style="display: none" id="dsq-hidden-facebook-4670377">500025891</span>
+								<span style="display: none" id="dsq-hidden-linkedin-4670377"></span>
+								<span style="display: none" id="dsq-hidden-twitter-4670377">ngerakines</span>
+								<span style="display: none" id="dsq-hidden-delicious-4670377">snipersock</span>
+								<span style="display: none" id="dsq-hidden-flickr-4670377"></span>
+								<span style="display: none" id="dsq-hidden-tumblr-4670377"></span>
+														<span style="display: none" id="dsq-hidden-avatar-4670377"><img src="http://www.gravatar.com/avatar.php?gravatar_id=0764d8fb09760f0bec8800b15f284274&size=32&default=http://media.disqus.com/images/noavatar32.png" /></span>
+						</div>
+					</li>
+																			<div id="comment-3793524"></div>
+					<li id="dsq-comment-3793524" style="margin-left:0px" class="dsq-comment">
+						<ul class="dsq-comment-rate" id="dsq-rate-loading-3793524" style="display: none"><img src="http://media.disqus.com/images/loading-small.gif" /></ul>
+						<ul class="dsq-comment-rate" id="dsq-rate-3793524">
+							<li id="dsq-rate-up-3793524"><a id="dsq-rate-up-a-3793524" class="dsq-arrows" href="#" title="Rate Up"><img src="http://media.disqus.com/images/embed/arrow2-up.png" alt="^" /></a></li>
+							<li id="dsq-rate-down-3793524"><a id="dsq-rate-down-a-3793524" class="dsq-arrows" href="#" title="Rate Down"><img src="http://media.disqus.com/images/embed/arrow2-down.png" alt="v" /></a></li>
+						</ul>
+						<div id="dsq-comment-header-3793524" class="dsq-comment-header">
+							<div class="dsq-header-avatar" id="dsq-header-avatar-3793524">
+								<a id="dsq-avatar-3793524" href="http://disqus.com/people/04293a0ffec7db1b3ec9097b52ba69ae/" title="Profile">
+									<img src="http://www.gravatar.com/avatar.php?gravatar_id=04293a0ffec7db1b3ec9097b52ba69ae&size=32&default=http://media.disqus.com/images/noavatar32.png" />
+								</a>
+								<ul id="dsq-menu-3793524" class="dsq-menu" style="display:none">
+																		<li><a href="#comment-3793524">Permalink</a></li>
+									<li style="display: none">
+										<a id="dsq-admin-toggle-3793524" class="dsq-admin-toggle" href="#">
+											Admin<img src="http://media.disqus.com/images/embed/pointer-right.png" />
+										</a>
+									</li>
+									<li id="dsq-admin-panel-3793524" class="dsq-admin-panel" style="display: none">
+										<ul>
+											<li id="dsq-admin-email-3793524" class="dsq-admin-email"></li>
+											<li id="dsq-admin-ip-3793524" class="dsq-admin-ip"></li>
+											<li><a id="dsq-remove-3793524" href="#">Remove&nbsp;Post</a></li>
+																						<li><a id="dsq-block-email-3793524" href="#">Block email</a></li>
+											<li><a id="dsq-block-ip-3793524" href="#">Block IP address</a></li>
+										</ul>
+									</li>
+								</ul>
+							</div>
+
+							<cite id="dsq-cite-3793524">
+																	<a id="dsq-author-user-3793524" href="http://20bits.com">
+										Jesse									</a>
+															</cite>
+
+							<span class="dsq-header-meta">
+								<a id="dsq-time-3793524" class="dsq-header-time" href="#comment-3793524" title="Permalink">8 months ago</a>
+								<span id="dsq-points-3793524" class="dsq-header-points" style="display: none">1 point</span>
+							</span>
+						</div>
+
+						<div class="dsq-comment-body">
+							<p id="dsq-login-3793524" style="display:none">Please <a href="http://disqus.com/login/?next=article:7093340">login</a> to rate.</p>
+							<p id="dsq-comment-alert-3793524" class="dsq-comment-alert" style="display: none">
+								Do you already have an account? <a href="http://disqus.com/claim/">Log in and claim this comment</a>.
+							</p>
+							<div id="dsq-comment-message-3793524" class="dsq-comment-message">Greg,<br><br>A truly devastating argument. ;)</div>
+
+													</div>
+
+						<div class="dsq-comment-footer" id="dsq-comment-footer-3793524">
+															<a href="#" id="dsq-reply-link-3793524">reply</a>
+								<span id="dsq-edit-wrap-3793524" style="display: none">
+									&nbsp;<a href="#" id="dsq-edit-3793524" style="display: none">edit</a>
+								</span>
+								<span id="dsq-reblog-wrap-3793524" style="display: none">
+									&nbsp;<a href="#" id="dsq-reblog-3793524" class="dsq-reblog">reblog</a>
+								</span>
+								<span id="dsq-post-report-3793524" style="display: none">
+									&nbsp;<a id="dsq-post-report-a-3793524" href="#" class="dsq-post-report">flag</a>
+								</span>
+								
+								<div id="dsq-reply-3793524"><!-- iframe .dsq-post-reply  injected here --></div>
+													</div>
+
+						<div id="dsq-hidden-data-3793524" style="display:none">
+															<span style="display: none" id="dsq-hidden-blog-3793524">http://20bits.com</span>
+								<span style="display: none" id="dsq-hidden-userurl-3793524">/people/04293a0ffec7db1b3ec9097b52ba69ae/</span>
+								<span style="display: none" id="dsq-hidden-facebook-3793524"></span>
+								<span style="display: none" id="dsq-hidden-linkedin-3793524"></span>
+								<span style="display: none" id="dsq-hidden-twitter-3793524"></span>
+								<span style="display: none" id="dsq-hidden-delicious-3793524"></span>
+								<span style="display: none" id="dsq-hidden-flickr-3793524"></span>
+								<span style="display: none" id="dsq-hidden-tumblr-3793524"></span>
+														<span style="display: none" id="dsq-hidden-avatar-3793524"><img src="http://www.gravatar.com/avatar.php?gravatar_id=04293a0ffec7db1b3ec9097b52ba69ae&size=32&default=http://media.disqus.com/images/noavatar32.png" /></span>
+						</div>
+					</li>
+																			<div id="comment-3793521"></div>
+					<li id="dsq-comment-3793521" style="margin-left:0px" class="dsq-comment">
+						<ul class="dsq-comment-rate" id="dsq-rate-loading-3793521" style="display: none"><img src="http://media.disqus.com/images/loading-small.gif" /></ul>
+						<ul class="dsq-comment-rate" id="dsq-rate-3793521">
+							<li id="dsq-rate-up-3793521"><a id="dsq-rate-up-a-3793521" class="dsq-arrows" href="#" title="Rate Up"><img src="http://media.disqus.com/images/embed/arrow2-up.png" alt="^" /></a></li>
+							<li id="dsq-rate-down-3793521"><a id="dsq-rate-down-a-3793521" class="dsq-arrows" href="#" title="Rate Down"><img src="http://media.disqus.com/images/embed/arrow2-down.png" alt="v" /></a></li>
+						</ul>
+						<div id="dsq-comment-header-3793521" class="dsq-comment-header">
+							<div class="dsq-header-avatar" id="dsq-header-avatar-3793521">
+								<a id="dsq-avatar-3793521" href="http://disqus.com/people/75d50f6e0fea4f22157244fbdc92edb2/" title="Profile">
+									<img src="http://www.gravatar.com/avatar.php?gravatar_id=75d50f6e0fea4f22157244fbdc92edb2&size=32&default=http://media.disqus.com/images/noavatar32.png" />
+								</a>
+								<ul id="dsq-menu-3793521" class="dsq-menu" style="display:none">
+																		<li><a href="#comment-3793521">Permalink</a></li>
+									<li style="display: none">
+										<a id="dsq-admin-toggle-3793521" class="dsq-admin-toggle" href="#">
+											Admin<img src="http://media.disqus.com/images/embed/pointer-right.png" />
+										</a>
+									</li>
+									<li id="dsq-admin-panel-3793521" class="dsq-admin-panel" style="display: none">
+										<ul>
+											<li id="dsq-admin-email-3793521" class="dsq-admin-email"></li>
+											<li id="dsq-admin-ip-3793521" class="dsq-admin-ip"></li>
+											<li><a id="dsq-remove-3793521" href="#">Remove&nbsp;Post</a></li>
+																						<li><a id="dsq-block-email-3793521" href="#">Block email</a></li>
+											<li><a id="dsq-block-ip-3793521" href="#">Block IP address</a></li>
+										</ul>
+									</li>
+								</ul>
+							</div>
+
+							<cite id="dsq-cite-3793521">
+																	<span id="dsq-author-user-3793521">
+										Spruce Moose									</span>
+															</cite>
+
+							<span class="dsq-header-meta">
+								<a id="dsq-time-3793521" class="dsq-header-time" href="#comment-3793521" title="Permalink">8 months ago</a>
+								<span id="dsq-points-3793521" class="dsq-header-points" style="display: none">1 point</span>
+							</span>
+						</div>
+
+						<div class="dsq-comment-body">
+							<p id="dsq-login-3793521" style="display:none">Please <a href="http://disqus.com/login/?next=article:7093340">login</a> to rate.</p>
+							<p id="dsq-comment-alert-3793521" class="dsq-comment-alert" style="display: none">
+								Do you already have an account? <a href="http://disqus.com/claim/">Log in and claim this comment</a>.
+							</p>
+							<div id="dsq-comment-message-3793521" class="dsq-comment-message">Heh - I remember Beej&#39;s guide.  I thought it was pretty cool way back in the mid-1990&#39;s.  (-:<br><br>I did a similar thing learning about the gen_server and gen_tcp modules except I thought I would re-implement the finger daemon.  I got all the way through the network and server code and finally discovered that Erlang doesn&#39;t have an interface to all the POSIX user and group functions so no getpwnam().</div>
+
+													</div>
+
+						<div class="dsq-comment-footer" id="dsq-comment-footer-3793521">
+															<a href="#" id="dsq-reply-link-3793521">reply</a>
+								<span id="dsq-edit-wrap-3793521" style="display: none">
+									&nbsp;<a href="#" id="dsq-edit-3793521" style="display: none">edit</a>
+								</span>
+								<span id="dsq-reblog-wrap-3793521" style="display: none">
+									&nbsp;<a href="#" id="dsq-reblog-3793521" class="dsq-reblog">reblog</a>
+								</span>
+								<span id="dsq-post-report-3793521" style="display: none">
+									&nbsp;<a id="dsq-post-report-a-3793521" href="#" class="dsq-post-report">flag</a>
+								</span>
+								
+								<div id="dsq-reply-3793521"><!-- iframe .dsq-post-reply  injected here --></div>
+													</div>
+
+						<div id="dsq-hidden-data-3793521" style="display:none">
+															<span style="display: none" id="dsq-hidden-blog-3793521"></span>
+								<span style="display: none" id="dsq-hidden-userurl-3793521">/people/75d50f6e0fea4f22157244fbdc92edb2/</span>
+								<span style="display: none" id="dsq-hidden-facebook-3793521"></span>
+								<span style="display: none" id="dsq-hidden-linkedin-3793521"></span>
+								<span style="display: none" id="dsq-hidden-twitter-3793521"></span>
+								<span style="display: none" id="dsq-hidden-delicious-3793521"></span>
+								<span style="display: none" id="dsq-hidden-flickr-3793521"></span>
+								<span style="display: none" id="dsq-hidden-tumblr-3793521"></span>
+														<span style="display: none" id="dsq-hidden-avatar-3793521"><img src="http://www.gravatar.com/avatar.php?gravatar_id=75d50f6e0fea4f22157244fbdc92edb2&size=32&default=http://media.disqus.com/images/noavatar32.png" /></span>
+						</div>
+					</li>
+																			<div id="comment-3793518"></div>
+					<li id="dsq-comment-3793518" style="margin-left:0px" class="dsq-comment">
+						<ul class="dsq-comment-rate" id="dsq-rate-loading-3793518" style="display: none"><img src="http://media.disqus.com/images/loading-small.gif" /></ul>
+						<ul class="dsq-comment-rate" id="dsq-rate-3793518">
+							<li id="dsq-rate-up-3793518"><a id="dsq-rate-up-a-3793518" class="dsq-arrows" href="#" title="Rate Up"><img src="http://media.disqus.com/images/embed/arrow2-up.png" alt="^" /></a></li>
+							<li id="dsq-rate-down-3793518"><a id="dsq-rate-down-a-3793518" class="dsq-arrows" href="#" title="Rate Down"><img src="http://media.disqus.com/images/embed/arrow2-down.png" alt="v" /></a></li>
+						</ul>
+						<div id="dsq-comment-header-3793518" class="dsq-comment-header">
+							<div class="dsq-header-avatar" id="dsq-header-avatar-3793518">
+								<a id="dsq-avatar-3793518" href="http://disqus.com/people/1effe8cf70738f20bab076f62ccaa607/" title="Profile">
+									<img src="http://www.gravatar.com/avatar.php?gravatar_id=1effe8cf70738f20bab076f62ccaa607&size=32&default=http://media.disqus.com/images/noavatar32.png" />
+								</a>
+								<ul id="dsq-menu-3793518" class="dsq-menu" style="display:none">
+																		<li><a href="#comment-3793518">Permalink</a></li>
+									<li style="display: none">
+										<a id="dsq-admin-toggle-3793518" class="dsq-admin-toggle" href="#">
+											Admin<img src="http://media.disqus.com/images/embed/pointer-right.png" />
+										</a>
+									</li>
+									<li id="dsq-admin-panel-3793518" class="dsq-admin-panel" style="display: none">
+										<ul>
+											<li id="dsq-admin-email-3793518" class="dsq-admin-email"></li>
+											<li id="dsq-admin-ip-3793518" class="dsq-admin-ip"></li>
+											<li><a id="dsq-remove-3793518" href="#">Remove&nbsp;Post</a></li>
+																						<li><a id="dsq-block-email-3793518" href="#">Block email</a></li>
+											<li><a id="dsq-block-ip-3793518" href="#">Block IP address</a></li>
+										</ul>
+									</li>
+								</ul>
+							</div>
+
+							<cite id="dsq-cite-3793518">
+																	<span id="dsq-author-user-3793518">
+										bud crandall									</span>
+															</cite>
+
+							<span class="dsq-header-meta">
+								<a id="dsq-time-3793518" class="dsq-header-time" href="#comment-3793518" title="Permalink">7 months ago</a>
+								<span id="dsq-points-3793518" class="dsq-header-points" style="display: none">1 point</span>
+							</span>
+						</div>
+
+						<div class="dsq-comment-body">
+							<p id="dsq-login-3793518" style="display:none">Please <a href="http://disqus.com/login/?next=article:7093340">login</a> to rate.</p>
+							<p id="dsq-comment-alert-3793518" class="dsq-comment-alert" style="display: none">
+								Do you already have an account? <a href="http://disqus.com/claim/">Log in and claim this comment</a>.
+							</p>
+							<div id="dsq-comment-message-3793518" class="dsq-comment-message">What kind of security does erlang have, I need cyrpto type security, for credit cards.</div>
+
+													</div>
+
+						<div class="dsq-comment-footer" id="dsq-comment-footer-3793518">
+															<a href="#" id="dsq-reply-link-3793518">reply</a>
+								<span id="dsq-edit-wrap-3793518" style="display: none">
+									&nbsp;<a href="#" id="dsq-edit-3793518" style="display: none">edit</a>
+								</span>
+								<span id="dsq-reblog-wrap-3793518" style="display: none">
+									&nbsp;<a href="#" id="dsq-reblog-3793518" class="dsq-reblog">reblog</a>
+								</span>
+								<span id="dsq-post-report-3793518" style="display: none">
+									&nbsp;<a id="dsq-post-report-a-3793518" href="#" class="dsq-post-report">flag</a>
+								</span>
+								
+								<div id="dsq-reply-3793518"><!-- iframe .dsq-post-reply  injected here --></div>
+													</div>
+
+						<div id="dsq-hidden-data-3793518" style="display:none">
+															<span style="display: none" id="dsq-hidden-blog-3793518"></span>
+								<span style="display: none" id="dsq-hidden-userurl-3793518">/people/1effe8cf70738f20bab076f62ccaa607/</span>
+								<span style="display: none" id="dsq-hidden-facebook-3793518"></span>
+								<span style="display: none" id="dsq-hidden-linkedin-3793518"></span>
+								<span style="display: none" id="dsq-hidden-twitter-3793518"></span>
+								<span style="display: none" id="dsq-hidden-delicious-3793518"></span>
+								<span style="display: none" id="dsq-hidden-flickr-3793518"></span>
+								<span style="display: none" id="dsq-hidden-tumblr-3793518"></span>
+														<span style="display: none" id="dsq-hidden-avatar-3793518"><img src="http://www.gravatar.com/avatar.php?gravatar_id=1effe8cf70738f20bab076f62ccaa607&size=32&default=http://media.disqus.com/images/noavatar32.png" /></span>
+						</div>
+					</li>
+																			<div id="comment-3793522"></div>
+					<li id="dsq-comment-3793522" style="margin-left:0px" class="dsq-comment">
+						<ul class="dsq-comment-rate" id="dsq-rate-loading-3793522" style="display: none"><img src="http://media.disqus.com/images/loading-small.gif" /></ul>
+						<ul class="dsq-comment-rate" id="dsq-rate-3793522">
+							<li id="dsq-rate-up-3793522"><a id="dsq-rate-up-a-3793522" class="dsq-arrows" href="#" title="Rate Up"><img src="http://media.disqus.com/images/embed/arrow2-up.png" alt="^" /></a></li>
+							<li id="dsq-rate-down-3793522"><a id="dsq-rate-down-a-3793522" class="dsq-arrows" href="#" title="Rate Down"><img src="http://media.disqus.com/images/embed/arrow2-down.png" alt="v" /></a></li>
+						</ul>
+						<div id="dsq-comment-header-3793522" class="dsq-comment-header">
+							<div class="dsq-header-avatar" id="dsq-header-avatar-3793522">
+								<a id="dsq-avatar-3793522" href="http://disqus.com/people/ca6ad0403a054f3eef2e42081530f110/" title="Profile">
+									<img src="http://www.gravatar.com/avatar.php?gravatar_id=ca6ad0403a054f3eef2e42081530f110&size=32&default=http://media.disqus.com/images/noavatar32.png" />
+								</a>
+								<ul id="dsq-menu-3793522" class="dsq-menu" style="display:none">
+																		<li><a href="#comment-3793522">Permalink</a></li>
+									<li style="display: none">
+										<a id="dsq-admin-toggle-3793522" class="dsq-admin-toggle" href="#">
+											Admin<img src="http://media.disqus.com/images/embed/pointer-right.png" />
+										</a>
+									</li>
+									<li id="dsq-admin-panel-3793522" class="dsq-admin-panel" style="display: none">
+										<ul>
+											<li id="dsq-admin-email-3793522" class="dsq-admin-email"></li>
+											<li id="dsq-admin-ip-3793522" class="dsq-admin-ip"></li>
+											<li><a id="dsq-remove-3793522" href="#">Remove&nbsp;Post</a></li>
+																						<li><a id="dsq-block-email-3793522" href="#">Block email</a></li>
+											<li><a id="dsq-block-ip-3793522" href="#">Block IP address</a></li>
+										</ul>
+									</li>
+								</ul>
+							</div>
+
+							<cite id="dsq-cite-3793522">
+																	<span id="dsq-author-user-3793522">
+										art									</span>
+															</cite>
+
+							<span class="dsq-header-meta">
+								<a id="dsq-time-3793522" class="dsq-header-time" href="#comment-3793522" title="Permalink">7 months ago</a>
+								<span id="dsq-points-3793522" class="dsq-header-points" style="display: none">1 point</span>
+							</span>
+						</div>
+
+						<div class="dsq-comment-body">
+							<p id="dsq-login-3793522" style="display:none">Please <a href="http://disqus.com/login/?next=article:7093340">login</a> to rate.</p>
+							<p id="dsq-comment-alert-3793522" class="dsq-comment-alert" style="display: none">
+								Do you already have an account? <a href="http://disqus.com/claim/">Log in and claim this comment</a>.
+							</p>
+							<div id="dsq-comment-message-3793522" class="dsq-comment-message">take a look at <br><a href="http://www.erlang.org/doc/man/crypto.html#info-0" rel="nofollow">http://www.erlang.org/doc/man/crypto.html#info-0</a><br>and kreditor</div>
+
+													</div>
+
+						<div class="dsq-comment-footer" id="dsq-comment-footer-3793522">
+															<a href="#" id="dsq-reply-link-3793522">reply</a>
+								<span id="dsq-edit-wrap-3793522" style="display: none">
+									&nbsp;<a href="#" id="dsq-edit-3793522" style="display: none">edit</a>
+								</span>
+								<span id="dsq-reblog-wrap-3793522" style="display: none">
+									&nbsp;<a href="#" id="dsq-reblog-3793522" class="dsq-reblog">reblog</a>
+								</span>
+								<span id="dsq-post-report-3793522" style="display: none">
+									&nbsp;<a id="dsq-post-report-a-3793522" href="#" class="dsq-post-report">flag</a>
+								</span>
+								
+								<div id="dsq-reply-3793522"><!-- iframe .dsq-post-reply  injected here --></div>
+													</div>
+
+						<div id="dsq-hidden-data-3793522" style="display:none">
+															<span style="display: none" id="dsq-hidden-blog-3793522"></span>
+								<span style="display: none" id="dsq-hidden-userurl-3793522">/people/ca6ad0403a054f3eef2e42081530f110/</span>
+								<span style="display: none" id="dsq-hidden-facebook-3793522"></span>
+								<span style="display: none" id="dsq-hidden-linkedin-3793522"></span>
+								<span style="display: none" id="dsq-hidden-twitter-3793522"></span>
+								<span style="display: none" id="dsq-hidden-delicious-3793522"></span>
+								<span style="display: none" id="dsq-hidden-flickr-3793522"></span>
+								<span style="display: none" id="dsq-hidden-tumblr-3793522"></span>
+														<span style="display: none" id="dsq-hidden-avatar-3793522"><img src="http://www.gravatar.com/avatar.php?gravatar_id=ca6ad0403a054f3eef2e42081530f110&size=32&default=http://media.disqus.com/images/noavatar32.png" /></span>
+						</div>
+					</li>
+																			<div id="comment-3793517"></div>
+					<li id="dsq-comment-3793517" style="margin-left:0px" class="dsq-comment">
+						<ul class="dsq-comment-rate" id="dsq-rate-loading-3793517" style="display: none"><img src="http://media.disqus.com/images/loading-small.gif" /></ul>
+						<ul class="dsq-comment-rate" id="dsq-rate-3793517">
+							<li id="dsq-rate-up-3793517"><a id="dsq-rate-up-a-3793517" class="dsq-arrows" href="#" title="Rate Up"><img src="http://media.disqus.com/images/embed/arrow2-up.png" alt="^" /></a></li>
+							<li id="dsq-rate-down-3793517"><a id="dsq-rate-down-a-3793517" class="dsq-arrows" href="#" title="Rate Down"><img src="http://media.disqus.com/images/embed/arrow2-down.png" alt="v" /></a></li>
+						</ul>
+						<div id="dsq-comment-header-3793517" class="dsq-comment-header">
+							<div class="dsq-header-avatar" id="dsq-header-avatar-3793517">
+								<a id="dsq-avatar-3793517" href="http://disqus.com/people/d9b705b1bd98460c5f6689d662531875/" title="Profile">
+									<img src="http://www.gravatar.com/avatar.php?gravatar_id=d9b705b1bd98460c5f6689d662531875&size=32&default=http://media.disqus.com/images/noavatar32.png" />
+								</a>
+								<ul id="dsq-menu-3793517" class="dsq-menu" style="display:none">
+																		<li><a href="#comment-3793517">Permalink</a></li>
+									<li style="display: none">
+										<a id="dsq-admin-toggle-3793517" class="dsq-admin-toggle" href="#">
+											Admin<img src="http://media.disqus.com/images/embed/pointer-right.png" />
+										</a>
+									</li>
+									<li id="dsq-admin-panel-3793517" class="dsq-admin-panel" style="display: none">
+										<ul>
+											<li id="dsq-admin-email-3793517" class="dsq-admin-email"></li>
+											<li id="dsq-admin-ip-3793517" class="dsq-admin-ip"></li>
+											<li><a id="dsq-remove-3793517" href="#">Remove&nbsp;Post</a></li>
+																						<li><a id="dsq-block-email-3793517" href="#">Block email</a></li>
+											<li><a id="dsq-block-ip-3793517" href="#">Block IP address</a></li>
+										</ul>
+									</li>
+								</ul>
+							</div>
+
+							<cite id="dsq-cite-3793517">
+																	<span id="dsq-author-user-3793517">
+										Olivier									</span>
+															</cite>
+
+							<span class="dsq-header-meta">
+								<a id="dsq-time-3793517" class="dsq-header-time" href="#comment-3793517" title="Permalink">4 months ago</a>
+								<span id="dsq-points-3793517" class="dsq-header-points" style="display: none">1 point</span>
+							</span>
+						</div>
+
+						<div class="dsq-comment-body">
+							<p id="dsq-login-3793517" style="display:none">Please <a href="http://disqus.com/login/?next=article:7093340">login</a> to rate.</p>
+							<p id="dsq-comment-alert-3793517" class="dsq-comment-alert" style="display: none">
+								Do you already have an account? <a href="http://disqus.com/claim/">Log in and claim this comment</a>.
+							</p>
+							<div id="dsq-comment-message-3793517" class="dsq-comment-message">Hi,<br>Where did you find out about the "binary" option to inet:setopts/2 ? I can&#39;t find anything about it in the official documentation. I figured out by experimenting that the default type for recv seems to be string, and the binary option switches to binary, but I&#39;m curious about other possibilities too.</div>
+
+													</div>
+
+						<div class="dsq-comment-footer" id="dsq-comment-footer-3793517">
+															<a href="#" id="dsq-reply-link-3793517">reply</a>
+								<span id="dsq-edit-wrap-3793517" style="display: none">
+									&nbsp;<a href="#" id="dsq-edit-3793517" style="display: none">edit</a>
+								</span>
+								<span id="dsq-reblog-wrap-3793517" style="display: none">
+									&nbsp;<a href="#" id="dsq-reblog-3793517" class="dsq-reblog">reblog</a>
+								</span>
+								<span id="dsq-post-report-3793517" style="display: none">
+									&nbsp;<a id="dsq-post-report-a-3793517" href="#" class="dsq-post-report">flag</a>
+								</span>
+								
+								<div id="dsq-reply-3793517"><!-- iframe .dsq-post-reply  injected here --></div>
+													</div>
+
+						<div id="dsq-hidden-data-3793517" style="display:none">
+															<span style="display: none" id="dsq-hidden-blog-3793517"></span>
+								<span style="display: none" id="dsq-hidden-userurl-3793517">/people/d9b705b1bd98460c5f6689d662531875/</span>
+								<span style="display: none" id="dsq-hidden-facebook-3793517"></span>
+								<span style="display: none" id="dsq-hidden-linkedin-3793517"></span>
+								<span style="display: none" id="dsq-hidden-twitter-3793517"></span>
+								<span style="display: none" id="dsq-hidden-delicious-3793517"></span>
+								<span style="display: none" id="dsq-hidden-flickr-3793517"></span>
+								<span style="display: none" id="dsq-hidden-tumblr-3793517"></span>
+														<span style="display: none" id="dsq-hidden-avatar-3793517"><img src="http://www.gravatar.com/avatar.php?gravatar_id=d9b705b1bd98460c5f6689d662531875&size=32&default=http://media.disqus.com/images/noavatar32.png" /></span>
+						</div>
+					</li>
+																			<div id="comment-3793525"></div>
+					<li id="dsq-comment-3793525" style="margin-left:0px" class="dsq-comment">
+						<ul class="dsq-comment-rate" id="dsq-rate-loading-3793525" style="display: none"><img src="http://media.disqus.com/images/loading-small.gif" /></ul>
+						<ul class="dsq-comment-rate" id="dsq-rate-3793525">
+							<li id="dsq-rate-up-3793525"><a id="dsq-rate-up-a-3793525" class="dsq-arrows" href="#" title="Rate Up"><img src="http://media.disqus.com/images/embed/arrow2-up.png" alt="^" /></a></li>
+							<li id="dsq-rate-down-3793525"><a id="dsq-rate-down-a-3793525" class="dsq-arrows" href="#" title="Rate Down"><img src="http://media.disqus.com/images/embed/arrow2-down.png" alt="v" /></a></li>
+						</ul>
+						<div id="dsq-comment-header-3793525" class="dsq-comment-header">
+							<div class="dsq-header-avatar" id="dsq-header-avatar-3793525">
+								<a id="dsq-avatar-3793525" href="http://disqus.com/people/04293a0ffec7db1b3ec9097b52ba69ae/" title="Profile">
+									<img src="http://www.gravatar.com/avatar.php?gravatar_id=04293a0ffec7db1b3ec9097b52ba69ae&size=32&default=http://media.disqus.com/images/noavatar32.png" />
+								</a>
+								<ul id="dsq-menu-3793525" class="dsq-menu" style="display:none">
+																		<li><a href="#comment-3793525">Permalink</a></li>
+									<li style="display: none">
+										<a id="dsq-admin-toggle-3793525" class="dsq-admin-toggle" href="#">
+											Admin<img src="http://media.disqus.com/images/embed/pointer-right.png" />
+										</a>
+									</li>
+									<li id="dsq-admin-panel-3793525" class="dsq-admin-panel" style="display: none">
+										<ul>
+											<li id="dsq-admin-email-3793525" class="dsq-admin-email"></li>
+											<li id="dsq-admin-ip-3793525" class="dsq-admin-ip"></li>
+											<li><a id="dsq-remove-3793525" href="#">Remove&nbsp;Post</a></li>
+																						<li><a id="dsq-block-email-3793525" href="#">Block email</a></li>
+											<li><a id="dsq-block-ip-3793525" href="#">Block IP address</a></li>
+										</ul>
+									</li>
+								</ul>
+							</div>
+
+							<cite id="dsq-cite-3793525">
+																	<a id="dsq-author-user-3793525" href="http://20bits.com">
+										Jesse									</a>
+															</cite>
+
+							<span class="dsq-header-meta">
+								<a id="dsq-time-3793525" class="dsq-header-time" href="#comment-3793525" title="Permalink">3 months ago</a>
+								<span id="dsq-points-3793525" class="dsq-header-points" style="display: none">1 point</span>
+							</span>
+						</div>
+
+						<div class="dsq-comment-body">
+							<p id="dsq-login-3793525" style="display:none">Please <a href="http://disqus.com/login/?next=article:7093340">login</a> to rate.</p>
+							<p id="dsq-comment-alert-3793525" class="dsq-comment-alert" style="display: none">
+								Do you already have an account? <a href="http://disqus.com/claim/">Log in and claim this comment</a>.
+							</p>
+							<div id="dsq-comment-message-3793525" class="dsq-comment-message">Olivier,<br><br>It&#39;s somewhere in the docs, which are admittedly terrible.  Sorry I can&#39;t be of more help.</div>
+
+													</div>
+
+						<div class="dsq-comment-footer" id="dsq-comment-footer-3793525">
+															<a href="#" id="dsq-reply-link-3793525">reply</a>
+								<span id="dsq-edit-wrap-3793525" style="display: none">
+									&nbsp;<a href="#" id="dsq-edit-3793525" style="display: none">edit</a>
+								</span>
+								<span id="dsq-reblog-wrap-3793525" style="display: none">
+									&nbsp;<a href="#" id="dsq-reblog-3793525" class="dsq-reblog">reblog</a>
+								</span>
+								<span id="dsq-post-report-3793525" style="display: none">
+									&nbsp;<a id="dsq-post-report-a-3793525" href="#" class="dsq-post-report">flag</a>
+								</span>
+								
+								<div id="dsq-reply-3793525"><!-- iframe .dsq-post-reply  injected here --></div>
+													</div>
+
+						<div id="dsq-hidden-data-3793525" style="display:none">
+															<span style="display: none" id="dsq-hidden-blog-3793525">http://20bits.com</span>
+								<span style="display: none" id="dsq-hidden-userurl-3793525">/people/04293a0ffec7db1b3ec9097b52ba69ae/</span>
+								<span style="display: none" id="dsq-hidden-facebook-3793525"></span>
+								<span style="display: none" id="dsq-hidden-linkedin-3793525"></span>
+								<span style="display: none" id="dsq-hidden-twitter-3793525"></span>
+								<span style="display: none" id="dsq-hidden-delicious-3793525"></span>
+								<span style="display: none" id="dsq-hidden-flickr-3793525"></span>
+								<span style="display: none" id="dsq-hidden-tumblr-3793525"></span>
+														<span style="display: none" id="dsq-hidden-avatar-3793525"><img src="http://www.gravatar.com/avatar.php?gravatar_id=04293a0ffec7db1b3ec9097b52ba69ae&size=32&default=http://media.disqus.com/images/noavatar32.png" /></span>
+						</div>
+					</li>
+									</ul>
+		<div id="dsq-pagination">
+&nbsp;		</div>
+		<div id="dsq-post-bottom" style="display: none">
+							<div id="dsq-auth">
+					<div class="dsq-by"><a href="http://disqus.com/" target="_blank"><img src="http://media.disqus.com/images/embed/dsq-button-120x19.png" alt="discussion by DISQUS" /></a></div>
+					<div class="dsq-auth-header">
+						<h3 id="dsq-add-new-comment">Add New Comment</h3>
+						<span id="dsq-auth-as"><noscript><br />You must have JavaScript enabled to comment.</noscript></span>
+					</div>
+				</div>
+					</div>
+			</div>
+</div>
+
+
+<!-- embed_thread_profile.html -->
+
+<!-- profile -->
+<div id="dsq-template-profile" class="dsq-popupdiv" style="display:none">
+	<div id="dsq-popup-profile">
+		<div id="dsq-popup-top">
+		</div>
+		<div id="dsq-popup-body" class="clearfix">
+			<div id="dsq-popup-body-padding">
+				<div id="dsq-popup-header">
+					<a class="dsq-close-link" href="#" onclick="Dsq.Popup.hidePopup(); return false">close</a>
+					<span id="dsq-profile-avatar"></span>
+					<cite>
+						<span id="dsq-profile-cite"></span>(<a id="dsq-profile-userurl" href="#"></a>)
+					</cite>
+				</div>
+				<div id="dsq-profile-services">
+					<a id="dsq-profile-clout" class="dsq-profile-badge" href="#"></a>
+					<ul>
+						<li style="display:none">
+							<a id="dsq-service-blog" href="#" target="_blank">
+								<img src="http://media.disqus.com/images/embed/services/blog.png" />
+							</a>
+						</li>
+						<li style="display:none">
+							<a id="dsq-service-facebook" href="#" target="_blank">
+								<img src="http://media.disqus.com/images/embed/services/facebook.png" />
+							</a>
+						</li>
+						<li style="display:none">
+							<a id="dsq-service-linkedin" href="#" target="_blank">
+								<img src="http://media.disqus.com/images/embed/services/linkedin.png" />
+							</a>
+						</li>
+						<li style="display:none">
+							<a id="dsq-service-twitter" href="#" target="_blank">
+								<img src="http://media.disqus.com/images/embed/services/twitter.png" />
+							</a>
+						</li>
+						<li style="display:none">
+							<a id="dsq-service-delicious" href="#" target="_blank">
+								<img src="http://media.disqus.com/images/embed/services/delicious.png" />
+							</a>
+						</li>
+						<li style="display:none">
+							<a id="dsq-service-flickr" href="#" target="_blank">
+								<img src="http://media.disqus.com/images/embed/services/flickr.png" />
+							</a>
+						</li>
+						<li style="display:none">
+							<a id="dsq-service-tumblr" href="#" target="_blank">
+								<img src="http://media.disqus.com/images/embed/services/tumblr.png" />
+							</a>
+						</li>
+					</ul>
+				</div>
+				<div id="dsq-profile-status">
+					<p class="dsq-profile-label">status via twitter</p>
+					<p></p>
+				</div>
+				<div id="dsq-profile-recentcomments">
+					<p class="dsq-profile-label">recent comments <span>(<a href="#" id="dsq-profile-follow">follow comments</a>)</span></p>
+					<ul id="dsq-profile-commentlist"></ul>
+				</div>
+				<div class="show-more"><a href="#" id="dsq-profile-showmore">View Profile »</a></div>
+				<div class="powered-by"><a href="http://disqus.com">Powered by <span class="disqus">Disqus</span></a>&nbsp;&middot;&nbsp;<a href="http://disqus.com">Learn more</a></div>
+			</div> <!-- padding -->
+		</div> <!-- body -->
+		<div id="dsq-popup-bottom"></div>
+	</div>
+</div>
+
+<!-- reblog -->
+<div id="dsq-template-reblog" class="dsq-reblogdiv">
+	<div id="dsq-popup-profile">
+		<div id="dsq-popup-top">
+		</div>
+		<div id="dsq-popup-body" class="clearfix">
+			<div id="dsq-popup-body-padding">
+				<div id="dsq-popup-header">
+					<a class="dsq-close-link" id="dsq-close-reblog" href="#" onclick="Dsq.Popup.hidePopup(); return false">close</a>
+					<cite>Reblog this comment</cite>
+				</div>
+				<div id="dsq-reblog-form">
+				</div>
+				<div class="powered-by"><a href="http://disqus.com">Powered by <span class="disqus">Disqus</span></a>&nbsp;&middot;&nbsp;<a href="http://disqus.com/">Learn more</a></div>
+			</div> <!-- padding -->
+		</div> <!-- body -->
+		<div id="dsq-popup-bottom"></div>
+	</div>
+</div>
+
+<!-- /embed_thread_profile.html -->
+
+<a href="http://disqus.com" class="dsq-brlink">blog comments powered by <span class="logo-disqus">Disqus</span></a>
+<script type="text/javascript">
+</script>
+<script type="text/javascript" charset="utf-8">
+	var disqusMediaUrl = "http://media.disqus.com";
+	var threadEl = document.getElementById('dsq-content');
+	var disqus_url = 'http://20bits.com/articles/network-programming-in-erlang/ ';
+</script>
+<script type="text/javascript" src="http://disqus.com/scripts/20bits/disqus.js?t=network_programming_in_erlang_20bits"></script>
+<script type="text/javascript" src="http://disqus.com/api/v1/embed_reply.js?forum_url=20bits&thread_id=7093340"></script>
+				</div>
+					<div class="sidebar wide">
+				<div class="related">
+			<h3><span class="section-name">Related</span> Articles</h3>
+			<ul class="related_post"><li class="post-title"><a href="http://20bits.com/articles/erlang-a-generalized-tcp-server/" title="Erlang: A Generalized TCP Server">Erlang: A Generalized TCP Server</a></li><li class="post-title"><a href="http://20bits.com/articles/erlang-an-introduction-to-records/" title="Erlang: An Introduction to Records">Erlang: An Introduction to Records</a></li><li class="post-title"><a href="http://20bits.com/articles/erlang-a-generic-server-tutorial/" title="Erlang: A Generic Server Tutorial">Erlang: A Generic Server Tutorial</a></li><li class="post-title"><a href="http://20bits.com/articles/learning-erlang/" title="Learning Erlang">Learning Erlang</a></li></ul>					</div>
+		
+		<div class="recent">
+			<h3><span class="section-name">Recent</span> Articles</h3>
+			
+			<ul>
+							<li class="post-title">
+					<a href="http://20bits.com/articles/when-in-rome-newcomers-on-facebook/">When in Rome: Newcomers on Facebook</a>
+				</li>
+							<li class="post-title">
+					<a href="http://20bits.com/articles/the-099-app-store/">The $0.99 (App) Store</a>
+				</li>
+							<li class="post-title">
+					<a href="http://20bits.com/articles/the-dangers-of-genetic-optimization/">The Dangers of Genetic Optimization</a>
+				</li>
+							<li class="post-title">
+					<a href="http://20bits.com/articles/the-cult-of-the-product/">The Cult of the Product</a>
+				</li>
+							<li class="post-title">
+					<a href="http://20bits.com/articles/three-myths-of-viral-growth/">Three Myths of Viral Growth</a>
+				</li>
+							<li class="post-title" style="text-align: right">
+					<div class="date">&nbsp;</div>
+					<a href="/category/articles/">More Articles &raquo;</a>
+				</li>
+			</ul>
+		</div>
+		<div class="subscribe">
+			<a href="http://20bits.com/feed/">Subscribe to 20bits</a>
+		</div>
+		<div class="twitter">
+			<a href="http://twitter.com/farmerje">Follow me on Twitter</a>
+		</div>
+		<div class="email-subscribe">
+		<form style="border:1px solid #ccc;padding:3px;text-align:center;" action="http://www.feedburner.com/fb/a/emailverify" method="post" target="popupwindow" onsubmit="window.open('http://www.feedburner.com/fb/a/emailverifySubmit?feedId=1833838', 'popupwindow', 'scrollbars=yes,width=550,height=520');return true"><p>...or subscribe via email</p><p><input type="text" style="width:180px" name="email"/></p><input type="hidden" value="http://feeds.feedburner.com/~e?ffid=1833838" name="url"/><input type="hidden" value="20bits" name="title"/><input type="hidden" name="loc" value="en_US"/><input type="submit" value="Subscribe" ></form>
+		</div>
+	</div>
+<!--
+<div id="sidebar">
+				<h3 class="related">Related Articles</h3>
+		<ul class="related_post"><li class="post-title"><a href="http://20bits.com/articles/the-dangers-of-genetic-optimization/" title="The Dangers of Genetic Optimization">The Dangers of Genetic Optimization</a></li><li class="post-title"><a href="http://20bits.com/articles/copyright-infringement-is-not-theft/" title="Copyright Infringement != Theft">Copyright Infringement != Theft</a></li><li class="post-title"><a href="http://20bits.com/articles/implementing-a-suggest-a-friend-feature/" title="Implementing A Suggest-A-Friend Feature">Implementing A Suggest-A-Friend Feature</a></li><li class="post-title"><a href="http://20bits.com/articles/facebook-users-just-want-entertainment/" title="Facebook Users Just Want Entertainment">Facebook Users Just Want Entertainment</a></li><li class="post-title"><a href="http://20bits.com/articles/facebook-bans-google-friend-connect/" title="Facebook Bans Google Friend Connect">Facebook Bans Google Friend Connect</a></li></ul>						
+		<h3 class="recent">Recent Articles</h3>
+		<ul>
+		<li><a class="red" href="http://20bits.com/articles/when-in-rome-newcomers-on-facebook/">When in Rome: Newcomers on Facebook</a></li><li><a class="red" href="http://20bits.com/articles/the-099-app-store/">The $0.99 (App) Store</a></li><li><a class="red" href="http://20bits.com/articles/the-dangers-of-genetic-optimization/">The Dangers of Genetic Optimization</a></li><li><a class="red" href="http://20bits.com/articles/the-cult-of-the-product/">The Cult of the Product</a></li><li><a class="red" href="http://20bits.com/articles/three-myths-of-viral-growth/">Three Myths of Viral Growth</a></li>		</ul>
+		
+		<h3 class="popular">Popular Articles</h3>
+		<ul class="contextual-list">
+		<li><a class="blue" href="http://20bits.com/articles/10-tips-for-optimizing-mysql-queries-that-dont-suck/">10 Tips for Optimizing MySQL Queries (That don't suck)</a></li><li><a class="blue" href="http://20bits.com/articles/easter-eggs-in-facebook-chat/">Easter Eggs in Facebook Chat</a></li><li><a class="blue" href="http://20bits.com/articles/the-state-of-the-facebook-platform/">The State of the Facebook Platform</a></li><li><a class="blue" href="http://20bits.com/articles/introduction-to-dynamic-programming/">Introduction to Dynamic Programming</a></li><li><a class="blue" href="http://20bits.com/articles/interview-questions-database-indexes/">Interview Questions: Database Indexes</a></li>		</ul>
+		
+		<h3 class="recent">Featured Articles</h3>
+		<ul>
+		<li><a class="aqua" href="http://20bits.com/articles/data-driven-development/">Data-Driven Development</a></li><li><a class="aqua" href="http://20bits.com/articles/erlang-a-generalized-tcp-server/">Erlang: A Generalized TCP Server</a></li><li><a class="aqua" href="http://20bits.com/articles/introduction-to-dynamic-programming/">Introduction to Dynamic Programming</a></li><li><a class="aqua" href="http://20bits.com/articles/facebook-job-puzzles-prime-bits/">Facebook job puzzles: Prime bits</a></li><li><a class="aqua" href="http://20bits.com/articles/facebook-job-puzzles-korn-shell/">Facebook job puzzles: Korn Shell</a></li>		</ul>
+		<div class="subscribe">
+			<a href="http://20bits.com/feed/">Subscribe to 20bits</a>
+		</div>
+		
+	</div>
+-->
+	</div>
+	</div>
+	
+</div>
+
+		<div id="footer">
+			<div class="inside">
+			Copyright &copy; Jesse E. Farmer
+			</div>
+		</div>
+	</div>
+</body>
+</html>
+
+
+<!-- Dynamic Page Served (once) in 1.445 seconds -->
+<!-- super cache -->

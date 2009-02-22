@@ -43,10 +43,7 @@ loop() ->
 main(_) ->
     Self = self(),
 
-    CallF1 = fun() -> f1() end,
-    PidF1 = spawn(CallF1),
-
-    CallF2 = fun() -> f2(Self, PidF1) end,
-    _PidF2 = spawn(CallF2),
+    PidF1 = spawn(fun() -> f1() end),
+    _PidF2 = spawn(fun() -> f2(Self, PidF1) end),
 
     loop().
