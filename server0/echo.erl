@@ -3,7 +3,13 @@
 
 -export([listen/1]).
 
--define(TCP_OPTIONS, [binary, {packet, 0}, {active, false}, {reuseaddr, true}]).
+-define(TCP_OPTIONS, [
+		      binary,
+		      {packet, 0},
+		      {active, false},
+		      {reuseaddr, true}
+		     ]
+       ).
 
 listen(Port) ->
     {ok, LSocket} = gen_tcp:listen(Port, ?TCP_OPTIONS),

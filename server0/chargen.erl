@@ -7,7 +7,13 @@
 -define(END_CHAR, 127).   % exclusive
 -define(LINE_LENGTH, 72).
 
--define(TCP_OPTIONS, [binary, {packet, 0}, {active, false}, {reuseaddr, true}]).
+-define(TCP_OPTIONS, [
+		      binary,
+		      {packet, 0},
+		      {active, false},
+		      {reuseaddr, true}
+		     ]
+       ).
 
 % Call chargen:listen(Port) to start the service.
 listen(Port) ->

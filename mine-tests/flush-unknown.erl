@@ -1,5 +1,5 @@
-#!/usr/bin/env escript
-%% -*- erlang -*-
+-module('flush-unknown').
+-export([main/0, f1/0]).
 
 f1() ->
     receive
@@ -40,10 +40,10 @@ loop() ->
 	    loop()
     end.
 
-main(_) ->
+main() ->
     Self = self(),
 
-    PidF1 = spawn(fun() -> f1() end),
-    _PidF2 = spawn(fun() -> f2(Self, PidF1) end),
+    PidF1 = spawn('flush-unknown', f1, []),             % spawn/3 (module, function, arguments)
+    _PidF2 = spawn(fun() -> f2(Self, PidF1) end),       % spawn/1: (fun)
 
     loop().
