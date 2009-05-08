@@ -28,3 +28,7 @@ fib2.erl / fib2.py
         which do not exceed one million.
 
 	reference: http://erlang-python-java.blogspot.com/2008/01/little-erlange-exercise-2.html
+
+records.erl / records.escript
+
+	records usage
