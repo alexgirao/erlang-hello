@@ -1,9 +1,27 @@
-flush-unknown.erl
 
-	shows how do flush/discard unknown messages to avoid filling
-	up message queues.
+note: 'man 3 erlang' for BIFs (Built-In Functions) documentation
+
+flush-unknown.erl / flush-unknown.escript
+
+	- how basic messaging works
+	- how do flush unknown messages and avoid filling up message queues
+	- ?MODULE macro
+	- self/0 BIF
+	- spawn/1 BIF
+	- spawn/3 BIF
+	- using non-standard module names ('flush-unknown')
 
 	reference: programming_rules.pdf
+
+echo.erl / echo.escript
+
+	- register/2 BIF
+	- whereis/1 BIF
+	- "spawn(fun echo/0)" like constructions
+
+arguments.escript
+
+	- how to handle arguments with erlang's escript
 
 sum.erl
 

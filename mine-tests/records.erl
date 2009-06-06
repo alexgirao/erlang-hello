@@ -15,7 +15,7 @@
 -record(test, {a, b, c, d, e=55, f, g, h}).
 
 new_person(Name) ->
-    #person{name=Name}.
+    #person{name=Name}.                  % will create a person with age=undefined
 
 new_person(Name, Age) ->
     #person{name=Name, age=Age}.

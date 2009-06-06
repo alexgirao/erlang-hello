@@ -1,4 +1,4 @@
-- arguments
+- shot-circuit (and, andalso, or, orelse)
 - stdin, stdout and stderr
 - file io
 - network io

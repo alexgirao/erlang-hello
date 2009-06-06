@@ -43,7 +43,7 @@ loop() ->
 main() ->
     Self = self(),
 
-    PidF1 = spawn('flush-unknown', f1, []),             % spawn/3 (module, function, arguments)
+    PidF1 = spawn(?MODULE, f1, []),                     % spawn/3 (module, function, arguments)
     _PidF2 = spawn(fun() -> f2(Self, PidF1) end),       % spawn/1: (fun)
 
     loop().
