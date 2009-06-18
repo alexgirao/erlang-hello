@@ -4,18 +4,29 @@
 %% list comprehensions
 
 main(_) ->
-    L = lists:seq(0,9),
+    L = lists:seq(0, 9),
+    io:format("~p~n", [L]),
 
-    L0 = [X || X <- L, X rem 2 == 0],
-    io:format("~p~n", [L0]),
+    io:format("~p~n", [
+        [X * 10 || X <- L]
+    ]),
 
-    L1 = [X + 1000 || X <- L, X == 1 orelse X == 2],
-    io:format("~p~n", [L1]),
+    io:format("~p~n", [
+        [X || X <- L, X rem 2 == 0]
+    ]),
 
-    L2 = [X * 1000 || X <- L, X rem 2 /= 0 andalso X >= 5],    % /= is not equal operator
-    io:format("~p~n", [L2]),
+    io:format("~p~n", [
+        [X || X <- L, X == 1 orelse X == 2]
+    ]),
 
-    L3 = [X * 1000 || X <- L, X rem 2 /= 0, X >= 5],    % , (comma) also works as logical and
-    io:format("~p~n", [L3]),
+    io:format("~p~n", [
+        [X || X <- L, X rem 2 /= 0 andalso X >= 5]
+    ]),
+
+    % , (comma) also works as logical and
+
+    io:format("~p~n", [
+        [X || X <- L, X rem 2 /= 0, X >= 5]
+    ]),
 
     ok.
