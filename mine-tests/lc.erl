@@ -15,4 +15,7 @@ main(_) ->
     L2 = [X * 1000 || X <- L, X rem 2 /= 0 andalso X >= 5],    % /= is not equal operator
     io:format("~p~n", [L2]),
 
+    L3 = [X * 1000 || X <- L, X rem 2 /= 0, X >= 5],    % , (comma) also works as logical and
+    io:format("~p~n", [L3]),
+
     ok.
