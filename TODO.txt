@@ -1,4 +1,5 @@
-- shot-circuit (and, andalso, or, orelse)
+- mine-tests/tuples.erl
+- mine-tests/and-or.erl
 - stdin, stdout and stderr
 - file io
 - network io

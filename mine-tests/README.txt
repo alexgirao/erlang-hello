@@ -17,7 +17,9 @@ echo.erl / echo.escript
 
 	- register/2 BIF
 	- whereis/1 BIF
-	- "spawn(fun echo/0)" like constructions
+	- fun Name/Arity usage
+
+    reference: erl5.7.1/doc/reference_manual/part_frame.html
 
 arguments.escript
 
@@ -31,9 +33,11 @@ sum.erl
 
 lc.erl
 
-	list comprehensions
+	- list comprehensions
+    - fun vs fun expression
 
 	reference: http://erlang-python-java.blogspot.com/2008/01/little-erlange-exercise-1.html
+    reference: erl5.7.1/doc/reference_manual/part_frame.html
 
 fib.erl
 
