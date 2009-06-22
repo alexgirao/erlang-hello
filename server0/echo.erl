@@ -1,7 +1,7 @@
 -module(echo).
 -author('Jesse E.I. Farmer <jesse@20bits.com>').
 
--export([listen/1]).
+-export([listen/1, do_echo/1]).
 
 -define(TCP_OPTIONS, [
 		      binary,
@@ -17,7 +17,7 @@ listen(Port) ->
 
 accept(LSocket) ->
     {ok, Socket} = gen_tcp:accept(LSocket),
-    spawn(fun() -> do_echo(Socket) end),
+    spawn(?MODULE, do_echo, [Socket]),           %% do_echo must be exported for this to work
     accept(LSocket).
 
 do_echo(Socket) ->

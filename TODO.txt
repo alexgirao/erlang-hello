@@ -1,3 +1,7 @@
+- performance.erl (measure performance, study case: spawn/1 vs spawn/3)
+
+  - see http://www.trapexit.org/forum/viewtopic.php?t=135&sid=26ab5f5d3005590b32eb8370848770e8
+
 - mine-tests/tuples.erl
 - mine-tests/and-or.erl
 - behavior/callback modules
