@@ -1,0 +1,21 @@
+protocol documentation
+    
+    bkp/erlang/docs/doc/pdf/ic.pdf
+    http://localhost/doc/erlang-doc-html/html/lib/ic-4.2.18/doc/html/index.html
+    http://localhost/doc/erlang-doc-html/html/lib/ic-4.2.18/doc/html/ic_c_protocol.html
+    http://localhost/doc/erlang-doc-html/html/lib/ic-4.2.18/doc/html/ch_ic_protocol.html
+
+requirements
+
+	- python
+	- py-interface
+
+	  - http://www.lysator.liu.se/~tab/erlang/py_interface/
+	  - http://www.lysator.liu.se/~tab/erlang/py_interface/py_interface-0.96.tar.gz
+
+shell commands
+
+	./epmd.sh &
+	erlc -o erl/ erl/node.erl
+	python py/node.py > py.out 2>&1 &
+	erl -noinput -sname enode1@localhost -setcookie cookie -pa erl -s node start -s erlang halt
