@@ -5,6 +5,11 @@ protocol documentation
     http://localhost/doc/erlang-doc-html/html/lib/ic-4.2.18/doc/html/ic_c_protocol.html
     http://localhost/doc/erlang-doc-html/html/lib/ic-4.2.18/doc/html/ch_ic_protocol.html
 
+    otp_src_R13B/lib/kernel/internal_doc/distribution_handshake.txt
+    otp_src_R13B/erts/emulator/internal_doc/erl_ext_dist.txt
+    otp_src_R13B/lib/kernel/src/net_kernel.erl
+    otp_src_R13B/lib/kernel/src/dist_util.erl
+
 requirements
 
 	- python
