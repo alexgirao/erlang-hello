@@ -5,7 +5,7 @@
 main() ->
 	Pid = spawn(fun echo/0),                       %% syntactic sugar "fun() -> echo() end"
 	register(echoprocess, Pid),                    %% register Pid with echoprocess atom
-	whereis(echoprocess) ! {self(), now()},        %% whereis/1 usage
+	whereis(echoprocess) ! {self(), now()},        %% whereis/1 usage, intended to be used in interactive shell
 	echoprocess ! {self(), now()},                 %% without 'whereis/1' works the same way
 	echoprocess ! {self(), done},
 	flush_self().                                  %% process what was echoed

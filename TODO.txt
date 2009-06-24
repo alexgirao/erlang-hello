@@ -1,6 +1,9 @@
-- performance.erl (measure performance, study case: spawn/1 vs spawn/3)
+- performance.erl (measure performance)
 
-  - see http://www.trapexit.org/forum/viewtopic.php?t=135&sid=26ab5f5d3005590b32eb8370848770e8
+    - study case: spawn/1 vs spawn/3
+    - study case: mine-tests/lc.erl, the last 3 cases
+    - see erl5.7.1/doc/efficiency_guide/part_frame.html
+    - see http://www.trapexit.org/forum/viewtopic.php?t=135&sid=26ab5f5d3005590b32eb8370848770e8
 
 - mine-tests/tuples.erl
 - mine-tests/and-or.erl

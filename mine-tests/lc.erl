@@ -30,30 +30,46 @@ main(_) ->
         [X || X <- L, X rem 2 /= 0, X >= 5]     
     ]),
 
-    % ; (semicolon) also works as "or"
+    % using if
 
-    F = fun(X) ->   % using if
-        if X == 1; X == 2 ->        % if GuardSeq -> ...
-            true;
-        true ->
-            false
+    F = fun(X) ->
+        if
+            X == 1; X == 2 ->        % GuardSeq -> ...
+                true;
+            true ->
+                false
         end
     end,
 
     io:format("~p~n", [
-        %[X || X <- L, X rem 2 /= 0; X >= 5]     % won't work, filter is a simple expression (is it a GuardExpr?)
+        %[X || X <- L, X rem 2 /= 0; X >= 5]     % won't work, filter is GuardExpr (as opposed to GuardSeq)
         [X || X <- L, F(X)]
     ]),
 
-    % now using a fun expression instead of a fun
+    % using match
 
-    F2 = fun    % using guards
+    F2 = fun(X) ->
+        case X of
+            1 -> true;
+            2 -> true;
+            _ -> false
+        end
+    end,
+
+    io:format("~p~n", [
+        [X || X <- L, F2(X)]
+
+    ]),
+
+    % using fun expression (fun + guards)
+
+    F3 = fun    % using guards
         (X) when X == 1; X == 2 -> true;
         (_) -> false
     end,
 
     io:format("~p~n", [
-        [X || X <- L, F2(X)]
+        [X || X <- L, F3(X)]
     ]),
 
     ok.

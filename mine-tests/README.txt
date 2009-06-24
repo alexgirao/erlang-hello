@@ -1,5 +1,10 @@
 
-note: 'man 3 erlang' for BIFs (Built-In Functions) documentation
+- 'man 3 erlang' for BIFs (Built-In Functions) documentation
+- or erl5.7.1/erts-5.7.1/doc/html/erlang.html
+
+tuples.escript
+
+    - how to use tuples
 
 flush-unknown.erl / flush-unknown.escript
 
