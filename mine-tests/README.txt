@@ -58,4 +58,10 @@ fib2.erl / fib2.py
 
 records.erl / records.escript
 
-	records usage
+	- records usage
+
+tt.erl / tt.escript
+
+       - timer:tc usage
+
+       - reference: http://localhost/doc/erlang-doc-html/html/doc/efficiency_guide/part_frame.html

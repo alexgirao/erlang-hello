@@ -1,0 +1,15 @@
+
+requirements
+
+	- python
+	- py-interface
+
+	  - http://www.lysator.liu.se/~tab/erlang/py_interface/
+	  - http://www.lysator.liu.se/~tab/erlang/py_interface/py_interface-0.96.tar.gz
+
+shell commands
+
+	./epmd.sh &
+	erlc -o erl/ erl/node.erl
+	python py/node.py > py.out 2>&1 &
+	erl -noinput -sname enode1@localhost -setcookie cookie -pa erl -s node start -s erlang halt
