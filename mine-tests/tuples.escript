@@ -7,4 +7,4 @@ main(_) ->
     C = A == B,
     D = setelement(1, A, "ALPHA"),
     E = tuple_size(A),
-    io:format("~p~n~p~n~p~n~p~n~p~n", [A, B, C, D, E]).
+    io:format("~p~n", [[A, B, C, D, E]]).
