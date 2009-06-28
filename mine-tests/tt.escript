@@ -1,6 +1,8 @@
 #!/usr/bin/env escript
 %% -*- erlang -*-
 
+-import(tt, [test_avg/4]).
+
 main(_) ->
     make:files([tt]),
     R = timer:tc(erlang, length, [[]]),
@@ -13,4 +15,5 @@ main(_) ->
     T3 = timer:tc(tt, lc3, [L]),
     io:format("~p~n", [
         [Time || {Time,_} <- [T1, T2, T3]]
-    ]).
+    ]),
+    test_avg(lists, seq, [1,10], 10000).

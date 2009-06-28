@@ -60,8 +60,18 @@ records.erl / records.escript
 
 	- records usage
 
-tt.erl / tt.escript
+tt.erl / tt.escript / tt.txt
 
        - timer:tc usage
+       - test_avg function
+       - 'import' directive usage
 
        - reference: http://localhost/doc/erlang-doc-html/html/doc/efficiency_guide/part_frame.html
+       - reference: http://www.trapexit.org/Measuring_Function_Execution_Time
+
+l.erl
+
+	- usage of lists module
+
+	- reference: http://localhost/doc/erlang-doc-html/html/lib/stdlib-1.15.3/doc/html/index.html
+	- reference: http://localhost/doc/erlang-doc-html/html/lib/stdlib-1.15.3/doc/html/lists.html

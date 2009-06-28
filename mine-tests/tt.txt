@@ -1,0 +1,20 @@
+shell profiling (one liner)
+
+
+
+
+
+
+
+
+Erlang (BEAM) emulator version 5.6.3 [source] [smp:2] [async-threads:0] [kernel-poll:false]
+
+Eshell V5.6.3  (abort with ^G)
+1> TC = fun(TC_M, TC_F, TC_A, TC_N) when TC_N > 0 -> TC_L = tl([begin {TC_T, _Result} = timer:tc(TC_M, TC_F, TC_A), TC_T end || _ <- lists:seq(1, TC_N)]), TC_Min = lists:min(TC_L), TC_Max = lists:max(TC_L), TC_Med = lists:nth(round((TC_N - 1) / 2), lists:sort(TC_L)), TC_Avg = round(lists:foldl(fun(TC_X, TC_Sum) -> TC_X + TC_Sum end, 0, TC_L) / (TC_N - 1)), io:format("Range: ~b - ~b mics~nMedian: ~b mics ~nAverage: ~b mics~n", [TC_Min, TC_Max, TC_Med, TC_Avg]), TC_Med end.
+#Fun<erl_eval.4.105156089>
+2> TC(lists, seq, [1-100], 1000).
+Range: 1 - 3984 mics
+Median: 1 mics 
+Average: 25 mics
+1
+3>
