@@ -75,3 +75,22 @@ l.erl
 
 	- reference: http://localhost/doc/erlang-doc-html/html/lib/stdlib-1.15.3/doc/html/index.html
 	- reference: http://localhost/doc/erlang-doc-html/html/lib/stdlib-1.15.3/doc/html/lists.html
+
+urlutil.erl
+
+    - basic string manipulation
+
+    - reference: http://userprimary.net/user/2009/02/09/learning-string-manipulation-in-erlang/
+
+reverse_test.erl
+
+    - simple test unit
+
+    - reference: reverse_test.txt
+
+http_util_elias.erl
+
+    - heavy test unit
+    - heavy string manipulation
+
+    - reference: http_util_elias.txt

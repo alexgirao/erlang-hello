@@ -1,0 +1,4 @@
+http://pastebin.com/f3c775c42
+
+erlc http_util_elias.erl
+erl -noshell -s eunit test http_util_elias -s init stop

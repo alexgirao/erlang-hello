@@ -1,0 +1,5 @@
+http://www.nabble.com/Eunit-Possibly-Failing-Under-Windows-td23307820.html
+http://www.nabble.com/attachment/23307820/0/reverse_test.erl
+
+erlc reverse_test.erl
+erl -noshell -s eunit test reverse_test -s init stop
