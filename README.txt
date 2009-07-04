@@ -9,3 +9,7 @@
 - server0
 
     - basic usage of gen_tcp module
+
+- server1
+
+    - basic usage of gen_server module

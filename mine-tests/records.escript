@@ -1,7 +1,7 @@
 #!/usr/bin/env escript
 %% -*- erlang, coding: utf-8 -*-
 
-% all records are tagged by its name, but not by the tag structure
+% all records are tagged by its name, but not by the its structure
 
 -record(person, {a, b}).
 
@@ -10,6 +10,9 @@
 
 is_person(P) when is_record(P, person) -> true;
 is_person(_) -> false.
+
+get_name(P=#person{}) -> % pattern matching on function definition
+    P#person.a.
 
 main(_) ->
     make:files([records]),
@@ -25,6 +28,8 @@ main(_) ->
     io:format("new woman: ~p~n", [P2]),
     io:format("test 0: ~p~n", [T0]),
     io:format("test 1: ~p~n", [T1])
+
+    ,io:format("get_name(P0): ~p~n", [get_name(P0)])
 
     ,io:format("record field: ~p~n", [P0#person.a])      % accessing record members
     ,io:format("is a person?: ~p~n", [is_person(P0)])
