@@ -1,5 +1,5 @@
 -module('if').
--export([test_if/2]).
+-export([test_if/2, main/0]).
 
 %% 'if':test_if(5,33).
 %% 'if':test_if(33,6).
@@ -28,3 +28,16 @@ test_if(A, B) ->
 	true ->
 		none_before
 	end.
+
+main() ->
+       io:format("~p~n", [[
+	    'if':test_if(5,33),
+	    'if':test_if(33,6),
+	    'if':test_if(2, 3),
+	    'if':test_if(1, 33),
+	    'if':test_if(33, 7),
+	    'if':test_if(20, 30),
+	    'if':test_if(10, 33),
+	    'if':test_if(33, 70),
+	    'if':test_if(33, 33)
+	    ]]).

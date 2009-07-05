@@ -5,11 +5,9 @@
     - see erl5.7.1/doc/efficiency_guide/part_frame.html
     - see http://www.trapexit.org/forum/viewtopic.php?t=135&sid=26ab5f5d3005590b32eb8370848770e8
 
-- mine-tests/and-or.erl
 - behavior/callback modules
 - stdin, stdout and stderr
 - file io
-- network io
 - subprocess io
 - interoperability
 
