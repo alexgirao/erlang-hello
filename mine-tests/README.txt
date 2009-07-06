@@ -2,6 +2,10 @@
 - 'man 3 erlang' for BIFs (Built-In Functions) documentation
 - or erl5.7.1/erts-5.7.1/doc/html/erlang.html
 
+varbinding.escript
+
+    - variable binding and pattern matching with tuples, lists and records
+
 tuples.escript
 
     - how to use tuples
@@ -106,13 +110,13 @@ urlutil.erl
 
 reverse_test.erl
 
-    - simple test unit
+    - simple unit testing
 
     - reference: reverse_test.txt
 
 http_util_elias.erl
 
-    - heavy test unit
+    - heavy unit testing
     - heavy string manipulation
 
     - reference: http_util_elias.txt

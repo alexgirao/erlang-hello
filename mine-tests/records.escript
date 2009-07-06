@@ -11,8 +11,11 @@
 is_person(P) when is_record(P, person) -> true;
 is_person(_) -> false.
 
-get_name(P=#person{}) -> % pattern matching on function definition
+get_name(P=#person{}) -> % pattern matching, P must be a 'person' record
     P#person.a.
+
+get_name2(#person{a=Name}) -> % bind Name to P#person.a
+    Name.
 
 main(_) ->
     make:files([records]),
@@ -29,10 +32,11 @@ main(_) ->
     io:format("test 0: ~p~n", [T0]),
     io:format("test 1: ~p~n", [T1])
 
-    ,io:format("get_name(P0): ~p~n", [get_name(P0)])
-
     ,io:format("record field: ~p~n", [P0#person.a])      % accessing record members
     ,io:format("is a person?: ~p~n", [is_person(P0)])
+
+    ,io:format("get_name(P0): ~p~n", [get_name(P0)])
+    ,io:format("get_name2(P0): ~p~n", [get_name2(P0)])
 
     % pattern-matching on records
 

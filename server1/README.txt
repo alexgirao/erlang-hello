@@ -1,7 +1,6 @@
 http://20bits.com/articles/erlang-a-generalized-tcp-server/
 
-    echo_server:start().        % listen on 7000
 
-    or
+erlc *.erl
 
-    socket_server:start(echo_server, 7001, {echo_server, loop}).
+socket_server:start(echo_server, 7000, {echo_server, loop}).
