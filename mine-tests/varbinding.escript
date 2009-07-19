@@ -1,12 +1,12 @@
 #!/usr/bin/env escript
 %% -*- erlang, coding: utf-8 -*-
 
--record(r0, {f0, f1, f2=99}).  % r for record, f for field
+-record(r0, {f0, f1, f2=99}).  % 'r' for record, 'f' for field
 
-t0({T0,_,_}) -> % bind on matching
+t0({T0,_,_}) -> % bind on matching, see also: element/2
     T0.
 
-l0([L0,_,_]) -> % bind on matching
+l0([L0,_,_]) -> % bind on matching, see also: lists:nth/2
     L0.
 
 r0f0(#r0{f0=R0}) -> % bind on matching, no need to specify all fields
