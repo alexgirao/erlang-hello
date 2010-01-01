@@ -1,13 +1,16 @@
 -module('flush-unknown').
 -export([main/0, f1/0]).
 
+% note: it's highly recommended that looping functions that receive
+% messages be tail recursive, as f1/0, f2/1 and loop/0 are
+
 f1() ->
     receive
 	{hello, What} ->
 	    io:format("hello ~p~n", [What]),
 	    f1();
 	{done, From} ->
-	    From ! die;
+	    From ! die;  % won't recurse, exit
 	Msg ->
 	    io:format("flushing unknown message from process ~p: ~p~n", [self(), Msg]),
 	    f1()
@@ -25,7 +28,7 @@ f2(MainPid, F1) ->
 f2(MainPid) ->
     receive
 	die ->
-	    MainPid ! finish;
+	    MainPid ! finish;  % won't recurse, exit
 	Msg ->
 	    io:format("flushing unknown message from process ~p: ~p~n", [self(), Msg]),
 	    f2(MainPid)
@@ -34,7 +37,7 @@ f2(MainPid) ->
 loop() ->
     receive
 	finish ->
-	    io:format("finishing main process ~p~n", [self()]);
+	    io:format("finishing main process ~p~n", [self()]);  % won't recurse, exit
 	Msg ->
 	    io:format("flushing unknown message from process ~p: ~p~n", [self(), Msg]),
 	    loop()

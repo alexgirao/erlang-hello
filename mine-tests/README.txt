@@ -4,14 +4,21 @@
 
 varbinding.escript
 
-    - use of the match operator (=)
-    - variable binding and pattern matching with tuples, lists and records
+	- use of the match operator (=)
+    	- variable binding and pattern matching with tuples, lists and records
 
 tuples.escript
 
-    - how to use tuples
-    - 'import' directive
-    - append_element/2
+	- how to use tuples
+    	- 'import' directive
+    	- append_element/2
+
+f.erl
+
+	- how to use 'erlc' and 'erl' to run programs non-interactively
+	- basic unit testing usage
+	- head/tail list processing
+	- recursive vs tail recursive
 
 flush-unknown.erl / flush-unknown.escript
 
