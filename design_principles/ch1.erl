@@ -29,6 +29,7 @@ free(Ch) ->
     ok.
 
 init() ->
+    process_flag(trap_exit, true),      % let handle exit(PID, normal)
     register(?MODULE, self()),
     Chs = channels(),
     loop__(Chs).

@@ -1,7 +1,7 @@
 -module(ch3).
 -behaviour(gen_server).
 
--export([init/1, handle_call/3, handle_cast/2]).
+-export([init/1, handle_call/3, handle_cast/2, terminate/2]).
 -export([start_link/0, alloc/0, free/1]).     % helper functions (must use gen_server's call/cast)
 
 channels() ->
@@ -20,6 +20,7 @@ free(Ch, {Alloc, Free}=Channels) ->
     end.
 
 init(_Args) ->
+    process_flag(trap_exit, true),      % let gen_server terminate upon exit(PID, normal)
     {ok, channels()}.
 
 handle_call(alloc, _From, State) ->
@@ -28,7 +29,14 @@ handle_call(alloc, _From, State) ->
 
 handle_cast({free, Ch}, State) ->
     State2 = free(Ch, State),
-    {noreply, State2}.
+    {noreply, State2};
+
+handle_cast(stop_me, State) ->
+    {stop, normal, State}.          % gracefully stop, doesnt require trap_exit flag
+
+terminate(normal, _State) ->        % required for gracefully stop
+    io:format("terminating ~p~n", [self()]),
+    ok.
 
 % helper functions
 

@@ -18,6 +18,7 @@ free(Ch, {Alloc, Free}=Channels) ->
     end.
 
 init() ->
+    process_flag(trap_exit, true),      % let handle exit(PID, normal)
     channels(). % server state
 
 handle_call(alloc, State) ->
