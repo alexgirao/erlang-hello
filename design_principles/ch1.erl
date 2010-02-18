@@ -1,48 +1,53 @@
 -module(ch1).
--export([start/0]).
--export([alloc/0, free/1]).
--export([init/0]).
+-export([init/0, alloc/0, free/1]).
+-export([start/0]).     % helper function
 
 channels() ->
-   {_Allocated = [], _Free = lists:seq(1,100)}.
+    {_Allocated=[], _Free=lists:seq(1,100)}.
 
-alloc({Allocated, [H|T] = _Free}) ->
-   {H, {[H|Allocated], T}}.
+alloc({Allocated, [H|T]=_Free}) ->
+    {H, {[H|Allocated], T}}.
 
-free(Ch, {Alloc, Free} = Channels) ->
-   case lists:member(Ch, Alloc) of
-      true ->
-         {lists:delete(Ch, Alloc), [Ch|Free]};
-      false ->
-         Channels
-   end.
-
-start() ->
-    spawn(ch1, init, []).
+free(Ch, {Alloc, Free}=Channels) ->
+    case lists:member(Ch, Alloc) of
+        true ->
+            {lists:delete(Ch, Alloc), [Ch|Free]};
+        false ->
+            io:format("warning: ~p not allocated~n", [Ch]),
+            Channels
+    end.
 
 alloc() ->
-    ch1 ! {self(), alloc},
+    ?MODULE ! {alloc, self()},
     receive
-        {ch1, Res} ->
+        {?MODULE, Res} ->
             Res
     end.
 
 free(Ch) ->
-    ch1 ! {free, Ch},
+    ?MODULE ! {free, Ch},
     ok.
 
 init() ->
-    register(ch1, self()),
+    register(?MODULE, self()),
     Chs = channels(),
-    loop(Chs).
+    loop__(Chs).
 
-loop(Chs) ->
+loop__(Chs) ->      % loop__ is private
     receive
-        {From, alloc} ->
+        {alloc, From} ->
             {Ch, Chs2} = alloc(Chs),
-            From ! {ch1, Ch},
-            loop(Chs2);
+            From ! {?MODULE, Ch},
+            loop__(Chs2);
         {free, Ch} ->
             Chs2 = free(Ch, Chs),
-            loop(Chs2)
+            loop__(Chs2);
+        Msg ->
+            io:format("flushing unknown message from process ~p: ~p~n", [self(), Msg]),
+            loop__(Chs)
     end.
+
+% helper functions
+
+start() ->
+    spawn(?MODULE, init, []).
