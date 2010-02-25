@@ -4,6 +4,8 @@
 -export([init/1, handle_call/3, handle_cast/2, terminate/2]).
 -export([start_link/0, alloc/0, free/1]).     % helper functions (must use gen_server's call/cast)
 
+% private functions
+
 channels() ->
     {_Allocated=[], _Free=lists:seq(1,100)}.
 
@@ -18,6 +20,8 @@ free(Ch, {Alloc, Free}=Channels) ->
             io:format("warning: ~p not allocated~n", [Ch]),
             Channels
     end.
+
+% callback functions
 
 init(_Args) ->
     process_flag(trap_exit, true),      % let gen_server terminate upon exit(PID, normal)

@@ -1,0 +1,13 @@
+bash-3.2$ erl
+Eshell V5.7.2  (abort with ^G)
+1> code_lock:start_link([1,2,3]).
+{ok,<0.33.0>}
+2> code_lock:button(1).
+ok
+3> code_lock:button(2).
+ok
+4> code_lock:button(3).
+lock undone
+ok
+5> lock done
+5>
