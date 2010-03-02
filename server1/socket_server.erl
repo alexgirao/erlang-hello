@@ -3,8 +3,8 @@
 -behavior(gen_server).
 
 -export([init/1, code_change/3, handle_call/3, handle_cast/2, handle_info/2, terminate/2]).
--export([accept_loop/1]).
--export([start/3]).
+-export([worker_loop/1]).
+-export([start_link/3]).
 
 -define(TCP_OPTIONS, [binary, {packet, 0}, {active, false}, {reuseaddr, true}]).
 
@@ -14,32 +14,30 @@
         ip=any,
         lsocket=null}).
 
-start(Name, Port, Loop) ->
+start_link(Name, Port, Loop) ->
     State = #server_state{port = Port, loop = Loop},
     gen_server:start_link({local, Name}, ?MODULE, State, []).
 
 init(State = #server_state{port=Port}) ->
-    case gen_tcp:listen(Port, ?TCP_OPTIONS) of
-        {ok, LSocket} ->
-            NewState = State#server_state{lsocket = LSocket},
-            {ok, accept(NewState)};
-        {error, Reason} ->
-            {stop, Reason}
-    end.
+    {ok, LSocket} = gen_tcp:listen(Port, ?TCP_OPTIONS),     % this call won't block
+    NewState = State#server_state{lsocket=LSocket},
+    {ok, spawn_worker(NewState)}.
 
 handle_cast({accepted, _Pid}, State=#server_state{}) ->
-    {noreply, accept(State)}.
+    {noreply, spawn_worker(State)}.
 
-accept_loop({Server, LSocket, {M, F}}) ->
-    {ok, Socket} = gen_tcp:accept(LSocket),
-    % Let the server spawn a new process and replace this loop
-    % with the echo loop, to avoid blocking
+worker_loop({Server, LSocket, {M, F}}) ->
+    {ok, Socket} = gen_tcp:accept(LSocket),     % this call will block (infinity timeout)
+
+    % tell the gen_server process to spawn a new worker
+    % process to accept future incoming connections
     gen_server:cast(Server, {accepted, self()}),
+
+    % transfer control to worker module
     M:F(Socket).
    
-% To be more robust we should be using spawn_link and trapping exits
-accept(State = #server_state{lsocket=LSocket, loop = Loop}) ->
-    proc_lib:spawn(?MODULE, accept_loop, [{self(), LSocket, Loop}]),
+spawn_worker(State = #server_state{lsocket=LSocket, loop=Loop}) ->
+    spawn_link(?MODULE, worker_loop, [{self(), LSocket, Loop}]),
     State.
 
 % These are just here to suppress warnings.

@@ -12,4 +12,4 @@
 
 - server1
 
-    - basic usage of gen_server module
+    - basic usage of gen_server behaviour module
