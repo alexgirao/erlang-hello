@@ -1,0 +1,829 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html dir="ltr" xml:lang="en" xmlns="http://www.w3.org/1999/xhtml" lang="en"><head>
+
+
+  
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    		<meta name="keywords" content="A fast web server demonstrating some undocumented Erlang features">
+		<link rel="shortcut icon" href="http://www.trapexit.org/favicon.ico">
+		<link rel="search" type="application/opensearchdescription+xml" href="http://www.trapexit.org/opensearch_desc.php" title="Erlang Community (English)">
+    <title>Erlang Community - A fast web server demonstrating some undocumented Erlang features - Trapexit</title>
+    <style type="text/css" media="screen,projection">/*<![CDATA[*/ @import "/skins/trapexit/main.css"; /*]]>*/</style>
+    <link rel="stylesheet" type="text/css" media="print" href="A_fast_web_server_demonstrating_some_undocumented_Erlang_features_arquivos/commonPrint.css">
+    <!--[if lt IE 5.5000]><style type="text/css">@import "/skins/trapexit/IE50Fixes.css";</style><![endif]-->
+    <!--[if IE 5.5000]><style type="text/css">@import "/skins/trapexit/IE55Fixes.css";</style><![endif]-->
+    <!--[if gte IE 6]><style type="text/css">@import "/skins/trapexit/IE60Fixes.css";</style><![endif]-->
+    <!--[if IE]><script type="text/javascript" src="/skins/common/IEFixes.js"></script>
+<script src="http://www.google-analytics.com/urchin.js" type="text/javascript">
+</script>
+<script type="text/javascript">
+																	     _uacct = "UA-235575-2";
+		//		urchinTracker();
+</script>
+
+    <meta http-equiv="imagetoolbar" content="no" /><![endif]-->
+<script type="text/javascript" src="A_fast_web_server_demonstrating_some_undocumented_Erlang_features_arquivos/jquery.js"></script>
+<script type="text/javascript" src="A_fast_web_server_demonstrating_some_undocumented_Erlang_features_arquivos/jquery-cycle-lite.js"></script>
+<script type="text/javascript">                                         
+        $(document).ready(function() {
+                $('#books').cycle('fade');
+        });
+</script>
+
+<script src="A_fast_web_server_demonstrating_some_undocumented_Erlang_features_arquivos/urchin.js" type="text/javascript">
+</script>
+<script type="text/javascript">
+    _uacct = "UA-235575-2";
+		_udn="trapexit.org";
+		urchinTracker();
+</script>
+
+                    <script type="text/javascript" src="A_fast_web_server_demonstrating_some_undocumented_Erlang_features_arquivos/index.php"></script>
+    <script type="text/javascript" src="A_fast_web_server_demonstrating_some_undocumented_Erlang_features_arquivos/wikibits.js"></script>
+    <style type="text/css">/*<![CDATA[*/
+@import "/index.php?title=MediaWiki:Common.css&usemsgcache=yes&action=raw&ctype=text/css&smaxage=18000";
+@import "/index.php?title=MediaWiki:Trapexit.org.css&usemsgcache=yes&action=raw&ctype=text/css&smaxage=18000";
+@import "/index.php?title=-&action=raw&gen=css&maxage=18000";
+/*]]>*/</style>              </head><body class="ns-0">
+<div id="titleBar"></div>
+    <div id="globalWrapper">
+      <div id="column-content">
+	<div id="content">
+	  <a name="top" id="contentTop"></a>
+	  	  <h1 class="firstHeading">A fast web server demonstrating some undocumented Erlang features</h1>
+	  <div id="bodyContent">
+	    <h3 id="siteSub">From Erlang Community</h3>
+	    <div id="contentSub"></div>
+	    	    	    <!-- start content -->
+	    <table id="toc" class="toc" summary="Contents"><tbody><tr><td><div id="toctitle"><h2>Contents</h2> <span class="toctoggle">[<a href="javascript:toggleToc()" class="internal" id="togglelink">hide</a>]</span></div>
+<ul>
+<li class="toclevel-1"><a href="#Author"><span class="tocnumber">1</span> <span class="toctext">Author</span></a></li>
+<li class="toclevel-1"><a href="#Overview"><span class="tocnumber">2</span> <span class="toctext">Overview</span></a></li>
+<li class="toclevel-1"><a href="#TCP_Server_Framework"><span class="tocnumber">3</span> <span class="toctext">TCP Server Framework</span></a></li>
+<li class="toclevel-1"><a href="#Common_header_file"><span class="tocnumber">4</span> <span class="toctext">Common header file</span></a></li>
+<li class="toclevel-1"><a href="#Listening_Process"><span class="tocnumber">5</span> <span class="toctext">Listening Process</span></a></li>
+<li class="toclevel-1"><a href="#Acceptor.2FSocket_process"><span class="tocnumber">6</span> <span class="toctext">Acceptor/Socket process</span></a></li>
+<li class="toclevel-1"><a href="#Web_server_state_machine"><span class="tocnumber">7</span> <span class="toctext">Web server state machine</span></a></li>
+<li class="toclevel-1"><a href="#Setting_up_the_web_server"><span class="tocnumber">8</span> <span class="toctext">Setting up the web server</span></a></li>
+<li class="toclevel-1"><a href="#Building_a_web_application"><span class="tocnumber">9</span> <span class="toctext">Building a web application</span></a></li>
+<li class="toclevel-1"><a href="#Supervisor_and_Application_implementation"><span class="tocnumber">10</span> <span class="toctext">Supervisor and Application implementation</span></a></li>
+<li class="toclevel-1"><a href="#License"><span class="tocnumber">11</span> <span class="toctext">License</span></a></li>
+<li class="toclevel-1"><a href="#Disclaimer"><span class="tocnumber">12</span> <span class="toctext">Disclaimer</span></a></li>
+<li class="toclevel-1"><a href="#Download_xml"><span class="tocnumber">13</span> <span class="toctext">Download xml</span></a></li>
+</ul>
+</td></tr></tbody></table><script type="text/javascript"> if (window.showTocToggle) { var tocShowText = "show"; var tocHideText = "hide"; showTocToggle(); } </script>
+<a name="Author"></a><h2><span class="editsection">[<a href="http://www.trapexit.org/index.php?title=A_fast_web_server_demonstrating_some_undocumented_Erlang_features&amp;action=edit&amp;section=1" title="Edit section: Author">edit</a>]</span> <span class="mw-headline">Author</span></h2>
+<p>Sean
+</p>
+<a name="Overview"></a><h2><span class="editsection">[<a href="http://www.trapexit.org/index.php?title=A_fast_web_server_demonstrating_some_undocumented_Erlang_features&amp;action=edit&amp;section=2" title="Edit section: Overview">edit</a>]</span> <span class="mw-headline">Overview</span></h2>
+<p>
+This HOWTO describes a web server written for the day when even <a href="http://yaws.hyber.org/" class="external text" title="http://yaws.hyber.org" rel="nofollow">Yaws</a> is not quick enough.
+</p>
+<p>The web server presented is quite simple. Even so it is split into 5
+modules. Some of these are dictated by the OTP framework, and others
+are split out for convenience. The 5 modules are: </p>
+<ul><li>iserve - API for managing URIs and callbacks
+</li><li>iserve_app - OTP Application behaviour
+</li><li>iserve_sup - OTP Supervisor
+</li><li>iserve_server - Gen_server to own the listening socket and create connections
+</li><li>iserve_socket - Process to handle a single HTTP connection for its lifetime
+</li></ul>
+<p><br>
+</p><p>This HOWTO presents code and descriptions for each of these as they arise.
+</p>
+<a name="TCP_Server_Framework"></a><h2><span class="editsection">[<a href="http://www.trapexit.org/index.php?title=A_fast_web_server_demonstrating_some_undocumented_Erlang_features&amp;action=edit&amp;section=3" title="Edit section: TCP Server Framework">edit</a>]</span> <span class="mw-headline">TCP Server Framework</span></h2>
+<p>A web server needs to support lots of connections, so at it's heart
+it needs to be a multiple connection TCP/IP server. There are any
+number of ways to arrange a set of erlang processes into such a thing.
+My favourite method is to have a single gen_server which opens and owns
+the listen socket (the listening process). This spawns another process
+which waits in accept until a connection attempt is received. At this
+time this accepting process sends a message back to the listening
+process and goes on to handle the traffic. This avoids the need for
+gen_tcp:controlling_process/2 and associated complexity. </p><p>On receipt of the message from the accepting process the listening process spawns a new accepting process and so on. 
+</p><p>The listening process also traps exits, and if it receives a non
+normal exit from the current accepting process it creates a new one. In
+this way the listening process supervises its acceptor. </p>
+<a name="Common_header_file"></a><h2><span class="editsection">[<a href="http://www.trapexit.org/index.php?title=A_fast_web_server_demonstrating_some_undocumented_Erlang_features&amp;action=edit&amp;section=4" title="Edit section: Common header file">edit</a>]</span> <span class="mw-headline">Common header file</span></h2>
+<p>The web server creates a #req{} record as it processes each request.
+This is used as part of the API into implementation callbacks and by
+the iserve_socket process. Here are the contents of iserve.hrl up front
+to get it out of the way: </p>
+<table class="ntable" border="0" cellpadding="0" cellspacing="0" width="100%"><tbody><tr><td class="infohead" bgcolor="#ffffdd"><p class="caption">Code listing 3.1</p></td></tr><tr><td bgcolor="#ddddff"><pre>% This record characterises the connection from the browser to our server
+% it is intended to be a consistent view derived from a bunch of different headers
+-record(req, {connection=keep_alive,	        % keep_alive | close
+	      content_length,                   % Integer
+	      vsn,                              % {Maj,Min}
+	      method,                           % 'GET'|'POST'
+	      uri,				% Truncated URI /index.html
+              args="",                          % Part of URI after&nbsp;?
+	      headers,				% [{Tag, Val}]
+	      body = &lt;&lt;&gt;&gt;}).			% Content Body
+</pre></td></tr></tbody></table>
+<a name="Listening_Process"></a><h2><span class="editsection">[<a href="http://www.trapexit.org/index.php?title=A_fast_web_server_demonstrating_some_undocumented_Erlang_features&amp;action=edit&amp;section=5" title="Edit section: Listening Process">edit</a>]</span> <span class="mw-headline">Listening Process</span></h2>
+<p>Here is the code for the listening process. It is a very basic gen_server which models a single process: 
+</p>
+<table class="ntable" border="0" cellpadding="0" cellspacing="0" width="100%"><tbody><tr><td class="infohead" bgcolor="#ffffdd"><p class="caption">Code listing 4.1</p></td></tr><tr><td bgcolor="#ddddff"><pre>
+-module(iserve_server).
+
+-behaviour(gen_server).
+
+-export([start_link/1, create/2]).
+
+%% gen_server callbacks
+-export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2,
+         code_change/3]).
+
+-record(state, {listen_socket,
+                port,
+                acceptor}).
+
+%%--------------------------------------------------------------------
+start_link(Port) when is_integer(Port) -&gt;
+    Name = list_to_atom(lists:flatten(io_lib:format("iserve_~w", [Port]))),
+    gen_server:start_link({local, Name},&nbsp;?MODULE, Port, []).
+
+%% Send message to cause a new acceptor to be created
+create(ServerPid, Pid) -&gt;
+    gen_server:cast(ServerPid, {create, Pid}).
+
+
+%% Called by gen_server framework at process startup. Create listening socket
+init(Port) -&gt;
+    process_flag(trap_exit, true),
+    case gen_tcp:listen(Port,[binary, {packet, http},
+                              {reuseaddr, true},
+                              {active, false},
+                              <span class="input">{backlog, 30}</span>]) of
+	{ok, Listen_socket} -&gt;
+            <span class="comment">%%Create first accepting process</span>
+	    Pid = iserve_socket:start_link(self(), Listen_socket, Port),
+	    {ok, #state{listen_socket = Listen_socket,
+                        port = Port,
+			acceptor = Pid}};
+	{error, Reason} -&gt;
+	    {stop, Reason}
+    end.
+
+
+handle_call(_Request, _From, State) -&gt;
+    Reply = ok,
+    {reply, Reply, State}.
+
+%% Called by gen_server framework when the cast message from create/2 is received
+handle_cast({create, _Pid}, #state{listen_socket = Listen_socket} = State) -&gt;
+    New_pid = iserve_socket:start_link(self(), Listen_socket, State#state.port),
+    {noreply, State#state{acceptor=New_pid}};
+
+handle_cast(_Msg, State) -&gt;
+    {noreply, State}.
+
+
+handle_info({'EXIT', Pid, normal}, #state{acceptor=Pid} = State) -&gt;
+    {noreply, State};
+
+%% The current acceptor has died, wait a little and try again
+handle_info({'EXIT', Pid, _Abnormal}, #state{acceptor=Pid} = State) -&gt;
+    timer:sleep(2000),
+    iserve_socket:start_link(self(), State#state.listen_socket, State#state.port),
+    {noreply, State};
+
+handle_info(_Info, State) -&gt;
+    {noreply, State}.
+
+
+terminate(Reason, State) -&gt;
+    gen_tcp:close(State#state.listen_socket),
+    ok.
+
+
+code_change(_OldVsn, State, _Extra) -&gt;
+    {ok, State}.
+
+</pre></td></tr></tbody></table>
+<p>The notable thing about this code is the use of undocumented socket
+options to set up the initial state of connections made to the web
+server port. </p>
+<ul><li>{backlog, 30} specifies the length of the OS accept queue. 
+</li><li>{packet, http} puts the socket into http mode. This makes the
+socket wait for a HTTP Request line, and if this is received to
+immediately switch to receiving HTTP header lines. The socket stays in
+header mode until the end of header marker is received (CR,NL,CR,NL),
+at which time it goes back to wait for a following HTTP Request line.
+</li></ul>
+<a name="Acceptor.2FSocket_process"></a><h2><span class="editsection">[<a href="http://www.trapexit.org/index.php?title=A_fast_web_server_demonstrating_some_undocumented_Erlang_features&amp;action=edit&amp;section=6" title="Edit section: Acceptor/Socket process">edit</a>]</span> <span class="mw-headline">Acceptor/Socket process</span></h2>
+<p>It would be easy enough to create an abstraction of the
+Listen/Accept process structure and pass in the implementation function
+as another parameter. For this HOWTO however I'll stick with the most
+basic model - the acceptor process starts life as an acceptor and goes
+on to handle the traffic. </p><p>The acceptor process is implemented in a separate module
+iserve_socket. It is in two parts - the first part sets up a bunch of
+defines and exports and then does the accepting. Here is it is: </p>
+<table class="ntable" border="0" cellpadding="0" cellspacing="0" width="100%"><tbody><tr><td class="infohead" bgcolor="#ffffdd"><p class="caption">Code listing 5.1</p></td></tr><tr><td bgcolor="#ddddff"><pre>
+-module(iserve_socket).
+
+-export([start_link/3]).
+
+-export([init/1]).
+-include("iserve.hrl").
+
+-define(not_implemented_501, "HTTP/1.1 501 Not Implemented\r\n\r\n").
+-define(forbidden_403, "HTTP/1.1 403 Forbidden\r\n\r\n").
+-define(not_found_404, "HTTP/1.1 404 Not Found\r\n\r\n").
+
+-record(c,  {sock,
+             port,
+             peer_addr,
+             peer_port
+	     }).
+
+-define(server_idle_timeout, 30*1000).
+
+start_link(ListenPid, ListenSocket, ListenPort) -&gt;
+    proc_lib:spawn_link(?MODULE, init, [{ListenPid, ListenSocket, ListenPort}]).
+
+init({Listen_pid, Listen_socket, ListenPort}) -&gt;
+    case catch gen_tcp:accept(Listen_socket) of
+	{ok, Socket} -&gt;
+            <span class="comment">%% Send the cast message to the listener process to create a new acceptor</span>
+	    iserve_server:create(Listen_pid, self()),
+	    {ok, {Addr, Port}} = inet:peername(Socket),
+            C = #c{sock = Socket,
+                   port = ListenPort,
+                   peer_addr = Addr,
+                   peer_port = Port},
+	    request(C, #req{}); <span class="comment">%% Jump to state 'request'</span>
+	Else -&gt;
+	    error_logger:error_report([{application, iserve},
+				       "Accept failed error",
+				       io_lib:format("~p",[Else])]),
+	    exit({error, accept_failed})
+    end.
+
+</pre></td></tr></tbody></table>
+<p>Note here that the process is started via the proc_lib:spawn_link/3
+call. This wraps the normal spawn_link/3 bif so that the same nice
+error reports are created as for gen_servers, but it allows for a
+totally unstructured process implementation.
+</p>
+<a name="Web_server_state_machine"></a><h2><span class="editsection">[<a href="http://www.trapexit.org/index.php?title=A_fast_web_server_demonstrating_some_undocumented_Erlang_features&amp;action=edit&amp;section=7" title="Edit section: Web server state machine">edit</a>]</span> <span class="mw-headline">Web server state machine</span></h2>
+<p>The rest of this module contains the web server code. It is
+structured as a state machine which follows the state changes of the
+http socket mode. A single function models each state, and state
+transitions are simply implemented as a call to the function which owns
+the next state. </p><p>The states are: 
+</p>
+<ul><li>request - wait for a HTTP Request line. Transition to state headers if one is received. 
+</li><li>headers - collect HTTP headers. After the end of header marker transition to body state. 
+</li><li>body - collect the body of the HTTP request if there is one,
+and lookup and call the implementation callback. Depending on whether
+the request is persistent transition back to state request to await the
+next request or exit. </li></ul>
+<p><br>
+</p><p>The code for the state request is below. A blocking call is made
+to gen_tcp:recv/3 with a timeout. The http driver waits for a CRNL
+terminated line of the form GET / HTTP/1.0. If anything else is
+received an http_error indication is returned with the erroneous data. </p><p>Some broken clients include extra CR or CRNL sequences so these are skipped.
+</p>
+<table class="ntable" border="0" cellpadding="0" cellspacing="0" width="100%"><tbody><tr><td class="infohead" bgcolor="#ffffdd"><p class="caption">Code listing 6.1</p></td></tr><tr><td bgcolor="#ddddff"><pre>
+request(C, Req) -&gt;
+    case gen_tcp:recv(C#c.sock, 0, 30000) of
+        {ok, {http_request, Method, Path, Version}} -&gt;
+            headers(C, Req#req{vsn = Version,
+                               method = Method,
+                               uri = Path}, []);
+        {error, {http_error, "\r\n"}} -&gt;
+	    request(C, Req);
+	{error, {http_error, "\n"}} -&gt;
+            request(C, Req);
+	_Other -&gt;
+	    exit(normal)
+    end.
+
+</pre></td></tr></tbody></table>
+<p>The code for the state headers is below. After sending the HTTP
+request line the http driver automatically switches into header receive
+mode. The driver looks for values of the form Header-Val: value and
+sends them one by one after each call to recv. </p><p>The driver maintains a hash table of well known header values
+and if one of those is received from the network it returns the header
+value as an atom. Otherwise the header value is returned as a string.
+In both cases the driver takes care of case insensitivity and
+automatically capitalises the first letter of each hyphen separated
+word in the header name. The author clearly got a little carried away
+at this point! </p><p>This web server extracts the values of the 'Content-Length'
+and 'Connection' headers for its own purposes and simply accumulates
+the other headers in a list to be passed to the application callback. </p><p>At the end of the headers the driver returns {ok, http_eoh}.
+This is the cue for the web server to skip to body mode. The driver
+automatically switches to wait for a new request line at this point
+unless a subsequent call to inet:setops/2 is made. </p>
+<table class="ntable" border="0" cellpadding="0" cellspacing="0" width="100%"><tbody><tr><td class="infohead" bgcolor="#ffffdd"><p class="caption">Code listing 6.2</p></td></tr><tr><td bgcolor="#ddddff"><pre>
+headers(C, Req, H) -&gt;
+    case gen_tcp:recv(C#c.sock, 0,&nbsp;?server_idle_timeout) of
+        {ok, {http_header, _, 'Content-Length', _, Val}} -&gt;
+            Len = list_to_integer(Val),
+            headers(C, Req#req{content_length = Len}, [{'Content-Length', Len}|H]);
+        {ok, {http_header, _, 'Connection', _, Val}} -&gt;
+            Keep_alive = keep_alive(Req#req.vsn, Val),
+            headers(C, Req#req{connection = Keep_alive}, [{'Connection', Val}|H]);
+        {ok, {http_header, _, Header, _, Val}} -&gt;
+            headers(C, Req, [{Header, Val}|H]);
+        {error, {http_error, "\r\n"}} -&gt;
+	    headers(C, Req, H);
+	{error, {http_error, "\n"}} -&gt;
+            headers(C, Req, H);
+        {ok, http_eoh} -&gt;
+            body(C, Req#req{headers = lists:reverse(H)});
+	_Other -&gt;
+	    exit(normal)
+    end.
+
+%% Shall we keep the connection alive? 
+%% Default case for HTTP/1.1 is yes, default for HTTP/1.0 is no.
+%% Exercise for the reader - finish this so it does case insensitivity properly&nbsp;!
+keep_alive({1,1}, "close")      -&gt; close;
+keep_alive({1,1}, "Close")      -&gt; close;
+keep_alive({1,1}, _)            -&gt; keep_alive;
+keep_alive({1,0}, "Keep-Alive") -&gt; keep_alive;
+keep_alive({1,0}, _)            -&gt; close;
+keep_alive({0,9}, _)            -&gt; close;
+keep_alive(Vsn, KA) -&gt;
+    io:format("Got = ~p~n",[{Vsn, KA}]),
+    close.
+
+</pre></td></tr></tbody></table>
+<p>The code for the state body is below. At this point we have
+everything required except the body in the case of a POST request. If
+present this is retrieved in a single chunk based on the content length
+supplied. Most web servers will implement some sort of size limit for
+POST requests. This is still needed in our case to avoid a single
+client taking all the memory of the Erlang Virtual machine with the
+subsequent crash. It should be simple to add. </p><p>Unless the connection is a keep-alive type the process
+terminates at the end of processing this function. All resources are
+cleared up at process exit including open sockets so we do not need to
+be too careful about explicitly tidying up. </p>
+<table class="ntable" border="0" cellpadding="0" cellspacing="0" width="100%"><tbody><tr><td class="infohead" bgcolor="#ffffdd"><p class="caption">Code listing 6.3</p></td></tr><tr><td bgcolor="#ddddff"><pre>
+body(#c{sock = Sock} = C, Req) -&gt;
+    case Req#req.method of
+        'GET' -&gt;
+            Close = handle_get(C, Req),
+            case Close of
+                close -&gt;
+                    gen_tcp:close(Sock);
+                keep_alive -&gt;
+                    inet:setopts(Sock, [{packet, http}]),
+                    request(C, #req{})
+            end;
+        'POST' when is_integer(Req#req.content_length) -&gt;
+            inet:setopts(Sock, [{packet, raw}]),
+            case gen_tcp:recv(Sock, Req#req.content_length, 60000) of
+                {ok, Bin} -&gt;
+                    Close = handle_post(C, Req#req{body = Bin}),
+                    case Close of
+                        close -&gt;
+                            gen_tcp:close(Sock);
+                        keep_alive -&gt;
+                            inet:setopts(Sock, [{packet, http}]),
+                            request(C, #req{})
+                    end;
+                _Other -&gt;
+                    exit(normal)
+            end;
+        _Other -&gt;
+            send(C,&nbsp;?not_implemented_501),
+            exit(normal)
+    end.
+
+</pre></td></tr></tbody></table>
+<p>The rest of the iserve_socket module is below. There is not much
+left to do. The inet driver has already worked out for us what sort of
+URI is being used. </p><p>The call_mfa/4 function relies on the existence of an
+ets/mnesia table which converts the URI into a module and function
+dynamic callback. This must have been created at installation (see
+section later). </p>
+<table class="ntable" border="0" cellpadding="0" cellspacing="0" width="100%"><tbody><tr><td class="infohead" bgcolor="#ffffdd"><p class="caption">Code listing 6.4</p></td></tr><tr><td bgcolor="#ddddff"><pre>
+handle_get(C, #req{connection = Conn} = Req) -&gt;
+    case Req#req.uri of
+        {abs_path, Path} -&gt;
+            {F, Args} = split_at_q_mark(Path, []),
+            call_mfa(F, Args, C, Req),
+            Conn;
+        {absoluteURI, http, _Host, _, Path} -&gt;
+            {F, Args} = split_at_q_mark(Path, []),
+            call_mfa(F, Args, C, Req),
+            Conn;
+        {absoluteURI, _Other_method, _Host, _, _Path} -&gt;
+            send(C,&nbsp;?not_implemented_501),
+            close;
+        {scheme, _Scheme, _RequestString} -&gt;
+            send(C,&nbsp;?not_implemented_501),
+            close;
+        _  -&gt;
+            send(C,&nbsp;?forbidden_403),
+            close
+    end.
+
+handle_post(C, #req{connection = Conn} = Req) -&gt;
+    case Req#req.uri of
+        {abs_path, Path} -&gt;
+            call_mfa(Path, Req#req.body, C, Req),
+            Conn;
+        {absoluteURI, http, _Host, _, Path} -&gt;
+            call_mfa(Path, Req#req.body, C, Req),
+            Conn;
+        {absoluteURI, _Other_method, _Host, _, _Path} -&gt;
+            send(C,&nbsp;?not_implemented_501),
+            close;
+        {scheme, _Scheme, _RequestString} -&gt;
+            send(C,&nbsp;?not_implemented_501),
+            close;
+        _  -&gt;
+            send(C,&nbsp;?forbidden_403),
+            close
+    end.
+
+call_mfa(F, A, C, Req) -&gt;
+    case iserve:lookup(C#c.port, Req#req.method, F) of
+        {ok, Mod, Func} -&gt;
+            case catch Mod:Func(Req, A) of
+                {'EXIT', Reason} -&gt;
+                    io:format("Worker Crash = ~p~n",[Reason]),
+                    exit(normal);
+                {200, Headers0, Body} -&gt;
+                    Headers = add_content_length(Headers0, Body),
+                    Enc_headers = enc_headers(Headers),
+                    Resp = [&lt;&lt;"HTTP/1.1 200 OK\r\n"&gt;&gt;,
+                            Enc_headers,
+                            &lt;&lt;"\r\n"&gt;&gt;,
+                            Body],
+                    send(C, Resp)
+            end;
+        {error, not_found} -&gt;
+            send(C,&nbsp;?not_found_404)
+    end.
+       
+add_content_length(Headers, Body) -&gt;
+    case lists:keysearch('Content-Length', 1, Headers) of
+        {value, _} -&gt;
+            Headers;
+        false -&gt;
+            [{'Content-Length', size(Body)}|Headers]
+    end.
+
+
+enc_headers([{Tag, Val}|T]) when is_atom(Tag) -&gt;
+    [atom_to_list(Tag), ": ", enc_header_val(Val), "\r\n"|enc_headers(T)];
+enc_headers([{Tag, Val}|T]) when is_list(Tag) -&gt;
+    [Tag, ": ", enc_header_val(Val), "\r\n"|enc_headers(T)];
+enc_headers([]) -&gt;
+    [].
+    
+enc_header_val(Val) when is_atom(Val) -&gt;
+    atom_to_list(Val);
+enc_header_val(Val) when is_integer(Val) -&gt;
+    integer_to_list(Val);
+enc_header_val(Val) -&gt;
+    Val.
+
+%% Split the path at the&nbsp;?. This would have to do all sorts of
+%% horrible ../../ path checks and %C3 etc decoding if we wanted to
+%% retrieve actual paths to real filesystem files. As it is we only
+%% want to look it up as a key in mnesia/ets&nbsp;:)
+split_at_q_mark([$?|T], Acc) -&gt;
+    {lists:reverse(Acc), T};
+split_at_q_mark([H|T], Acc) -&gt;
+    split_at_q_mark(T, [H|Acc]);
+split_at_q_mark([], Acc) -&gt;
+    {lists:reverse(Acc), []}.
+
+  
+send(#c{sock = Sock}, Data) -&gt;
+    case gen_tcp:send(Sock, Data) of
+        ok -&gt;
+            ok;
+        _ -&gt;
+            exit(normal)
+    end.
+
+</pre></td></tr></tbody></table>
+<a name="Setting_up_the_web_server"></a><h2><span class="editsection">[<a href="http://www.trapexit.org/index.php?title=A_fast_web_server_demonstrating_some_undocumented_Erlang_features&amp;action=edit&amp;section=8" title="Edit section: Setting up the web server">edit</a>]</span> <span class="mw-headline">Setting up the web server</span></h2>
+<p>The Web server requires two preparation steps. The port number the
+web server listens on is defined in a file called iserve.conf which
+must be located in the priv subdirectory of the iserve application. It
+must contain a line of the form: </p><p>{port, 8081}.
+</p><p>If this file is not present then the port number defaults to 8080. 
+</p><p>The web server also uses an mnesia table to manage mappings
+between URLs and implementation callbacks. This may be created and
+managed with the iserve.erl module: </p>
+<table class="ntable" border="0" cellpadding="0" cellspacing="0" width="100%"><tbody><tr><td class="infohead" bgcolor="#ffffdd"><p class="caption">Code listing 7.1</p></td></tr><tr><td bgcolor="#ddddff"><pre>
+-module(iserve).
+-export([create_table/1, 
+         add_callback/5, delete_callback/3, 
+         print_callbacks/0,lookup/3]).
+
+-record(iserve_callback, {key,                 % {Port, 'GET'|'POST', Abs_path}
+                          mf}).                % {Mod, Func}
+
+create_table(Nodes) -&gt;
+    mnesia:create_table(iserve_callback,
+                        [{attributes, record_info(fields, iserve_callback)},
+                         {disc_copies, Nodes}]).
+
+lookup(Port, Method, Path) -&gt;
+    case ets:lookup(iserve_callback, {Port, Method, Path}) of
+        [#iserve_callback{mf = {Mod, Func}}] -&gt;
+            {ok, Mod, Func};
+        [] -&gt;
+            {error, not_found}
+    end.
+
+add_callback(Port, Method, Path, Mod, Func) when ((Method == 'GET') or (Method == 'POST') and
+                                                  is_list(Path) and is_atom(Mod) and
+                                                  is_atom(Func) and is_integer(Port)) -&gt;
+    mnesia:dirty_write(iserve_callback, #iserve_callback{key = {Port, Method, Path},
+                                                         mf = {Mod, Func}}).
+
+
+delete_callback(Port, Method, Path) -&gt;
+    mnesia:dirty_delete(iserve_callback, {Port, Method, Path}).
+
+print_callbacks() -&gt;
+    All = mnesia:dirty_match_object(#iserve_callback{_ = '_'}),
+    io:format("Port\tMethod\tPath\tModule\tFunction~n"),
+    lists:foreach(fun(#iserve_callback{key = {Port, Method, Path},
+                                       mf = {Module, Function}}) -&gt;
+                          io:format("~p\t~p\t~p\t~p\t~p\r\n",[Port, Method, Path, Module, Function])
+                  end, All).
+
+</pre></td></tr></tbody></table>
+<p>iserve:create_table([node()]). must be called once at installation. 
+</p><p>All Urls must be stored in this table with a module and function
+which will create the page. So for example the callback for the
+document root might be defined with: </p><p>iserve:add_callback(8081, 'GET', "/", test_iserve_app, do_get).
+</p><p>The callback for index.html could be: 
+</p><p>iserve:add_callback(8081, 'GET', "/index.html", module, function2).
+</p>
+<a name="Building_a_web_application"></a><h2><span class="editsection">[<a href="http://www.trapexit.org/index.php?title=A_fast_web_server_demonstrating_some_undocumented_Erlang_features&amp;action=edit&amp;section=9" title="Edit section: Building a web application">edit</a>]</span> <span class="mw-headline">Building a web application</span></h2>
+<p>The simplest kind of iserve web application would be one to simply
+return a generated page. A function must be implemented which returns
+{200, Headers, Body} where Headers is a list of {Header-Atom,
+Val-String} and Body is a binary. For example: </p>
+<table class="ntable" border="0" cellpadding="0" cellspacing="0" width="100%"><tbody><tr><td class="infohead" bgcolor="#ffffdd"><p class="caption">Code listing 8.1</p></td></tr><tr><td bgcolor="#ddddff"><pre>
+-module(test_iserve_app).
+-export([do_get/2]).
+-include("iserve.hrl").
+
+do_get(#req{} = Req, Args) -&gt;
+    {200, [], &lt;&lt;"&lt;!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"&gt;
+&lt;html&gt;
+&lt;head&gt;
+  &lt;title&gt;Welcome to iserve&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  Hello
+&lt;/body&gt;
+&lt;/html&gt;"&gt;&gt;}.
+
+</pre></td></tr></tbody></table>
+<p>Obviously this is an extremely simple example. This is where you come in! 
+</p>
+<a name="Supervisor_and_Application_implementation"></a><h2><span class="editsection">[<a href="http://www.trapexit.org/index.php?title=A_fast_web_server_demonstrating_some_undocumented_Erlang_features&amp;action=edit&amp;section=10" title="Edit section: Supervisor and Application implementation">edit</a>]</span> <span class="mw-headline">Supervisor and Application implementation</span></h2>
+<p>The web server only needs a little help to become a full blown OTP
+application. It needs an application behaviour, a supervisor behaviour,
+and a .app file. </p><p>These are presented below. 
+</p><p>The Application:
+</p>
+<table class="ntable" border="0" cellpadding="0" cellspacing="0" width="100%"><tbody><tr><td class="infohead" bgcolor="#ffffdd"><p class="caption">Code listing 9.1</p></td></tr><tr><td bgcolor="#ddddff"><pre>
+-module(iserve_app).
+-behaviour(application).
+-export([
+	 start/2,
+	 stop/1
+        ]).
+
+start(_Type, _StartArgs) -&gt;
+    case iserve_sup:start_link() of
+	{ok, Pid} -&gt; 
+	    alarm_handler:clear_alarm({application_stopped, iserve}),
+	    {ok, Pid};
+	Error -&gt;
+	    alarm_handler:set_alarm({{application_stopped, iserve}, []}),
+	    Error
+    end.
+
+stop(_State) -&gt;
+    alarm_handler:set_alarm({{application_stopped, iserve}, []}),
+    ok.
+
+</pre></td></tr></tbody></table>
+<p>The Supervisor: 
+</p>
+<table class="ntable" border="0" cellpadding="0" cellspacing="0" width="100%"><tbody><tr><td class="infohead" bgcolor="#ffffdd"><p class="caption">Code listing 9.2</p></td></tr><tr><td bgcolor="#ddddff"><pre>
+-module(iserve_sup).
+-behaviour(supervisor).
+-export([
+	 start_link/0,
+         init/1
+        ]).
+
+-define(SERVER,&nbsp;?MODULE).
+
+start_link() -&gt;
+    supervisor:start_link({local,&nbsp;?SERVER},&nbsp;?MODULE, []).
+
+init([]) -&gt;
+    Port = get_config(),
+    Server = {iserve_server, {iserve_server, start_link, [Port]},
+	     permanent, 2000, worker, [iserve_server]},
+    {ok, {{one_for_one, 10, 1}, [Server]}}.
+
+get_config() -&gt;
+    case file:consult(filename:join(code:priv_dir(iserve), "iserve.conf")) of
+        [{port, Port}] -&gt;
+            Port;
+        _ -&gt;
+            8080
+    end.
+
+</pre></td></tr></tbody></table>
+<p>The .app file. 
+</p><p>A dependency on sasl is only included because of the calls to set and clear alarms in the application behaviour implementation: 
+</p>
+<table class="ntable" border="0" cellpadding="0" cellspacing="0" width="100%"><tbody><tr><td class="infohead" bgcolor="#ffffdd"><p class="caption">Code listing 9.3</p></td></tr><tr><td bgcolor="#ddddff"><pre>
+{application, iserve,
+        [{description, "Web Server"},
+         {vsn, "%ISERVE_VSN%"},
+         {modules, [    iserve_sup,
+			iserve_app,
+			iserve_server,
+                        iserve_socket
+			]},
+
+         {registered, [	iserve_sup]},
+         {applications, [kernel, stdlib, sasl]},
+	 {mod, {iserve_app, []}}]}.
+
+</pre></td></tr></tbody></table>
+<a name="License"></a><h2><span class="editsection">[<a href="http://www.trapexit.org/index.php?title=A_fast_web_server_demonstrating_some_undocumented_Erlang_features&amp;action=edit&amp;section=11" title="Edit section: License">edit</a>]</span> <span class="mw-headline">License</span></h2>
+<p>The code associated with this HOWTO is available under the <a href="http://www.opensource.org/licenses/bsd-license.php" class="external text" title="http://www.opensource.org/licenses/bsd-license.php" rel="nofollow">BSD License</a> 
+</p>
+<a name="Disclaimer"></a><h2><span class="editsection">[<a href="http://www.trapexit.org/index.php?title=A_fast_web_server_demonstrating_some_undocumented_Erlang_features&amp;action=edit&amp;section=12" title="Edit section: Disclaimer">edit</a>]</span> <span class="mw-headline">Disclaimer</span></h2>
+<p>The undocumented features presented in this HOWTO are undocumented
+because they are not supported by Ericsson. On the other hand they are
+used in comercially shipping systems. </p>
+<a name="Download_xml"></a><h2><span class="editsection">[<a href="http://www.trapexit.org/index.php?title=A_fast_web_server_demonstrating_some_undocumented_Erlang_features&amp;action=edit&amp;section=13" title="Edit section: Download xml">edit</a>]</span> <span class="mw-headline">Download xml</span></h2>
+<p><a href="http://wiki.trapexit.erlang-consulting.com/upload/howto/fast_web_server.xml" class="external text" title="http://wiki.trapexit.erlang-consulting.com/upload/howto/fast_web_server.xml" rel="nofollow">fast_web_server.xml</a>
+</p>
+<!-- Saved in parser cache with key trapexit_wiki:pcache:idhash:1376-0!1!0!!en!2 and timestamp 20100222110740 -->
+<div class="printfooter">
+Retrieved from "<a href="http://www.trapexit.org/A_fast_web_server_demonstrating_some_undocumented_Erlang_features">http://www.trapexit.org/A_fast_web_server_demonstrating_some_undocumented_Erlang_features</a>"</div>
+	    <div id="catlinks"><p class="catlinks"><a href="http://www.trapexit.org/Special:Categories" title="Special:Categories">Category</a>: <span dir="ltr"><a href="http://www.trapexit.org/Category:HowTo" title="Category:HowTo">HowTo</a></span></p></div>	    <!-- end content -->
+	    <div class="visualClear"></div>
+	  </div>
+	</div>
+      </div>
+      <div id="column-one">
+<div class="portlet" id="p-logo">
+	  <a style="background-image: url(/skins/common/images/trapexit-logo.png);" href="http://www.trapexit.org/Main_Page" title="Main Page"></a>
+	</div>
+	<script type="text/javascript"> if (window.isMSIE55) fixalpha(); </script>
+	<div id="p-search" class="portlet">
+	  <h5><label for="searchInput">Search</label></h5>
+	  <div class="pBody">
+<form method="get" action="http://www.google.com/search">
+    <input name="domains" value="trapexit.org" type="hidden">
+    <input name="num" value="50" type="hidden">
+    <input name="ie" value="$2" type="hidden">
+    <input name="oe" value="$2" type="hidden">
+    <input name="sitesearch" value="trapexit.org" type="hidden">    
+    <input name="q" size="18" maxlength="255" type="text">
+    <input name="btnG" value="Google Search" type="submit">
+<!--
+  <div style="font-size:90%">
+    <input type="radio" name="sitesearch" id="gwiki" value="trapexit.org" checked="checked" />
+			   <label for="gwiki">trapexit.org</label>
+    <input type="radio" name="sitesearch" id="gWWW" value="" /><label for="gWWW">WWW</label>
+  </div>
+-->
+</form>
+	  </div>
+	</div>
+		<div class="portlet" id="p-navigation">
+	  <h5>Navigation</h5>
+	  <div class="pBody">
+	    <ul>
+	    	      <li id="n-Home"><a href="http://www.trapexit.org/">Home</a></li>
+	     	      <li id="n-Erlang/OTP-Forums"><a href="http://forum.trapexit.org/">Erlang/OTP Forums</a></li>
+	     	      <li id="n-Erlang-Mailing-Lists"><a href="http://forum.trapexit.org/mailinglists">Erlang Mailing Lists</a></li>
+	     	      <li id="n-Erlang-Wiki"><a href="http://www.trapexit.org/Erlang_Wiki">Erlang Wiki</a></li>
+	     	      <li id="n-Recent-Changes"><a href="http://www.trapexit.org/Special:Recentchanges">Recent Changes</a></li>
+	     	      <li id="n-Links"><a href="http://www.trapexit.org/Links">Links</a></li>
+	     	      <li id="n-Contact"><a href="http://www.trapexit.org/Contact">Contact</a></li>
+	     	    </ul>
+	  </div>
+	</div>
+		<div class="portlet" id="p-Erlang/OTP Projects">
+	  <h5>Erlang/OTP Projects</h5>
+	  <div class="pBody">
+	    <ul>
+	    	      <li id="n-User-Contributions"><a href="http://www.trapexit.org/Special:UserContributions">User Contributions</a></li>
+	     	      <li id="n-Open-Source"><a href="http://projects.trapexit.org/">Open Source</a></li>
+	     	    </ul>
+	  </div>
+	</div>
+		<div class="portlet" id="p-Documentation">
+	  <h5>Documentation</h5>
+	  <div class="pBody">
+	    <ul>
+	    	      <li id="n-Tutorials"><a href="http://www.trapexit.org/Category:HowTo">Tutorials</a></li>
+	     	      <li id="n-Articles"><a href="http://www.trapexit.org/Category:Articles">Articles</a></li>
+	     	      <li id="n-Erlang-CookBook"><a href="http://www.trapexit.org/Category:CookBook">Erlang CookBook</a></li>
+	     	      <li id="n-FAQ"><a href="http://www.erlang.org/faq/faq.html">FAQ</a></li>
+	     	    </ul>
+	  </div>
+	</div>
+			<div class="portlet" id="p-Planet">
+		<h5>Planet Trapexit</h5>
+		<div class="pBody">
+		<ul>
+		<li id="n-FeedAll"><a href="http://planet.trapexit.org/rss20.xml"><img src="A_fast_web_server_demonstrating_some_undocumented_Erlang_features_arquivos/rss2.gif"></a> <a href="http://planet.trapexit.org/" title="Erlang/OTP Related RSS Feeds">All Feeds</a></li>
+		<li id="n-FeedBlog"><a href="http://planet.trapexit.org/general/rss20.xml"><img src="A_fast_web_server_demonstrating_some_undocumented_Erlang_features_arquivos/rss2.gif" align="bottom" vspace="0" hspace="0"></a> <a href="http://planet.trapexit.org/general/" title="General Erlang/OTP Related Feeds and Blogs">General Erlang</a></li>
+		<li id="n-FeedCom"><a href="http://planet.trapexit.org/com/rss20.xml"><img src="A_fast_web_server_demonstrating_some_undocumented_Erlang_features_arquivos/rss2.gif"></a> <a href="http://planet.trapexit.org/com/" title="Erlang/OTP Related RSS Feeds from Commercial Companies">Commercial</a></li>
+
+		<li id="n-FeedSW"><a href="http://planet.trapexit.org/software/rss20.xml"><img src="A_fast_web_server_demonstrating_some_undocumented_Erlang_features_arquivos/rss2.gif"></a> <a href="http://planet.trapexit.org/software" title="Erlang/OTP Related Software Project RSS Feeds">Software Projects</a></li>
+		<li id="n-FeedSW"><a href="http://www.trapexit.org/index.php/RssFeeds" title="Trapexit Feeds">Trapexit Feeds</a></li>
+		<li id="n-FeedSW"><a href="http://www.trapexit.org/index.php/Special:PlanetAdmin" title="Planet Admin">Planet Admin</a></li>
+		</ul>
+		</div>
+	</div>
+	<div class="portlet" id="p-bookmarks">
+	  <div class="pBody">
+	 <h5>Bookmark</h5>
+	<ul>
+		<li>
+	 	  <a href="http://digg.com/submit?phase=2&amp;url=http://www.trapexit.org/A_fast_web_server_demonstrating_some_undocumented_Erlang_features&amp;title=Erlang%20Community%20-%20A%20fast%20web%20server%20demonstrating%20some%20undocumented%20Erlang%20features%20-%20Trapexit"><img src="A_fast_web_server_demonstrating_some_undocumented_Erlang_features_arquivos/digg.gif">&nbsp;Digg It</a>
+		</li>
+		<li>
+	 	  <a href="http://del.icio.us/post?url=http://www.trapexit.org/A_fast_web_server_demonstrating_some_undocumented_Erlang_features&amp;title=Erlang%20Community%20-%20A%20fast%20web%20server%20demonstrating%20some%20undocumented%20Erlang%20features%20-%20Trapexit"><img src="A_fast_web_server_demonstrating_some_undocumented_Erlang_features_arquivos/delicious.gif">&nbsp;Del.icio.us</a>
+		</li>
+		<li>
+		 <a href="http://reddit.com/submit?url=http://www.trapexit.org/A_fast_web_server_demonstrating_some_undocumented_Erlang_features&amp;title=Erlang%20Community%20-%20A%20fast%20web%20server%20demonstrating%20some%20undocumented%20Erlang%20features%20-%20Trapexit"><img src="A_fast_web_server_demonstrating_some_undocumented_Erlang_features_arquivos/reddit.gif">&nbsp;Reddit</a>
+		</li>
+		<li>
+		 <a href="http://www.facebook.com/sharer.php?u=http://www.trapexit.org/A_fast_web_server_demonstrating_some_undocumented_Erlang_features"><img src="A_fast_web_server_demonstrating_some_undocumented_Erlang_features_arquivos/facebook.gif">&nbsp;Facebook</a>
+		</li>
+		<li>
+		 <a href="http://www.stumbleupon.com/submit?url=http://www.trapexit.org/A_fast_web_server_demonstrating_some_undocumented_Erlang_features&amp;title=Erlang%20Community%20-%20A%20fast%20web%20server%20demonstrating%20some%20undocumented%20Erlang%20features%20-%20Trapexit"><img src="A_fast_web_server_demonstrating_some_undocumented_Erlang_features_arquivos/stumbleupon.gif">&nbsp;Stumble Upon</a>
+		</li>
+		<li>
+		 <a href="http://technorati.com/faves?add=http://www.trapexit.org/A_fast_web_server_demonstrating_some_undocumented_Erlang_features"><img src="A_fast_web_server_demonstrating_some_undocumented_Erlang_features_arquivos/technorati.gif">&nbsp;Technorati</a>
+		</li>
+	</ul>
+	  </div>
+	</div>
+	<div class="portlet" id="p-personal">
+	  <h5>Personal tools</h5>
+	  <div class="pBody">
+	    <ul>
+	    <li id="pt-login"><a href="http://www.trapexit.org/index.php?title=Special:Userlogin&amp;returnto=A_fast_web_server_demonstrating_some_undocumented_Erlang_features">Log in / create account</a></li>	    </ul>
+	  </div>
+	</div>
+    <div class="portlet" style="border: 0pt none ;">
+	  <div class="pBody">
+		<center>
+		<h5>&nbsp;</h5>
+			<h1>&nbsp;</h1>
+			<div style="position: relative;" id="books">
+				<a style="position: absolute; top: 0px; left: 0px; display: block; z-index: 2; opacity: 0.0909251;" href="http://oreilly.com/catalog/9781934356005/" target="_blank">
+					<img src="A_fast_web_server_demonstrating_some_undocumented_Erlang_features_arquivos/1.gif"></a>
+				
+				<a style="position: absolute; top: 0px; left: 0px; display: block; z-index: 1; opacity: 0.90817;" href="http://oreilly.com/catalog/9780596518189/" target="_blank">
+					<img src="A_fast_web_server_demonstrating_some_undocumented_Erlang_features_arquivos/2.gif"></a>
+				
+			</div>
+		</center>
+		</div>
+	</div>
+    <div class="portlet" style="">
+	  <div class="pBody">
+		<center>
+	<br>
+		<h5>&nbsp;</h5>
+			    <a href="http://www.erlang.org/" target="_blank">
+			    <img src="A_fast_web_server_demonstrating_some_undocumented_Erlang_features_arquivos/erlang.gif"></a>
+		   </center>
+		</div>
+	</div>
+    </div>
+		      </div><!-- end of the left (by default at least) column -->
+      <div class="visualClear"></div>
+      <div id="footer">
+			<table width="100%">
+			<tbody><tr>
+				<td align="center">
+	    	    		       <a href="http://www.trapexit.org/index.php?title=A_fast_web_server_demonstrating_some_undocumented_Erlang_features&amp;action=edit">Edit</a> | 		       <a href="http://www.trapexit.org/index.php?title=A_fast_web_server_demonstrating_some_undocumented_Erlang_features&amp;action=history">History</a>	  <br>Hosted by <a href="http://www.erlang-consulting.com/" title="Erlang Solutions">Erlang</a>
+	  <a href="http://www.erlang-consulting.com/" title="Erlang Solutions">Solutions</a>
+	  		<br>
+	</td>
+      
+    
+    <!-- Served by localhost.localdomain in 0.300 secs. -->  </tr></tbody></table></div></body></html>

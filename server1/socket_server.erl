@@ -37,7 +37,7 @@ worker_loop({Server, LSocket, {M, F}}) ->
     M:F(Socket).
    
 spawn_worker(State = #server_state{lsocket=LSocket, loop=Loop}) ->
-    spawn_link(?MODULE, worker_loop, [{self(), LSocket, Loop}]),
+    proc_lib:spawn_link(?MODULE, worker_loop, [{self(), LSocket, Loop}]),
     State.
 
 % These are just here to suppress warnings.
