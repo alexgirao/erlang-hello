@@ -132,3 +132,7 @@ http_util_elias.erl
     - heavy string manipulation
 
     - reference: http_util_elias.txt
+
+filetest.erl
+
+    - read a file
