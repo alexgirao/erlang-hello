@@ -20,9 +20,13 @@ f.erl
 	- head/tail list processing
 	- recursive vs tail recursive
 
+pingpong.erl
+
+    - how to create processes (spawn/3 BIF)
+    - how basic messaging works
+
 flush-unknown.erl / flush-unknown.escript
 
-	- how basic messaging works
 	- how do flush unknown messages and avoid filling up message queues
 	- ?MODULE macro
 	- self/0 BIF
