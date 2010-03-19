@@ -136,3 +136,7 @@ http_util_elias.erl
 filetest.erl
 
     - read a file
+
+sa.erl / sa1.erl
+
+    - self-application/fixed-point combinator/closures
