@@ -1,0 +1,212 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [erlang-questions] [Q] prim_inet:async_accept and gen_tcp:send
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:erlang-questions%40erlang.org?Subject=%5Berlang-questions%5D%20%5BQ%5D%20prim_inet%3Aasync_accept%20and%20gen_tcp%3Asend&In-Reply-To=589632AD-C7C9-42CE-A8E7-DA5A2AD348E2%40rogvall.com">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="027837.html">
+   <LINK REL="Next"  HREF="027842.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[erlang-questions] [Q] prim_inet:async_accept and gen_tcp:send</H1>
+    <B>Serge Aleynikov</B> 
+    <A HREF="mailto:erlang-questions%40erlang.org?Subject=%5Berlang-questions%5D%20%5BQ%5D%20prim_inet%3Aasync_accept%20and%20gen_tcp%3Asend&In-Reply-To=589632AD-C7C9-42CE-A8E7-DA5A2AD348E2%40rogvall.com"
+       TITLE="[erlang-questions] [Q] prim_inet:async_accept and gen_tcp:send">&lt;<img border=0 src="../emailaddrs/003256.png">&gt;
+       </A><BR>
+    <I>Fri Jul 13 05:19:20 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="027837.html">[erlang-questions] [Q] prim_inet:async_accept and gen_tcp:send
+</A></li>
+        <LI>Next message: <A HREF="027842.html">[erlang-questions] Bug in ei
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#27843">[ date ]</a>
+              <a href="thread.html#27843">[ thread ]</a>
+              <a href="subject.html#27843">[ subject ]</a>
+              <a href="author.html#27843">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>You may also want to copy some socket options on the accepted socket the 
+same way it's done in prim_inet.  Here's a more complete extract 
+(slightly trimmed) from a non-blocking TCP gen_server extracted from one 
+of working projects.  A couple of points to note are:
+
+1. Initially the listening socket is set to passive mode, so that the 
+accepted socket wouldn't attempt to send messages to the listener's 
+gen_server process.  As soon as the ownership is switched to the 
+Module's handler Pid, it's safe to switch it to the {accept, once} mode 
+in that module.
+
+2. I am not a 100% sure if it's a good idea to retry accept attempts in 
+case when acceptor returns an error {inet_async, ListSock, Ref, Error}. 
+  So we might as well crash the listener and let supervisor handle 
+listener's restart.
+
+
+init(Port, Module) -&gt;
+     process_flag(trap_exit, true),
+
+     %% The socket options will be set on the acceptor socket automatically
+     case gen_tcp:listen(Port,[binary, {packet, 2}, {reuseaddr, true},
+                               {keepalive, true}, {backlog, 128},
+                               {active, false}])
+     of
+     {ok, Listen_socket} -&gt;
+         %%Create first accepting process
+         {ok, Ref} = prim_inet:async_accept(Listen_socket, -1),
+         {ok, #state{listener        = Listen_socket,
+                     acceptor        = Ref,
+                     module          = Module}};
+     {error, Reason} -&gt;
+         {stop, Reason}
+     end.
+
+handle_info({inet_async, ListSock, Ref, {ok, CliSocket}}, 
+#state{listener=ListSock, acceptor=Ref, module=M} = State) -&gt;
+     case set_sockopt(ListSock, CliSocket) of
+     ok -&gt;
+         %% New client connected
+         {ok, Pid} = erlang:apply(Module, start_link, [CliSocket]),
+         gen_tcp:controlling_process(CliSocket, Pid),
+         %% Instruct the new FSM that it owns the socket.
+         gen_fsm:send_event(Pid, socket_ready),
+         {ok, NewRef} = prim_inet:async_accept(ListSock, -1),
+         {noreply, State#state{acceptor=NewRef}};
+     {error, Reason} -&gt;
+         error_logger:error_msg(&quot;Error setting socket options: ~p.\n&quot;, 
+[Reason]),
+         {stop, Reason, State}
+     end;
+
+handle_info({inet_async, ListSock, Ref, Error},
+             #state{listener=ListSock, acceptor=Ref} = State) -&gt;
+     error_logger:error_msg(&quot;Error in socket acceptor: ~p.\n&quot;, [Error]),
+     {stop, exceeded_accept_retry_count, State};
+
+
+set_sockopt(ListSock, CliSocket) -&gt;
+     true = inet_db:register_socket(CliSocket, inet_tcp),
+     case prim_inet:getopts(ListSock, [active, nodelay, keepalive, 
+delay_send, priority, tos]) of
+	{ok, Opts} -&gt;
+	    case prim_inet:setopts(CliSocket, Opts) of
+		ok    -&gt; ok;
+		Error -&gt; gen_tcp:close(CliSocket), Error
+	    end;
+	Error -&gt;
+	    gen_tcp:close(CliSocket), Error
+     end.
+
+
+Tony Rogvall wrote:
+&gt;<i> Reading the code for accept in the module inet_tcp.erl (in lib/kernel)
+</I>&gt;<i> accept makes a call to inet_db:register_socket(S, ?MODULE).
+</I>&gt;<i> 
+</I>&gt;<i> you need to call it with ?MODULE replaced by the atom inet_tcp.
+</I>&gt;<i> 
+</I>&gt;<i> /Tony
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> On 12 jul 2007, at 16.51, Ladislav Lenart wrote:
+</I>&gt;<i> 
+</I>&gt;&gt;<i> Hello,
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> based on a previous thread about prim_inet:async_accept we tried to
+</I>&gt;&gt;<i> use it ourselves but the connection socket we get is unusable. To
+</I>&gt;&gt;<i> repeat do following in the erlang shell:
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> $&gt; {ok, Port} = gen_tcp:listen(6667, [list, {packet, line},  
+</I>&gt;&gt;<i> {active, false}]).
+</I>&gt;&gt;<i> {ok, #Port&lt;0.70890&gt;}
+</I>&gt;&gt;<i> $&gt; {ok, Ref} = prim_inet:async_accept(P, -1).
+</I>&gt;&gt;<i> {ok, 0}
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Now telnet to localhost:6667 and continue:
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> $&gt; receive {inet_async, Port, Ref, {ok, Socket}} -&gt; {ok, Socket} end.
+</I>&gt;&gt;<i> {ok, #Port&lt;0.70891&gt;}
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> However evaluating gen_tcp:send(Socket, Data) crashes with
+</I>&gt;&gt;<i> {undef, [{undefined, send, [Socket, Data]}, ...]}
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> We found out that problem is in gen_tcp:send/2 which
+</I>&gt;&gt;<i> in turn calls inet_db:lookup_socket(Socket) which calls
+</I>&gt;&gt;<i> erlang:port_get_data(Socket) which returns undefined
+</I>&gt;&gt;<i> (instead of inet_tcp?).
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Any clues to what we are doing wrong?
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Thanks,
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Ladislav Lenart
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> _______________________________________________
+</I>&gt;&gt;<i> erlang-questions mailing list
+</I>&gt;&gt;<i> <img border=0 src="../emailaddrs/000036.png">
+</I>&gt;&gt;<i> <A HREF="http://www.erlang.org/mailman/listinfo/erlang-questions">http://www.erlang.org/mailman/listinfo/erlang-questions</A>
+</I>&gt;<i> 
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> erlang-questions mailing list
+</I>&gt;<i> <img border=0 src="../emailaddrs/000036.png">
+</I>&gt;<i> <A HREF="http://www.erlang.org/mailman/listinfo/erlang-questions">http://www.erlang.org/mailman/listinfo/erlang-questions</A>
+</I>&gt;<i> 
+</I>
+</PRE>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="027837.html">[erlang-questions] [Q] prim_inet:async_accept and gen_tcp:send
+</A></li>
+	<LI>Next message: <A HREF="027842.html">[erlang-questions] Bug in ei
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#27843">[ date ]</a>
+              <a href="thread.html#27843">[ thread ]</a>
+              <a href="subject.html#27843">[ subject ]</a>
+              <a href="author.html#27843">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.erlang.org/mailman/listinfo/erlang-questions">More information about the erlang-questions
+mailing list</a><br>
+</body></html>

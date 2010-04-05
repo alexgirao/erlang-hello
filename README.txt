@@ -18,3 +18,10 @@
 
     - a http server using application, supervisor and gen_server behaviours
 
+- server3
+
+    - gen_server2 custom behaviour module (from LShift)
+
+- server4a
+
+    - asynchronous accept server example

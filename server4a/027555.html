@@ -1,0 +1,75 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [erlang-questions] gen_tcp:accept use within a gen_fsm process
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:erlang-questions%40erlang.org?Subject=%5Berlang-questions%5D%20gen_tcp%3Aaccept%20use%20within%20a%20gen_fsm%20process&In-Reply-To=46805586.8010901%40free.fr">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="027542.html">
+   <LINK REL="Next"  HREF="027522.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[erlang-questions] gen_tcp:accept use within a gen_fsm process</H1>
+    <B>Per Hedeland</B> 
+    <A HREF="mailto:erlang-questions%40erlang.org?Subject=%5Berlang-questions%5D%20gen_tcp%3Aaccept%20use%20within%20a%20gen_fsm%20process&In-Reply-To=46805586.8010901%40free.fr"
+       TITLE="[erlang-questions] gen_tcp:accept use within a gen_fsm process">&lt;<img border=0 src="../emailaddrs/002635.png">&gt;
+       </A><BR>
+    <I>Tue Jun 26 13:56:45 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="027542.html">[erlang-questions] gen_tcp:accept use within a gen_fsm process
+</A></li>
+        <LI>Next message: <A HREF="027522.html">[erlang-questions] Include files location
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#27555">[ date ]</a>
+              <a href="thread.html#27555">[ thread ]</a>
+              <a href="subject.html#27555">[ subject ]</a>
+              <a href="author.html#27555">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>igwan &lt;<img border=0 src="../emailaddrs/002533.png">&gt; wrote:
+&gt;<i>
+</I>&gt;<i>It works well. Thanks for pointing this out.
+</I>&gt;<i>This blocking call stuff is unusual for me, but maybe I'm too used to 
+</I>&gt;<i>message passing and asynchronicity :)
+</I>&gt;<i>I would have expected gen_tcp to send messages for incoming connections 
+</I>&gt;<i>attempts and let the code decide if it accepts the connection or not. As 
+</I>&gt;<i>far as I read in the doc, there's no means of refusing or selectively 
+</I>&gt;<i>ignoring an incoming tcp connection based on eg. origin IP address. You 
+</I>&gt;<i>must already have  blindly accepted the TCP connection before you have 
+</I>&gt;<i>access to this info. Or am I missing something again ?
+</I>
+The latter is (again) a property of the underlying (standard) socket API
+(as long as you're using SOCK_STREAM sockets such as TCP). This doesn't
+imply that 'accept' has to be implemented as a blocking operation
+though, in fact if you're brave you can use prim_inet:async_accept/2 on
+the socket you got from gen_tcp:listen/2.
+
+--Per Hedeland
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="027542.html">[erlang-questions] gen_tcp:accept use within a gen_fsm process
+</A></li>
+	<LI>Next message: <A HREF="027522.html">[erlang-questions] Include files location
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#27555">[ date ]</a>
+              <a href="thread.html#27555">[ thread ]</a>
+              <a href="subject.html#27555">[ subject ]</a>
+              <a href="author.html#27555">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.erlang.org/mailman/listinfo/erlang-questions">More information about the erlang-questions
+mailing list</a><br>
+</body></html>
