@@ -38,7 +38,7 @@ loop(LSocket, Ref) ->
 
 	    {ok, Mod} = inet_db:lookup_socket(LSocket),
 	    io:format("socket accepted: ~p (module ~p)~n", [S, Mod]),
-	    inet_db:register_socket(S, Mod),
+	    true = inet_db:register_socket(S, Mod),
 	    accept_opts(LSocket, S),
 
 	    % spawn worker and set the new controlling process
@@ -53,7 +53,7 @@ loop(LSocket, Ref) ->
 
 	    loop(LSocket, NewRef);
 
-	{inet_async, LSocket, Ref, Error} = M ->
+	{inet_async, LSocket, Ref, _Error} = M ->
 	    io:format("error: ~p~n", [M]);
 
 	M ->
