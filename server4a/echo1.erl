@@ -1,4 +1,4 @@
--module(echo).
+-module(echo1).
 
 -export([init/1, do_echo/1, main/1]).
 
@@ -53,7 +53,7 @@ loop(LSocket, Ref) ->
 
 	    loop(LSocket, NewRef);
 
-	{inet_async, LSocket, Ref, Error} = M ->
+	{inet_async, _LSocket, Ref, _Error} = M ->
 	    io:format("error: ~p~n", [M]);
 
 	M ->
@@ -63,26 +63,28 @@ loop(LSocket, Ref) ->
 
 %%
 
-%% do_echo(Socket) ->
-%%     case gen_tcp:recv(Socket, 0) of
-%%         {ok, Data} ->
-%%             gen_tcp:send(Socket, Data),
-%%             do_echo(Socket);
-%%         {error, closed} ->
-%%             ok
-%%     end.
-
 do_echo(Socket) ->
-    case gen_tcp:recv(Socket, 0) of
-        {ok, Data} ->
-            gen_tcp:send(Socket, Data),
-            do_echo(Socket);
-        {error, closed} ->
-            ok
+    process_flag(trap_exit, true),
+    do_echo_loop(Socket).
+
+do_echo_loop(Socket) ->
+    prim_inet:async_recv(Socket, 0, -1),
+    receive
+	{inet_async, _LSocket, _Ref, {ok, Data}} ->
+	    gen_tcp:send(Socket, Data),
+	    do_echo_loop(Socket);
+
+	{inet_async, _LSocket, _Ref, {error, _Error} = Err} = M ->
+	    io:format("error: ~p~n", [M]),
+	    Err;
+
+	M ->
+	    io:format("flushing unknown message ~p~n", [M]),
+	    do_echo_loop(Socket)
     end.
 
 %%
 
 main([Port]) ->
-    io:format("-----------[~p]~n", [Port]),
+    io:format("port used: ~p~n", [Port]),
     init(list_to_integer(atom_to_list(Port))).

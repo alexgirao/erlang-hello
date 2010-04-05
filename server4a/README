@@ -1,4 +1,9 @@
 
-- erlc echo.erl && erl -noshell -s echo main 7000 -s init stop
+-
+
+	erlc echo0.erl && erl -noshell -s echo0 main 7000 -s init stop
+	erlc echo1.erl && erl -noshell -s echo1 main 7000 -s init stop
+
 - otp_src_R13B01-prim_inet.erl added for reference
-- echo.erl: usage of prim_inet:async_accept
+- echo0.erl: usage of prim_inet:async_accept
+- echo1.erl: usage of prim_inet:async_accept and prim_inet:async_recv
