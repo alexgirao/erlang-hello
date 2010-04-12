@@ -6,6 +6,10 @@
 
 	- from: erl5.6.4/doc/getting_started/part_frame.html
 
+- design_principles
+
+    - gen_server (and how it works), gen_fsm and gen_event
+
 - server0
 
     - basic usage of gen_tcp module
