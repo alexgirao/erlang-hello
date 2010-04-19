@@ -66,6 +66,10 @@ arguments.escript
 
 	- how to handle arguments with erlang's escript
 
+format.escript
+
+	- how to format a string to a variable
+
 sum.erl
 
 	shows differences between recursive calls and tail calls
