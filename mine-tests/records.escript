@@ -48,4 +48,9 @@ main(_) ->
     
     ,io:format("is person ~p?: ~p~n", [S, R])
 
+    % record creation
+
+    ,P3 = P0#person{b=29}
+    ,io:format("~p age: ~p~n", [P3#person.a, P3#person.b])
+
     .

@@ -7,6 +7,10 @@ varbinding.escript
 	- use of the match operator (=)
     	- variable binding and pattern matching with tuples, lists and records
 
+define.escript
+
+	- how to define constants
+
 tuples.escript
 
 	- how to use tuples
