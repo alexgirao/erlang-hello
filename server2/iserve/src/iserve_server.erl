@@ -56,8 +56,8 @@ handle_info({'EXIT', Pid, normal}, #state{acceptor=Pid} = State) ->
 %% The current acceptor has died, wait a little and try again
 handle_info({'EXIT', Pid, _Abnormal}, #state{acceptor=Pid} = State) ->
     timer:sleep(2000),
-    iserve_socket:start_link(self(), State#state.listen_socket, State#state.port),
-    {noreply, State};
+    New_pid = iserve_socket:start_link(self(), State#state.listen_socket, State#state.port),
+    {noreply, State#state{acceptor=New_pid}};
 
 handle_info(_Info, State) ->
     {noreply, State}.
