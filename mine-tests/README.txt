@@ -148,3 +148,10 @@ filetest.erl
 sa.erl / sa1.erl
 
     - self-application/fixed-point combinator/closures
+
+macro.erl / macro.hrl
+
+    - defines
+    - macro definition
+    - library inclusion
+    - error_logger module usage
