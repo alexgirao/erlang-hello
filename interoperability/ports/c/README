@@ -29,3 +29,45 @@
     10
     5> complex1:stop().
     stop
+
+4. Calling port directly.
+
+    1> Port = open_port({spawn, begin {ok, Dir} = file:get_cwd(), Dir ++ "/extprg" end}, [{packet, 2}]). 
+    #Port<0.424>
+    2> flush().
+    ok
+    3> Port ! {self(), {command, [1, 3]}}.
+    {<0.33.0>,{command,[1,3]}}
+    4> flush().
+    Shell got {#Port<0.424>,{data,[4]}}
+    ok
+    5> Port ! {self(), {command, [1, 3]}}.
+    {<0.33.0>,{command,[1,3]}}
+    6> Port ! {self(), {command, [2, 5]}}.  
+    {<0.33.0>,{command,[2,5]}}
+    7> flush().
+    Shell got {#Port<0.424>,{data,[4]}}
+    Shell got {#Port<0.424>,{data,"\n"}}
+    ok
+
+4. Calling port directly with binary data instead of list of bytes.
+
+    1> Port = open_port({spawn, begin {ok, Dir} = file:get_cwd(), Dir ++ "/extprg" end}, [{packet, 2}, binary]).
+    #Port<0.424>
+    2> flush().
+    ok
+    3> Port ! {self(), {command, <<1,3>>}}.
+    {<0.33.0>,{command,<<1,3>>}}
+    4> flush().
+    Shell got {#Port<0.424>,{data,<<4>>}}
+    ok
+
+5. using BIF port_command.
+
+    1> Port = open_port({spawn, begin {ok, Dir} = file:get_cwd(), Dir ++ "/extprg" end}, [{packet, 2}, binary]).
+    #Port<0.424>
+    2> port_command(Port, <<1,3>>).
+    true
+    3> flush().
+    Shell got {#Port<0.424>,{data,<<4>>}}
+    ok
