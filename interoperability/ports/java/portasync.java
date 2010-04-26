@@ -7,7 +7,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.IOException;
 
-class port {
+class portasync {
     public static void main(String[] Args) throws Exception {
 	byte[] buffer = new byte[0xffff];
 

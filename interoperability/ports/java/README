@@ -2,7 +2,7 @@
 
 1. Compile the java and erlang code.
 
-    unix> javac port.java && erlc complex2.erl
+    unix> javac *.java && erlc complex2.erl
 
 2. Run the example (in erl shell).
 
@@ -17,7 +17,7 @@
 
 3. using BIF port_command.
 
-    1> Port = open_port({spawn_executable, os:find_executable("java")}, [{packet, 4}, binary, {args, ["-cp", ".", "port"]}]).
+    1> Port = open_port({spawn_executable, os:find_executable("java")}, [{packet, 4}, binary, {args, ["-cp", ".", "portsync"]}]).
     #Port<0.424>
     2> port_command(Port, <<1,3>>).
     true
