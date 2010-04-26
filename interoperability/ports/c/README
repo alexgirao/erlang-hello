@@ -50,7 +50,7 @@
     Shell got {#Port<0.424>,{data,"\n"}}
     ok
 
-4. Calling port directly with binary data instead of list of bytes.
+5. Calling port directly with binary data instead of list of bytes.
 
     1> Port = open_port({spawn, begin {ok, Dir} = file:get_cwd(), Dir ++ "/extprg" end}, [{packet, 2}, binary]).
     #Port<0.424>
@@ -62,7 +62,7 @@
     Shell got {#Port<0.424>,{data,<<4>>}}
     ok
 
-5. using BIF port_command.
+6. using BIF port_command.
 
     1> Port = open_port({spawn, begin {ok, Dir} = file:get_cwd(), Dir ++ "/extprg" end}, [{packet, 2}, binary]).
     #Port<0.424>
