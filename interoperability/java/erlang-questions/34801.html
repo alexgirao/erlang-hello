@@ -1,0 +1,106 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head>
+<title>erlang-questions@erlang.org: 34801: Re: [erlang-questions] how: Strange issue with Jinterface and
+	marshalling</title>
+<link href="/css/ezmlm-archive.css" rel="stylesheet" type="text/css" />
+<meta name="robots" content="noindex" />
+<meta name="robots" content="nofollow" />
+<base href="http://www.erlang.org/cgi-bin/ezmlm-cgi" />
+</head>
+<body class="msgbody">
+<!-- noindex -->
+<div class="msglinks"><em>erlang-questions</em> <strong>Msg by: <a href="ezmlm-cgi?4:mss:34797:blkmdkideodjjidcdohd">[&lt;-</a> <a href="ezmlm-cgi?4:sss:34801:blkmdkideodjjidcdohd#b">thread</a> <a href="ezmlm-cgi?4:msn:34801:blkmdkideodjjidcdohd">-&gt;]</a> 
+<a href="ezmlm-cgi?4:mmp:34801">[&lt;-</a> <a href="ezmlm-cgi?4:iis:34801#b">time</a> <a href="ezmlm-cgi?4:mmn:34801">-&gt;]</a> 
+<a href="ezmlm-cgi?4:map:34801">[&lt;-</a> <a href="ezmlm-cgi?4:aas:34801#b">author</a> <a href="ezmlm-cgi?4:man:34801">-&gt;]</a> |
+<a href="ezmlm-cgi?4:dds:34801#b">[Threads]</a>
+<a href="/faq.html">[Help]</a>
+
+<a href="mailto:erlang-questions-getv34801@erlang.org?subject=Just%20Click%20%22SEND%22!">[Email Msg]</a>
+<a href="mailto:erlang-questions-threadv34801@erlang.org?subject=Just%20Click%20%22SEND%22!">[Email Thread]</a>
+<a href="mailto:erlang-questions-subscribe@erlang.org?subject=Just%20Click%20%22SEND%22!">[Subscribe To List]</a>
+<a href="mailto:erlang-questions-faq@erlang.org?subject=Just%20Click%20%22SEND%22!">[List FAQ]</a>
+</strong></div>
+<!-- index -->
+<div class="message">
+<div class="rfc822hdr"><hr />
+<span class="subject"><em>Subject:</em><a class="relk" href="mailto:erlang-questions@erlang.org?subject=Re%3A%20[erlang-questions]%20how%3A%20Strange%20issue%20with%20Jinterface%20and%0A%09marshalling"><meta name="subject" content=" Re: [erlang-questions] how: Strange issue with Jinterface and
+	marshalling
+"> Re: [erlang-questions] how: Strange issue with Jinterface and
+	marshalling</a></span>
+<br /><em>From:</em> Raimo Niskanen<meta name="from" content="Raimo Niskanen">
+<br /><em>Date:</em> Wed, 7 May 2008 09:00:05 +0200
+<br /></div>
+<hr />
+<pre>
+On Tue, May 06, 2008 at 02:31:14PM -0700, Jonathan Gray wrote:
+&gt; I am having a very strange problem when marshalling an Erlang term in Java
+&gt; using Jinterface and sending it to a native erlang program.
+&gt; 
+&gt; I am able to unmarshall from Erlang to Java, and marshall and unmarshall
+&gt; within Java.
+&gt; 
+&gt; After spending some time looking into the raw data, it appears that when I
+&gt; marshall the same term within Erlang there is an extra byte at the front
+&gt; that is missing from the Java marshalled bytes.  It is a hex 0x83 (integer
+&gt; 131).
+&gt; 
+&gt; If I append this to the front of my byte array in Java, and then send, my
+&gt; erlang program can demarshall it without any problem whatsoever.  The
+&gt; Jinterface library is able to demarshall either format (w/ and w/o the
+&gt; header) into the exact same erlang terms.
+&gt; 
+&gt; Is this some type of version header?  I'm using the Jinterface library
+&gt; that came with the erlang version I am using.
+&gt; 
+&gt; We have moved forward by simply appending this extra byte, but this is a
+&gt; very strange behavior and we'd like to figure out what it's all about.
+
+OtpOutputStream is a raw creature with several uses. One of them can
+be to encode an Erlang term in external format (aka marshal).
+
+There is no such function in Jinterface (as far as I know) as
+erlang:term_to_binary/1. Jinterface is focused on communicating
+with Erlang nodes. If you use OtpMbox.send() it will add the
+version tag itself.
+
+But if you want to create a marshalled Erlang term using
+OtpOutputStream you have to prepend it with the external
+format version magic byte 131, though you should use
+the constant OtpExternal.versionTag instead;
+it is clearer.
+
+&gt; 
+&gt; Thanks for any help.
+&gt; 
+&gt; Jonathan Gray
+&gt; _______________________________________________
+&gt; erlang-questions mailing list
+&gt; erlang<ABBR title="dash"> &ndash; </ABBR>questions<ABBR title="at"> &#9678; </ABBR>erlang<ABBR title="dot"> &middot; </ABBR>org
+&gt; <a href="http://www.erlang.org/mailman/listinfo/erlang-questions">http://www.erlang.org/mailman/listinfo/erlang-questions</a>
+
+-- 
+
+/ Raimo Niskanen, Erlang/OTP, Ericsson AB
+
+</pre>
+<hr /></div>
+<!-- noindex -->
+<div class="msglinks"><em>erlang-questions</em> <strong>Msg by: <a href="ezmlm-cgi?4:mss:34797:blkmdkideodjjidcdohd">[&lt;-</a> <a href="ezmlm-cgi?4:sss:34801:blkmdkideodjjidcdohd#b">thread</a> <a href="ezmlm-cgi?4:msn:34801:blkmdkideodjjidcdohd">-&gt;]</a> 
+<a href="ezmlm-cgi?4:mmp:34801">[&lt;-</a> <a href="ezmlm-cgi?4:iis:34801#b">time</a> <a href="ezmlm-cgi?4:mmn:34801">-&gt;]</a> 
+<a href="ezmlm-cgi?4:map:34801">[&lt;-</a> <a href="ezmlm-cgi?4:aas:34801#b">author</a> <a href="ezmlm-cgi?4:man:34801">-&gt;]</a> |
+<a href="ezmlm-cgi?4:dds:34801#b">[Threads]</a>
+<a href="/faq.html">[Help]</a>
+
+<a href="mailto:erlang-questions-getv34801@erlang.org?subject=Just%20Click%20%22SEND%22!">[Email Msg]</a>
+<a href="mailto:erlang-questions-threadv34801@erlang.org?subject=Just%20Click%20%22SEND%22!">[Email Thread]</a>
+<a href="mailto:erlang-questions-subscribe@erlang.org?subject=Just%20Click%20%22SEND%22!">[Subscribe To List]</a>
+<a href="mailto:erlang-questions-faq@erlang.org?subject=Just%20Click%20%22SEND%22!">[List FAQ]</a>
+</strong></div>
+<!-- index -->
+<!-- noindex -->
+<div class="banner">
+<p>Archives: <a href="/cgi-bin/ezmlm-cgi/1">erlang-announce</a> <a href="/cgi-bin/ezmlm-cgi/2">erlang-bugs</a> <a href="/cgi-bin/ezmlm-cgi/3">erlang-patches</a> <strong>erlang-questions</strong> <a href="/cgi-bin/ezmlm-cgi/5">eeps</a> | <a href="/cgi-bin/swish.cgi">[Search]</a><br><small><em>Powered by <a href="http://ezmlm.org">ezmlm-idx</a></em></small></p>
+</div>
+<!-- index -->
+</body>
+</html>

@@ -1,0 +1,79 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head>
+<title>erlang-questions@erlang.org: 34795: [erlang-questions] Strange issue with Jinterface and marshalling</title>
+<link href="/css/ezmlm-archive.css" rel="stylesheet" type="text/css" />
+<meta name="robots" content="noindex" />
+<meta name="robots" content="nofollow" />
+<base href="http://www.erlang.org/cgi-bin/ezmlm-cgi" />
+</head>
+<body class="msgbody">
+<!-- noindex -->
+<div class="msglinks"><em>erlang-questions</em> <strong>Msg by: <a href="ezmlm-cgi?4:msp:34795:blkmdkideodjjidcdohd">[&lt;-</a> <a href="ezmlm-cgi?4:sss:34795:blkmdkideodjjidcdohd#b">thread</a> <a href="ezmlm-cgi?4:msn:34795:blkmdkideodjjidcdohd">-&gt;]</a> 
+<a href="ezmlm-cgi?4:mmp:34795">[&lt;-</a> <a href="ezmlm-cgi?4:iis:34795#b">time</a> <a href="ezmlm-cgi?4:mmn:34795">-&gt;]</a> 
+<a href="ezmlm-cgi?4:map:34795">[&lt;-</a> <a href="ezmlm-cgi?4:aas:34795#b">author</a> <a href="ezmlm-cgi?4:man:34795">-&gt;]</a> |
+<a href="ezmlm-cgi?4:dds:34795#b">[Threads]</a>
+<a href="/faq.html">[Help]</a>
+
+<a href="mailto:erlang-questions-getv34795@erlang.org?subject=Just%20Click%20%22SEND%22!">[Email Msg]</a>
+<a href="mailto:erlang-questions-threadv34795@erlang.org?subject=Just%20Click%20%22SEND%22!">[Email Thread]</a>
+<a href="mailto:erlang-questions-subscribe@erlang.org?subject=Just%20Click%20%22SEND%22!">[Subscribe To List]</a>
+<a href="mailto:erlang-questions-faq@erlang.org?subject=Just%20Click%20%22SEND%22!">[List FAQ]</a>
+</strong></div>
+<!-- index -->
+<div class="message">
+<div class="rfc822hdr"><hr />
+<span class="subject"><em>Subject:</em><a class="relk" href="mailto:erlang-questions@erlang.org?subject=[erlang-questions]%20Strange%20issue%20with%20Jinterface%20and%20marshalling"><meta name="subject" content=" [erlang-questions] Strange issue with Jinterface and marshalling
+"> [erlang-questions] Strange issue with Jinterface and marshalling</a></span>
+<br /><em>From:</em> Jonathan Gray<meta name="from" content="Jonathan Gray">
+<br /><em>Date:</em> Tue, 6 May 2008 14:41:29 -0700 (PDT)
+<br /></div>
+<hr />
+<pre>
+I am having a very strange problem when marshalling an Erlang term in Java
+using Jinterface and sending it to a native erlang program.
+
+I am able to unmarshall from Erlang to Java, and marshall and unmarshall
+within Java.
+
+After spending some time looking into the raw data, it appears that when I
+marshall the same term within Erlang there is an extra byte at the front
+that is missing from the Java marshalled bytes.  It is a hex 0x83 (integer
+131).
+
+If I append this to the front of my byte array in Java, and then send, my
+erlang program can demarshall it without any problem whatsoever.  The
+Jinterface library is able to demarshall either format (w/ and w/o the
+header) into the exact same erlang terms.
+
+Is this some type of version header?  I'm using the Jinterface library
+that came with the erlang version I am using.
+
+We have moved forward by simply appending this extra byte, but this is a
+very strange behavior and we'd like to figure out what it's all about.
+
+Thanks for any help.
+
+Jonathan Gray
+
+</pre>
+<hr /></div>
+<!-- noindex -->
+<div class="msglinks"><em>erlang-questions</em> <strong>Msg by: <a href="ezmlm-cgi?4:msp:34795:blkmdkideodjjidcdohd">[&lt;-</a> <a href="ezmlm-cgi?4:sss:34795:blkmdkideodjjidcdohd#b">thread</a> <a href="ezmlm-cgi?4:msn:34795:blkmdkideodjjidcdohd">-&gt;]</a> 
+<a href="ezmlm-cgi?4:mmp:34795">[&lt;-</a> <a href="ezmlm-cgi?4:iis:34795#b">time</a> <a href="ezmlm-cgi?4:mmn:34795">-&gt;]</a> 
+<a href="ezmlm-cgi?4:map:34795">[&lt;-</a> <a href="ezmlm-cgi?4:aas:34795#b">author</a> <a href="ezmlm-cgi?4:man:34795">-&gt;]</a> |
+<a href="ezmlm-cgi?4:dds:34795#b">[Threads]</a>
+<a href="/faq.html">[Help]</a>
+
+<a href="mailto:erlang-questions-getv34795@erlang.org?subject=Just%20Click%20%22SEND%22!">[Email Msg]</a>
+<a href="mailto:erlang-questions-threadv34795@erlang.org?subject=Just%20Click%20%22SEND%22!">[Email Thread]</a>
+<a href="mailto:erlang-questions-subscribe@erlang.org?subject=Just%20Click%20%22SEND%22!">[Subscribe To List]</a>
+<a href="mailto:erlang-questions-faq@erlang.org?subject=Just%20Click%20%22SEND%22!">[List FAQ]</a>
+</strong></div>
+<!-- index -->
+<!-- noindex -->
+<div class="banner">
+<p>Archives: <a href="/cgi-bin/ezmlm-cgi/1">erlang-announce</a> <a href="/cgi-bin/ezmlm-cgi/2">erlang-bugs</a> <a href="/cgi-bin/ezmlm-cgi/3">erlang-patches</a> <strong>erlang-questions</strong> <a href="/cgi-bin/ezmlm-cgi/5">eeps</a> | <a href="/cgi-bin/swish.cgi">[Search]</a><br><small><em>Powered by <a href="http://ezmlm.org">ezmlm-idx</a></em></small></p>
+</div>
+<!-- index -->
+</body>
+</html>

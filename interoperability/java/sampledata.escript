@@ -1,13 +1,6 @@
 #!/usr/bin/env escript
 %% -*- erlang -*-
 
-%% man escript
-%% ...
-%% Pre-defined macros (such as ?MODULE) will not work. A script does not
-%% have module name, so BIFs such as spawn/3 that require a module name
-%% cannot be used. Instead, use a BIF that take a fun, such as spawn/1.
-%% ...
-
 main(_Args) ->
     {ok, FD} = file:open("sampledata.bin", [raw, write, delayed_write, binary]),
     file:write(FD, term_to_binary(1)),
