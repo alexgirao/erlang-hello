@@ -16,7 +16,7 @@ class t2b {
 		new OtpErlangString("a_string")
 	    });
 
-	OtpErlangTuple l0 = new OtpErlangTuple(new OtpErlangObject[] {
+	OtpErlangList l0 = new OtpErlangList(new OtpErlangObject[] {
 		new OtpErlangAtom("a_list"),
 		new OtpErlangInt(0),
 		new OtpErlangInt(1),
