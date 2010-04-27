@@ -14,9 +14,23 @@ class readterms {
 	byte[] buffer = getBytesFromFile(f0);
 	OtpInputStream in = new OtpInputStream(buffer);
 
-	OtpErlangObject term = in.read_any();
+	//OtpErlangObject term = in.read_any();
+	//System.out.println(term);
 
-	System.out.println(term);
+	System.out.printf("total bytes: %d (0x%x)\n", buffer.length, buffer.length);
+
+	for (;;) {
+	    int pos_a = in.getPos();
+	    OtpErlangObject e_obj = in.read_any();
+	    int pos_b = in.getPos();
+
+	    System.out.printf("0x%08x - 0x%08x: %s\n", pos_a, pos_b, e_obj);
+	    System.out.flush();
+
+	    if (pos_b == buffer.length) {
+		break;
+	    }
+	}
     }
 
     public static byte[] getBytesFromFile(File file) throws IOException {
