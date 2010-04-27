@@ -1,5 +1,5 @@
-
-/*
+/* WARNING: PipedInputStream.available() method will never tell if the
+ * pipe was closed, asynchronicity is impratical here.
  */
 
 import java.io.File;
@@ -25,13 +25,15 @@ class portasync {
 		System.out.flush();      // don't use buffered streams, flush immediately
 	    } else {
 		// sleep here, so we don't stress cpu
-		Thread.sleep(10); // miliseconds
+		Thread.sleep(1000); // miliseconds
 	    }
 	}
     }
 
     private static int async_read(final InputStream src, byte[] buffer) throws java.io.IOException {
 	int len_available = src.available();
+
+	//System.err.printf("available bytes: %d\n", len_available);
 
 	assert len_available >= 0;
 
