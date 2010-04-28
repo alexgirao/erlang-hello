@@ -155,3 +155,8 @@ macro.erl / macro.hrl
     - macro definition
     - library inclusion
     - error_logger module usage
+
+base36.escript
+
+    - integer arithmetic
+    - lists:keyfind
