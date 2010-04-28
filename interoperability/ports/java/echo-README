@@ -1,0 +1,4 @@
+
+1> Port = open_port({spawn_executable, os:find_executable("java")}, [{packet, 4}, binary, {args, ["-ea", "-cp", ".:../../java/OtpErlang-R13B01.jar", "echo"]}]).
+2> port_command(Port, term_to_binary([1,1.618034,a_atom,"a_string",true,false,{a_atom,1,1.618034,"a_string"},[a_list,0,1,1,2,3,5,8,13,21,34,55,89,144]])).
+3> binary_to_term(receive {Port, {data, D}} -> D end).
