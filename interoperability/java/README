@@ -3,3 +3,12 @@ objective
 
 	term_to_binary() to java
 	binary_to_term() from java
+
+testing
+
+	
+	java -ea -cp .:OtpErlang-R13B01.jar t2b
+	escript t2b.escript
+
+	java -ea -cp .:OtpErlang-R13B01.jar b2t
+	escript b2t.escript

@@ -52,10 +52,15 @@ class t2b {
 
 	byte[] buffer = out.toByteArray();
 
-	FileOutputStream fout = new FileOutputStream("t2b.java.bin");
+	String fileName = "t2b.java.bin";
+
+	FileOutputStream fout = new FileOutputStream(fileName);
 	fout.write((int) OtpExternal.versionTag);  // 131, 0x83
 	fout.write(buffer);
 	fout.flush();
+
+	System.out.printf("wrote \"%s\"\n", fileName);
+
 	fout.close();
     }
 }
