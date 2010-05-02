@@ -167,3 +167,8 @@ ls.escript
     - how lists are serialized in [Term1,...,TermN] (shorthand) and [Term1|[...|[TermN|[]]]] (canonical) forms
     - proper vs improper lists
     - native 32-bit integer as unsigned big-endian 4-byte stream (c's htonl function)
+
+sha1.escript
+
+    - sha1 calculation using libcrypto
+    - bignum (160-bit) to big-endian binary
