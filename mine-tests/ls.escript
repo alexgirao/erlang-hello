@@ -21,7 +21,7 @@ make_list(A, B, C) ->
     iolist_to_binary(
       [
        <<?VERSION_MAGIC>>,
-       <<?LIST_EXT,0,0,0,3>>,    % list header with 3 items (32-bit big-endian)
+       <<?LIST_EXT,3:32/big-unsigned>>,   % list header with 3 items (32-bit big-endian and unsigned are defaults)
        t2b(A),
        t2b(B),
        t2b(C),
@@ -32,12 +32,9 @@ make_proper_list(A, B, C) ->
     iolist_to_binary(
       [
        <<?VERSION_MAGIC>>,
-       <<?LIST_EXT,0,0,0,1>>,
-       t2b(A),
-       <<?LIST_EXT,0,0,0,1>>,
-       t2b(B),
-       <<?LIST_EXT,0,0,0,1>>,
-       t2b(C),
+       <<?LIST_EXT,1:32>>, t2b(A),
+       <<?LIST_EXT,1:32>>, t2b(B),
+       <<?LIST_EXT,1:32>>, t2b(C),
        <<?NIL_EXT>>
       ]).
 

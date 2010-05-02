@@ -165,3 +165,4 @@ ls.escript
 
     - iolist_to_binary/1 usage
     - how lists and proper lists are serialized
+    - native 32-bit integer as unsigned big-endian 4-byte stream (c's htonl function)
