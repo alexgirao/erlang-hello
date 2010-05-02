@@ -160,3 +160,8 @@ base36.escript
 
     - integer arithmetic
     - lists:keyfind
+
+ls.escript
+
+    - iolist_to_binary/1 usage
+    - how lists and proper lists are serialized
