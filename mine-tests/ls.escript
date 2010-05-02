@@ -1,7 +1,8 @@
 #!/usr/bin/env escript
 %% -*- erlang -*-
 
-% full list at erts/emulator/beam/external.h
+% full list at $(SOURCE)/erts/emulator/beam/external.h
+% more detailed info at $(DOC)/doc/erts-5.7.2/doc/html/part_frame.html
 
 -define(ATOM_EXT,      100).
 -define(PID_EXT,       103).
@@ -17,7 +18,7 @@ t2b(T) ->
     {<<?VERSION_MAGIC>>, R} = split_binary(term_to_binary(T), 1),
     R.
 
-make_list(A, B, C) ->
+make_list_shorthand(A, B, C) ->
     iolist_to_binary(
       [
        <<?VERSION_MAGIC>>,
@@ -28,7 +29,7 @@ make_list(A, B, C) ->
        <<?NIL_EXT>>   % every list must be followed by another term, NIL if no more items
       ]).
 
-make_proper_list(A, B, C) ->
+make_list_formal(A, B, C) ->
     iolist_to_binary(
       [
        <<?VERSION_MAGIC>>,
@@ -38,10 +39,22 @@ make_proper_list(A, B, C) ->
        <<?NIL_EXT>>
       ]).
 
+make_list_improper(A, B, C) ->  % tail is not a list, e.g.: [a|b]
+    iolist_to_binary(
+      [
+       <<?VERSION_MAGIC>>,
+       <<?LIST_EXT,1:32>>, t2b(A),
+       <<?LIST_EXT,1:32>>, t2b(B),
+       t2b(C)
+      ]).
+
 main(_) ->
-    io:format("list:~n ~p ->~n ~p ->~n ~p.~n",
-	      case make_list(a, b, c) of A -> B = binary_to_term(A),
+    io:format("proper list, optimized/shorthand ([Term1,...,TermN]):~n ~p ->~n ~p ->~n ~p.~n",
+	      case make_list_shorthand(a, b, c) of A -> B = binary_to_term(A),
 					      [A, term_to_binary(B), B] end),
-    io:format("proper list:~n ~p ->~n ~p ->~n ~p.~n",
-	      case make_proper_list(a, b, c) of C -> D = binary_to_term(C),
-						     [C, term_to_binary(D), D] end).
+    io:format("proper list, formal/canonical ([Term1|[...|[TermN|[]]]]):~n ~p ->~n ~p ->~n ~p.~n",
+	      case make_list_formal(a, b, c) of A2 -> B2 = binary_to_term(A2),
+						     [A2, term_to_binary(B2), B2] end),
+    io:format("improper list:~n ~p ->~n ~p ->~n ~p.~n",
+	      case make_list_improper(a, b, c) of A3 -> B3 = binary_to_term(A3),
+						     [A3, term_to_binary(B3), B3] end).

@@ -164,5 +164,6 @@ base36.escript
 ls.escript
 
     - iolist_to_binary/1 usage
-    - how lists and proper lists are serialized
+    - how lists are serialized in [Term1,...,TermN] (shorthand) and [Term1|[...|[TermN|[]]]] (canonical) forms
+    - proper vs improper lists
     - native 32-bit integer as unsigned big-endian 4-byte stream (c's htonl function)
