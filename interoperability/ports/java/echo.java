@@ -16,6 +16,11 @@ class echo {
 
 	    byte[] buffer = new byte[4];
 	    int n = System.in.read(buffer);
+	    if (n == -1) {
+		System.err.println("closed");
+		System.exit(0);
+		return;
+	    }
 	    if (n != 4) {
 		throw new Exception("failed to read packet length");
 	    }

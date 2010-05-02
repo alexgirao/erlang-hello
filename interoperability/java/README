@@ -1,8 +1,7 @@
 
 objective
 
-	term_to_binary() to java
-	binary_to_term() from java
+	java ability to do term_to_binary() and binary_to_term()
 
 testing
 
