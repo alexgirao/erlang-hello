@@ -5,7 +5,6 @@ main(_) ->
     make:files([string_join]),
 
     io:format("~p~n", [string_join:join(["1", "2", "3"], $,)]),
-    % io:format("~p~n", [string_join:join([], "-")]),
     io:format("~p~n", [string_join:join(["alpha"], "-")]),
     io:format("~p~n", [string_join:join(["alpha", "bravo", "charlie"], $-)]),
     
