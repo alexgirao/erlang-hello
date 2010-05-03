@@ -172,3 +172,7 @@ sha1.escript
 
     - sha1 calculation using libcrypto
     - bignum (160-bit) to big-endian binary
+
+join.escript / string_join.erl
+
+    - how to join a list with a separator
