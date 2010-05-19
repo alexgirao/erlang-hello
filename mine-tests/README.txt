@@ -176,3 +176,7 @@ sha1.escript
 join.escript / string_join.erl
 
     - how to join a list with a separator
+
+se.escript
+
+    - how to side effect
