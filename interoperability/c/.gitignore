@@ -1,1 +1,4 @@
-b2t t2b stderr test
+b2t
+t2b
+stderr
+test
