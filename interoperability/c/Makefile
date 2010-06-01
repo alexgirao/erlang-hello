@@ -20,3 +20,5 @@ test.o t2b.o b2t.o: %.o: %.c
 
 clean:
 	rm -fv *.o
+
+test.o t2b.o b2t.o: common-inc.c

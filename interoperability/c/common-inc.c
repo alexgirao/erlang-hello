@@ -17,12 +17,73 @@ void ei_sanity_check()
 
 void encode_version(HC_ST_S *x)
 {
-	if (x->len == 0) {
+	if (x->a == 0) {
 		hcns(s_alloc)(x, 100);
 	} else {
 		hcns(s_alloc)(x, x->len + 1);
 	}
 	assert(ei_encode_version(x->s, &x->len) == 0);
+}
+
+void encode_char(HC_ST_S *x, char p)
+{
+	int i = x->len;
+	ei_encode_char(NULL, &i, p);
+	hcns(s_alloc)(x, i);
+	ei_encode_char(x->s, &x->len, p);
+}
+
+void encode_boolean(HC_ST_S *x, int p)
+{
+	int i = x->len;
+	ei_encode_boolean(NULL, &i, p);
+	hcns(s_alloc)(x, i);
+	ei_encode_boolean(x->s, &x->len, p);
+}
+
+void encode_double(HC_ST_S *x, double dbl)
+{
+	int i = x->len;
+	ei_encode_double(NULL, &i, dbl);
+	hcns(s_alloc)(x, i);
+	ei_encode_double(x->s, &x->len, dbl);
+}
+
+void encode_long(HC_ST_S *x, long n)
+{
+	int i = x->len;
+	ei_encode_long(NULL, &i, n);
+	hcns(s_alloc)(x, i);
+	ei_encode_long(x->s, &x->len, n);
+}
+
+void encode_ulong(HC_ST_S *x, unsigned long n)
+{
+	int i = x->len;
+	ei_encode_ulong(NULL, &i, n);
+	hcns(s_alloc)(x, i);
+	ei_encode_ulong(x->s, &x->len, n);
+}
+
+void encode_atomn(HC_ST_S *x, const char* s, int len)
+{
+	int i = x->len;
+	ei_encode_atom_len(NULL, &i, s, len);
+	hcns(s_alloc)(x, i);
+	assert(ei_encode_atom_len(x->s, &x->len, s, len) == 0);
+}
+
+void encode_atomz(HC_ST_S *x, const char* s)
+{
+	encode_atomn(x, s, hcns(slen)(s));
+}
+
+void encode_tuple_header(HC_ST_S *x, long n)
+{
+	int i = x->len;
+	ei_encode_tuple_header(NULL, &i, n);
+	hcns(s_alloc)(x, i);
+	ei_encode_tuple_header(x->s, &x->len, n);
 }
 
 void encode_list_header(HC_ST_S *x, int n)
@@ -39,17 +100,4 @@ void encode_empty_list(HC_ST_S *x)
 	ei_encode_empty_list(NULL, &i);
 	hcns(s_alloc)(x, i);
 	ei_encode_empty_list(x->s, &x->len);
-}
-
-void encode_atomn(HC_ST_S *x, const char* s, int len)
-{
-	int i = x->len;
-	ei_encode_atom_len(NULL, &i, s, len);
-	hcns(s_alloc)(x, i);
-	assert(ei_encode_atom_len(x->s, &x->len, s, len) == 0);
-}
-
-void encode_atomz(HC_ST_S *x, const char* s)
-{
-	encode_atomn(x, s, hcns(slen)(s));
 }

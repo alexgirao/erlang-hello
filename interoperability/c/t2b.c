@@ -27,15 +27,27 @@ int main(int argc, char **argv)
 {
 	HC_DEF_S(buf);
 
+	/*
+
+        [
+	 1,
+	 1.618034,
+	 a_atom,
+	 "a_string",
+	 true,
+	 false,
+	 {a_atom, 1, 1.618034, "a_string"},
+	 [a_list, 0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144]
+	]
+
+	 */
+
 	ei_sanity_check();
 
 	encode_version(buf);
-	encode_list_header(buf, 3);
-	encode_atomz(buf, "c");
-	encode_atomz(buf, "d");
-	encode_list_header(buf, 1);
-	encode_atomz(buf, "e");
-	encode_atomz(buf, "f");  /* improper list with arity 1, ends with a term other than NIL (empty list) */
+
+	encode_list_header(buf, 8);
+	//encode_
 	encode_empty_list(buf);
 
 	fprintf(stderr, "------------------------------ %i\n", buf->len);
