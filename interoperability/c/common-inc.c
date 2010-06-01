@@ -78,6 +78,19 @@ void encode_atomz(HC_ST_S *x, const char* s)
 	encode_atomn(x, s, hcns(slen)(s));
 }
 
+void encode_stringn(HC_ST_S *x, const char* s, int len)
+{
+	int i = x->len;
+	ei_encode_string_len(NULL, &i, s, len);
+	hcns(s_alloc)(x, i);
+	ei_encode_string_len(x->s, &x->len, s, len);
+}
+
+void encode_stringz(HC_ST_S *x, const char* s)
+{
+	encode_stringn(x, s, hcns(slen)(s));
+}
+
 void encode_tuple_header(HC_ST_S *x, long n)
 {
 	int i = x->len;
