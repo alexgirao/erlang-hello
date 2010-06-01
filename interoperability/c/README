@@ -7,7 +7,7 @@ testing
 	
 	make
 
-	./t2b
+	./t2b > t2b.c.bin
 	escript t2b.escript
 
 	./b2t

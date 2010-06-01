@@ -57,4 +57,11 @@ main(_) ->
 						     [A2, term_to_binary(B2), B2] end),
     io:format("improper list:~n ~p ->~n ~p ->~n ~p.~n",
 	      case make_list_improper(a, b, c) of A3 -> B3 = binary_to_term(A3),
-						     [A3, term_to_binary(B3), B3] end).
+							[A3, term_to_binary(B3), B3] end),
+    
+
+    T = [c, d, [e | f]],
+
+    io:format("~p = ~p~n", [T, term_to_binary(T)]),
+
+    ok.
