@@ -1,0 +1,14 @@
+
+objective
+
+	c ability to do term_to_binary() and binary_to_term()
+
+testing
+	
+	make
+
+	./t2b
+	escript t2b.escript
+
+	./b2t
+	escript b2t.escript
