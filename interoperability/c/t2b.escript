@@ -15,5 +15,6 @@ main(_Args) ->
 	 [a_list, 0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144]
 	],
     file:write(FD, term_to_binary(L, [{minor_version, 1}])),     % {minor_version, 1} force use of IEEE 754 floating-point "double format" bit layout
+    %file:write(FD, term_to_binary(L, [{minor_version, 0}])),   % erl_interface (c library) does not support IEEE 754 serialization
     ok = file:close(FD),
     io:format("wrote ~p~n", [FN]).
