@@ -59,10 +59,11 @@ static int doit(const char *buf, int len, hcns(bool) eof)
 			switch (ttype) {
 			case 70: /* public static final int newFloatTag = 70: from otp_src_R13B04/lib/jinterface/java_src/com/ericsson/otp/erlang/OtpExternal.java */
 
-				assert(*((unsigned char*)&endiancheck) == 0xef);  /* little endian dependent */
+				assert(*((unsigned char*)&endiancheck) == 0xef);  /* little endian only so far */
 
 				u4u4[1] = HC_GET_BE4(buf + index);
 				u4u4[0] = HC_GET_BE4(buf + index + 4);
+
 				e->value.d_val = (double) *((double*)u4u4);
 				index += sizeof(double);
 
@@ -102,7 +103,11 @@ static int doit(const char *buf, int len, hcns(bool) eof)
 				HC_FREE(str);
 				break;
 			case ERL_INTEGER_EXT:
+				fprintf(stderr, "ERL_INTEGER_EXT: %li\n", (long)e->value.i_val);
+				break;
 			case ERL_FLOAT_EXT:
+				fprintf(stderr, "ERL_FLOAT_EXT: %f\n", e->value.d_val);
+				break;
 			case ERL_ATOM_EXT:
 			case ERL_REFERENCE_EXT:
 			case ERL_NEW_REFERENCE_EXT:

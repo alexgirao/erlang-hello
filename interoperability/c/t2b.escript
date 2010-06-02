@@ -12,7 +12,7 @@ main(_Args) ->
 	 true,
 	 false,
 	 {a_atom, 1, 1.618034, "a_string"},
-	 [a_list, 0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144]
+	 [a_list, 0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377]
 	],
     file:write(FD, term_to_binary(L, [{minor_version, 1}])),     % {minor_version, 1} force use of IEEE 754 floating-point "double format" bit layout
     %file:write(FD, term_to_binary(L, [{minor_version, 0}])),   % erl_interface (c library) does not support IEEE 754 serialization

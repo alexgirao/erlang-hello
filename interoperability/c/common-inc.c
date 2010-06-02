@@ -49,6 +49,34 @@ void encode_double(HC_ST_S *x, double dbl)
 	ei_encode_double(x->s, &x->len, dbl);
 }
 
+void _encode_double_type70(char *buf, int *index, double p)
+{
+	char *s = buf + *index;
+	char *s0 = s;
+	hcns(u4) *q = (hcns(u4)*) &p;
+	int endiancheck = 0xdeadbeef;
+
+	assert(*((unsigned char*)&endiancheck) == 0xef);  /* little endian only so far, FIXME: automate this with preprocessor */
+
+	if (!buf) s++;
+	else {
+		*s++ = 70;
+		HC_PUT_BE4(s + 4, *q);
+		HC_PUT_BE4(s, *(q + 1));
+	}
+	s += sizeof(double);
+
+	*index += s - s0;
+}
+
+void encode_double_type70(HC_ST_S *x, double dbl)
+{
+	int i = x->len;
+	_encode_double_type70(NULL, &i, dbl);
+	hcns(s_alloc)(x, i);
+	_encode_double_type70(x->s, &x->len, dbl);
+}
+
 void encode_long(HC_ST_S *x, long n)
 {
 	int i = x->len;
