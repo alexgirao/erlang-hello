@@ -13,6 +13,7 @@
 #include <higherc/bytewise.h>
 #include <higherc/str.h>
 #include <higherc/s.h>
+#include <higherc/alloc.h>
 
 #include "erl_interface.h"
 
@@ -25,11 +26,9 @@ static struct eterm *doit2(const char *buf, int len, int *index, int depth, stru
 	ei_term *e;
 	int r;
 	struct eterm *h = NULL;
-	int safeloop = 100;
-	/* int skipindex; */
 	int n = parent ? parent->t->arity : -1;
 
-	while (*index < len && n-- && safeloop) {
+	while (*index < len && n--) {
 		int prior = *index;
 		int ttype, tlen;
 
@@ -45,9 +44,8 @@ static struct eterm *doit2(const char *buf, int len, int *index, int depth, stru
 			/* unsupported type by erl_interface
 			 */
 			switch (ttype) {
-			case 70: /* EEE 754 */
+			case 70: /* IEEE 754 */
 				decode_double_type70(buf, index, &e->value.d_val);
-				fprintf(stderr, "TYPE 70: %f\n", e->value.d_val);
 				break;
 			default:
 				HC_FATAL("unsupported type: %i", ttype);
@@ -98,7 +96,6 @@ static struct eterm *doit2(const char *buf, int len, int *index, int depth, stru
 				fprintf(stderr, "unimplemented, skipping: i=%i (was %i), r=%i, t=%i (%c), a=%i, s=%i\n",
 					*index, prior, r, e->ei_type, e->ei_type, e->arity, e->size);
 				*index = prior; /* rewind term to skip */
-				//ei_skip_term(buf, index);
 				assert(skip_term(buf, index) == 0);
 				fprintf(stderr, "index after skip: %i\n", *index);
 				break;
@@ -113,17 +110,38 @@ static struct eterm *doit2(const char *buf, int len, int *index, int depth, stru
 			}
 		}
 
-		safeloop--;
+		assert(prior != *index);
 	}
 
 	return h;
+}
+
+static void eterm_free(struct eterm *h)
+{
+	struct eterm_iter i[1];
+	struct eterm *t;
+
+	eterm_backward(i, h);
+	while ((t = eterm_next(i))) {
+		printf("%p: %i\n", t, t->t->ei_type);
+		if (t->str->s) {
+			hcns(s_free)(t->str);
+		}
+		if (t->children) {
+			eterm_free(t->children);
+			t->children = NULL;
+		}
+	}
+	eterm_end(i);
+
+	eterm_free0(h);
 }
 
 static void eterm_show(int level, struct eterm *h)
 {
 	struct eterm_iter i[1];
 
-	eterm_forward(h, i);
+	eterm_forward(i, h);
 	while ((h = eterm_next(i))) {
 		printf("%i: %p: %i\n", level, h, h->t->ei_type);
 		if (h->children) {
@@ -155,7 +173,7 @@ static int doit(const char *buf, int len, hcns(bool) eof)
 	/* clean up
 	 */
 
-	eterm_free0(h);
+	eterm_free(h);
 
 	fprintf(stderr, "processed %i bytes\n", len);
 	return len;
