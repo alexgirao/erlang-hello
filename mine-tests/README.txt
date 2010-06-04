@@ -180,3 +180,7 @@ join.escript / string_join.erl
 se.escript
 
     - how to side effect
+
+ls2.escript
+
+    - list_ext (108) vs string_ext (107)
