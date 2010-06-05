@@ -299,12 +299,14 @@ void eterm_show(int level, struct eterm *h)
 			print_s_repr(NULL, h->str, "]\n");
 			break;
 		case ERL_ATOM_EXT:
-			printf("%i: %p: %i %s\n", level, h, h->t->ei_type, h->t->value.atom_name);
+			printf("%i: %p: %i [%s]\n", level, h, h->t->ei_type, h->t->value.atom_name);
 			break;
 		case 70: /* newFloatTag */
 		case ERL_FLOAT_EXT:
 			printf("%i: %p: %i %f\n", level, h, h->t->ei_type, h->t->value.d_val);
 			break;
+		case ERL_SMALL_TUPLE_EXT:
+		case ERL_LARGE_TUPLE_EXT:
 		case ERL_LIST_EXT:
 			printf("%i: %p: %i %i items\n", level, h, h->t->ei_type, h->t->arity);
 			break;

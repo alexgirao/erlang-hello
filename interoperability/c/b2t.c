@@ -17,6 +17,8 @@
 
 #include "erl_interface.h"
 
+// todo: do not use ei_term (too large structure, 288 bytes on arch32)
+
 #include "common-inc.c"
 
 /* processing function, return amount of successfully processed data
@@ -25,36 +27,14 @@ static struct eterm *doit2(const char *buf, int len, int *index, int depth, stru
 {
 	ei_term *e;
 	int r;
-	int n;
-	int tail_expected;
-	int parent_arity;
-
-	if (parent) {
-		parent_arity = parent->t->arity;
-		if (parent->t->ei_type == ERL_LIST_EXT) {
-			/* ERL_LIST_EXT always expects a tail term (any term, even another list)
-			 */
-			tail_expected = 1;
-			n = parent_arity + 1;
-		} else {
-			tail_expected = 0;
-			n = parent_arity;
-		}
-		printf("seeking arity %i of %i\n", parent->t->arity, parent->t->ei_type);
-	} else {
-		tail_expected = 0;
-		n = -1;
-	}
+	int n = parent ? parent->t->arity : -1;
+	int ttype, tlen;
 
 	while (*index < len && n--) {
 		int prior = *index;
-		int ttype, tlen;
 
 		h = eterm_new0(h);
 		e = h->t;
-
-		ttype = -1;
-		tlen = -1;
 
 		assert(ei_get_type(buf, index, &ttype, &tlen) == 0);
 		e->ei_type = ttype;
@@ -80,8 +60,8 @@ static struct eterm *doit2(const char *buf, int len, int *index, int depth, stru
 			assert(r == 0 || r == 1);
 			assert(r == 0 || prior != *index);  /* when r == 1, buffer was consumed */
 
-			fprintf(stderr, "debug: i=%i (was %i), r=%i, t=%i (%c), a=%i, s=%i\n",
-				*index, prior, r, e->ei_type, e->ei_type, e->arity, e->size);
+/* 			fprintf(stderr, "debug: %i: i=%i (was %i), r=%i, t=%i (%c), a=%i, s=%i\n", */
+/* 				depth, *index, prior, r, e->ei_type, e->ei_type, e->arity, e->size); */
 
 			switch (e->ei_type) {
 			case ERL_SMALL_INTEGER_EXT:
@@ -94,58 +74,15 @@ static struct eterm *doit2(const char *buf, int len, int *index, int depth, stru
 				break;
 			case ERL_STRING_EXT:
 				assert(r == 0 && prior == *index); /* must consume buffer */
-				if (n == 0 && tail_expected) {
-					/* concatenate
-					 */
-					int n2 = h->t->size;
-
-					assert(ei_decode_string(buf, index, NULL) == 0); /* skip term */
-
-					parent->t->arity += h->t->size;
-					h = h->tail;
-
-					while (n2--) {
-						printf("%i\n", buf[*index - n2 - 1]);
-						h = eterm_new0(h);
-						h->t->ei_type = ERL_SMALL_INTEGER_EXT;
-						h->t->value.i_val = ((unsigned char*)buf)[*index - n2 - 1];
-					}
-
-					h = eterm_new0(h);
-					h->t->ei_type = ERL_NIL_EXT;
-
-					//HC_FATAL("wip %i", h->tail->pos);
-
-					//parent->children = h;
-
-					//h->tail = NULL; /* detach */
-					//eterm_free(h); /* free */
-				} else {
-					hcns(s_alloc)(h->str, e->size + 1);  /* need extra byte for '\0', as manual says */
-					assert(ei_decode_string(buf, index, h->str->s) == 0);
-					h->str->len = e->size;
-				}
+				hcns(s_alloc)(h->str, e->size + 1);  /* need extra byte for '\0', as manual says */
+				assert(ei_decode_string(buf, index, h->str->s) == 0);
+				h->str->len = e->size;
 				break;
 			case ERL_SMALL_TUPLE_EXT:
 			case ERL_LARGE_TUPLE_EXT:
 			case ERL_LIST_EXT:
 				assert(r == 1); /* list header was consumed */
-				if (n == 0 && tail_expected) {
-					/* concatenate
-					 */
-
-					//HC_FATAL("DEBUG: %p\n", h->tail);
-
-					parent->children = doit2(buf, len, index, depth + 1, h, h->tail);
-					parent->t->arity += h->t->arity; /* new arity, since we merged */
-
-					h->tail = NULL; /* detach */
-					eterm_free(h); /* free */
-
-					h = parent->children; /* must always return last allocated item */
-				} else {
-					h->children = doit2(buf, len, index, depth + 1, h, NULL);
-				}
+				h->children = doit2(buf, len, index, depth + 1, h, NULL);
 				break;
 			case ERL_REFERENCE_EXT:
 			case ERL_NEW_REFERENCE_EXT:
@@ -165,7 +102,7 @@ static struct eterm *doit2(const char *buf, int len, int *index, int depth, stru
 				break;
 			case ERL_NIL_EXT:
 				assert(ei_decode_list_header(buf, index, NULL) == 0);
-				assert(*index == len || depth > 0); /* last NIL */
+				assert(*index == len || depth > 0); /* top level NIL must be at end of buffer */
 				break;
 			default:
 				fprintf(stderr, "unknown type: i=%i (was %i), r=%i, t=%i (%c), a=%i, s=%i\n",
@@ -175,6 +112,46 @@ static struct eterm *doit2(const char *buf, int len, int *index, int depth, stru
 		}
 
 		assert(prior != *index);
+	}
+
+	if (parent && parent->t->ei_type == ERL_LIST_EXT) {
+		/* list terms expects a tail item (any other term)
+		 */
+
+		assert(ei_get_type(buf, index, &ttype, &tlen) == 0);
+
+		if (ttype == ERL_LIST_EXT) {
+			struct eterm tmp[1];
+
+			assert(ei_decode_list_header(buf, index, NULL) == 0); /* skip term */
+
+			tmp->t->ei_type = ERL_LIST_EXT;
+			tmp->t->arity = tlen;
+
+			h = doit2(buf, len, index, depth + 1, tmp, h); /* decode tail list as sibling through ``tmp'' */
+
+			parent->t->arity += tmp->t->arity; /* ``tmp'' gets updated in inner calls */
+		} else if (ttype == ERL_STRING_EXT) {
+			unsigned char *str;
+			HC_ALLOC(str, tlen + 1); /* need extra byte for '\0', as manual says */
+
+			assert(ei_decode_string(buf, index, (char *)str) == 0);
+
+			for (n=0; n<tlen; n++) {
+				h = eterm_new0(h);
+				h->t->ei_type = ERL_SMALL_INTEGER_EXT;
+				h->t->value.i_val = str[n];
+			}
+
+			h = eterm_new0(h);
+			h->t->ei_type = ERL_NIL_EXT;
+
+			parent->t->arity += tlen;
+
+			HC_FREE(str);
+		} else {
+			h = doit2(buf, len, index, depth + 1, NULL, h);
+		}
 	}
 
 	return h;
@@ -216,8 +193,6 @@ int main(int argc, char **argv)
 
 	HC_ALLOC(buf, bufsz);
 
-#if 0
-
 	fprintf(stderr, "reading %s\n", "t2b.escript.bin");
 	fd = open("t2b.escript.bin", O_RDONLY);
 	fprintf(stderr, "total bytes read: %i\n", hcns(readfd)(fd, buf, bufsz, doit));
@@ -227,8 +202,6 @@ int main(int argc, char **argv)
 	fd = open("t2b.c.bin", O_RDONLY);
 	fprintf(stderr, "total bytes read: %i\n", hcns(readfd)(fd, buf, bufsz, doit));
 	close(fd);
-
-#endif
 
 	fprintf(stderr, "reading %s\n", "108+107.bin");
 	fd = open("108+107.bin", O_RDONLY);
