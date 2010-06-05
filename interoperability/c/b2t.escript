@@ -7,4 +7,6 @@ show_binary_term(FN) ->
 
 main(_Args) ->
     show_binary_term("t2b.escript.bin"),
-    show_binary_term("t2b.c.bin").
+    show_binary_term("t2b.c.bin"),
+    show_binary_term("108+107.bin"),
+    ok.

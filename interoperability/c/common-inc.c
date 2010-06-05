@@ -1,4 +1,14 @@
 
+static void print_s_repr(char *prefix, HC_ST_S *s, char *suffix)
+{
+	HC_DEF_S(r);
+	hcns(s_repr)(r, s);
+	if (prefix) printf("%s", prefix);
+	fwrite(r->s, r->len, 1, stdout);
+	if (suffix) printf("%s", suffix);
+	hcns(s_free)(r);
+}
+
 // otp_src_R13B04/lib/erl_interface/src/misc/ei_decode_term.c
 
 /* do some "preflight"s to ensure correct term sizes
@@ -252,3 +262,58 @@ HC_DECL_PRIVATE_I(eterm,
 		struct eterm *children;  /* for lists and tuples, length in t->arity */
 		HC_ST_S str[1]; /* ERL_STRING_EXT / aka byte list */
 );
+
+void eterm_free(struct eterm *h)
+{
+	struct eterm_iter i[1];
+	struct eterm *t;
+
+	eterm_backward(i, h);
+	while ((t = eterm_next(i))) {
+		if (t->str->s) {
+			hcns(s_free)(t->str);
+		}
+		if (t->children) {
+			eterm_free(t->children);
+			t->children = NULL;
+		}
+	}
+	eterm_end(i);
+
+	eterm_free0(h);
+}
+
+void eterm_show(int level, struct eterm *h)
+{
+	struct eterm_iter i[1];
+
+	eterm_forward(i, h);
+	while ((h = eterm_next(i))) {
+		switch (h->t->ei_type) {
+		case ERL_SMALL_INTEGER_EXT:
+		case ERL_INTEGER_EXT:
+			printf("%i: %p: %i %li\n", level, h, h->t->ei_type, h->t->value.i_val);
+			break;
+		case ERL_STRING_EXT:
+			printf("%i: %p: %i [", level, h, h->t->ei_type);
+			print_s_repr(NULL, h->str, "]\n");
+			break;
+		case ERL_ATOM_EXT:
+			printf("%i: %p: %i %s\n", level, h, h->t->ei_type, h->t->value.atom_name);
+			break;
+		case 70: /* newFloatTag */
+		case ERL_FLOAT_EXT:
+			printf("%i: %p: %i %f\n", level, h, h->t->ei_type, h->t->value.d_val);
+			break;
+		case ERL_LIST_EXT:
+			printf("%i: %p: %i %i items\n", level, h, h->t->ei_type, h->t->arity);
+			break;
+		default:
+			printf("%i: %p: %i\n", level, h, h->t->ei_type);
+		}
+		if (h->children) {
+			eterm_show(level + 1, h->children);
+		}
+	}
+	eterm_end(i);
+}
