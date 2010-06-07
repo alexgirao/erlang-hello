@@ -1,4 +1,7 @@
 
+/*
+*/
+
 static void print_s_repr(char *prefix, HC_ST_S *s, char *suffix)
 {
 	HC_DEF_S(r);
@@ -258,10 +261,23 @@ int skip_term(const char* buf, int *index)
  */
 
 HC_DECL_PRIVATE_I(eterm,
-		ei_term t[1]; /* type in t->ei_type */
-		struct eterm *children;  /* for lists and tuples, length in t->arity */
-		HC_ST_S str[1]; /* ERL_STRING_EXT / aka byte list */
-);
+		  /* ei_term t[1]; / * type in t->ei_type */
+		  int type;
+		  //int arity;
+		  //int size;
+		  int len;  /* composite type arity, string/atom len */
+		  union {
+			  long i_val;
+			  double d_val;
+			  struct eterm *children;  /* composite type children */
+			  HC_ST_S str[1]; /* holds ERL_STRING_EXT / ERL_ATOM_EXT data, 0 terminated */
+
+			  //char atom_name[MAXATOMLEN+1];
+			  //erlang_pid pid;
+			  //erlang_port port;
+			  //erlang_ref ref;
+		  } value;
+	);
 
 void eterm_free(struct eterm *h)
 {
@@ -270,12 +286,20 @@ void eterm_free(struct eterm *h)
 
 	eterm_backward(i, h);
 	while ((t = eterm_next(i))) {
-		if (t->str->s) {
-			hcns(s_free)(t->str);
-		}
-		if (t->children) {
-			eterm_free(t->children);
-			t->children = NULL;
+		switch (t->type) {
+		case ERL_SMALL_TUPLE_EXT:
+		case ERL_LARGE_TUPLE_EXT:
+		case ERL_LIST_EXT:
+			assert(t->value.children != NULL);
+			if (t->value.children) {
+				eterm_free(t->value.children);
+				t->value.children = NULL;
+			}
+			break;
+		case ERL_ATOM_EXT:
+		case ERL_STRING_EXT:
+			hcns(s_free)(t->value.str);
+			break;
 		}
 	}
 	eterm_end(i);
@@ -289,32 +313,28 @@ void eterm_show(int level, struct eterm *h)
 
 	eterm_forward(i, h);
 	while ((h = eterm_next(i))) {
-		switch (h->t->ei_type) {
+		switch (h->type) {
 		case ERL_SMALL_INTEGER_EXT:
 		case ERL_INTEGER_EXT:
-			printf("%i: %p: %i %li\n", level, h, h->t->ei_type, h->t->value.i_val);
-			break;
-		case ERL_STRING_EXT:
-			printf("%i: %p: %i [", level, h, h->t->ei_type);
-			print_s_repr(NULL, h->str, "]\n");
+			printf("%i: %p: %i %li\n", level, h, h->type, h->value.i_val);
 			break;
 		case ERL_ATOM_EXT:
-			printf("%i: %p: %i [%s]\n", level, h, h->t->ei_type, h->t->value.atom_name);
+		case ERL_STRING_EXT:
+			printf("%i: %p: %i [", level, h, h->type);
+			print_s_repr(NULL, h->value.str, "]\n");
 			break;
 		case 70: /* newFloatTag */
 		case ERL_FLOAT_EXT:
-			printf("%i: %p: %i %f\n", level, h, h->t->ei_type, h->t->value.d_val);
+			printf("%i: %p: %i %f\n", level, h, h->type, h->value.d_val);
 			break;
 		case ERL_SMALL_TUPLE_EXT:
 		case ERL_LARGE_TUPLE_EXT:
 		case ERL_LIST_EXT:
-			printf("%i: %p: %i %i items\n", level, h, h->t->ei_type, h->t->arity);
+			printf("%i: %p: %i %i items\n", level, h, h->type, h->len);
+			eterm_show(level + 1, h->value.children);
 			break;
 		default:
-			printf("%i: %p: %i\n", level, h, h->t->ei_type);
-		}
-		if (h->children) {
-			eterm_show(level + 1, h->children);
+			printf("%i: %p: %i\n", level, h, h->type);
 		}
 	}
 	eterm_end(i);

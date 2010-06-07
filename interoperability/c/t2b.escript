@@ -2,18 +2,23 @@
 %% -*- erlang -*-
 
 main(_Args) ->
-    FN = "t2b.escript.bin",
-    {ok, FD} = file:open(FN, [raw, write, delayed_write, binary]),
     L = [
 	 1,
 	 1.618034,
 	 a_atom,
-	 "a_string",
+	 "a string",
 	 true,
 	 false,
-	 {a_atom, 1, 1.618034, "a_string"},
+	 {a_tuple, 1, 1.618034, "another string"},
 	 [a_list, 0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377]
 	],
-    file:write(FD, term_to_binary(L, [{minor_version, 1}])),     % {minor_version, 1} force use of IEEE 754 floating-point "double format" bit layout
-    ok = file:close(FD),
-    io:format("wrote ~p~n", [FN]).
+
+    FN1 = "t2b.escript.1.bin",
+    ok = file:write_file(FN1, term_to_binary(L, [{minor_version, 1}])),
+    io:format("wrote ~p~n", [FN1]),
+    
+    FN0 = "t2b.escript.0.bin",
+    ok = file:write_file(FN0, term_to_binary(L)),
+    io:format("wrote ~p~n", [FN0]),
+
+    ok.

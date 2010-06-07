@@ -143,7 +143,8 @@ http_util_elias.erl
 
 filetest.erl
 
-    - read a file
+    - read from a file with file:read_file/1
+    - write to a file with file:write_file/2
 
 sa.erl / sa1.erl
 

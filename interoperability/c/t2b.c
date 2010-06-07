@@ -50,17 +50,17 @@ int main(int argc, char **argv)
 	encode_long(buf, 1);
 	encode_double_type70(buf, 1.618034);
 	encode_atomz(buf, "a_atom");
-	encode_stringz(buf, "a_string");
+	encode_stringz(buf, "a string");
 	encode_boolean(buf, 1);
 	encode_boolean(buf, 0);
 
 	/* {a_atom, 1, 1.618034, "a_string"}
 	 */
 	encode_tuple_header(buf, 4);
-	encode_atomz(buf, "a_atom");
+	encode_atomz(buf, "a_tuple");
 	encode_char(buf, 1);
 	encode_double_type70(buf, 1.618034);
-	encode_stringz(buf, "a_string");
+	encode_stringz(buf, "another string");
 
 #if 0
 	/* [a_list, 0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144]
@@ -123,7 +123,7 @@ int main(int argc, char **argv)
 #endif
 	encode_empty_list(buf); /* every proper list ends with an empty list (nil) */
 
-	encode_empty_list(buf);
+	encode_empty_list(buf); /* ends root list */
 
 	hcns(write_exact)(1, buf->s, buf->len); /* beware, non-ascii output, intended to be used with hexdump -C */
 
