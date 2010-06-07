@@ -1,3 +1,6 @@
+/* ./test < test.bin >/dev/null
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -18,7 +21,9 @@
 
 #include "../../../c/eterm.h"
 
-#define TEST_BIN "test.bin"
+/* #define TEST_BIN "test.bin" */
+
+#ifdef TEST_BIN
 
 static void buf2file(char *fname, void *buf, int buflen)
 {
@@ -33,20 +38,86 @@ static void buf2file(char *fname, void *buf, int buflen)
 	close(fd);
 }
 
+static int doit(const char *buf, int len, hcns(bool) eof)
+{
+	buf2file(TEST_BIN, (void*)buf, len);
+	return len;
+}
+
+#else
+
+static void do_echo(HC_ST_S *out, struct eterm *h)
+{
+	struct eterm *t;
+	struct eterm_iter i[1];
+
+	eterm_forward(i, h);
+	while ((t = eterm_next(i))) {
+		switch (t->type) {
+		case ERL_SMALL_INTEGER_EXT:
+		case ERL_INTEGER_EXT:
+			encode_long(out, t->value.i_val);
+			break;
+		case 70: /* newFloatTag */
+		case ERL_FLOAT_EXT:
+			encode_double_type70(out, t->value.d_val);
+			break;
+		case ERL_ATOM_EXT:
+			encode_atomn(out, t->value.str->s, t->len);
+			break;
+		case ERL_STRING_EXT:
+			encode_stringn(out, t->value.str->s, t->len);
+			break;
+		case ERL_TINY_ATOM_EXT:
+			encode_atomn(out, t->value.tinystr, t->len);
+			break;
+		case ERL_TINY_STRING_EXT:
+			encode_stringn(out, t->value.tinystr, t->len);
+			break;
+		case ERL_SMALL_TUPLE_EXT:
+		case ERL_LARGE_TUPLE_EXT:
+			encode_tuple_header(out, t->len);
+			do_echo(out, t->value.children);
+			break;
+		case ERL_LIST_EXT:
+			encode_list_header(out, t->len);
+			do_echo(out, t->value.children);
+			break;
+		case ERL_NIL_EXT:
+			encode_empty_list(out);
+			break;
+		default:
+			HC_FATAL("unimplemented type %i", t->type);
+		}
+	}
+	eterm_end(i);
+}
+
 static void doit(const char *buf, int len)
 {
 	struct eterm *h;
 	int index = 0;
 	int version;
+	HC_DEF_S(out);
+	hcns(u1) plen[4];
 
 	assert(ei_decode_version(buf, &index, &version) == 0);
 	assert(version == 131 /* 130 in erlang 4.2 */);
 
 	h = eterm_decode(buf, len, &index);
 
+	encode_version(out);
+	do_echo(out, h);
+
+	HC_PUT_BE4(plen, out->len);
+
+	fprintf(stderr, "spitting out %i bytes\n", out->len);
 	fflush(stderr);
 
-	eterm_show(0, h);
+	assert(hcns(write_exact)(1, plen, 4) == 4);
+	assert(hcns(write_exact)(1, out->s, out->len) == out->len);
+
+	hcns(s_free)(out);
 
 	/* clean up
 	 */
@@ -56,45 +127,7 @@ static void doit(const char *buf, int len)
 	fprintf(stderr, "processed %i bytes\n", index);
 }
 
-static int doit0(const char *buf, int len, hcns(bool) eof)
-{
-	buf2file(TEST_BIN, (void*)buf, len);
-	return len;
-}
-
-static void doit1(const char *buf, int len)
-{
-	assert(len > 0);
-}
-
-/* calls ``doit'' for each received packet
- */
-int hcns(readfd_packet_be4)(int fd, void *buf, int bufsz, void (*doit)(const char *buf, int len))
-{
-	hcns(u1) plen0[4]; /* packet len */
-	hcns(u4) plen;
-	int len;
-
-	assert(bufsz > 0);
-	assert(errno == 0 || errno == ENOTTY);
-
-	assert(hcns(read_exact)(fd, plen0, sizeof(plen0)) == 4);
-	plen = HC_GET_BE4(plen0);
-
-	fprintf(stderr, "packet length: %i\n", plen);
-
-	assert(bufsz >= plen);
-
-	len = hcns(read_exact)(fd, buf, plen);
-	if (len < plen) {
-		HC_FATAL("couldn't read all packet, read %i, expected %i", len, plen);
-	}
-	assert(len == plen);
-
-	doit(buf, len);
-
-	return len + 4;
-}
+#endif
 
 int main(int argc, char **argv)
 {
@@ -104,14 +137,28 @@ int main(int argc, char **argv)
 
 	HC_ALLOC(buf, bufsz);
 
-#if 0
+#ifdef TEST_BIN
 	fd = 0;
-	fprintf(stderr, "total bytes read: %i\n", hcns(readfd)(fd, buf, bufsz, doit0));
+	fprintf(stderr, "total bytes read: %i\n", hcns(readfd)(fd, buf, bufsz, doit));
 #else
-	fprintf(stderr, "reading " TEST_BIN "\n");
-	assert((fd = open(TEST_BIN, O_RDONLY)) >= 0);
-	fprintf(stderr, "total bytes read: %i\n", hcns(readfd_packet_be4)(fd, buf, bufsz, doit));
-	close(fd);
+	fd = 0;
+	for (;;) {
+		int n;
+		int plen = hcns(readfd_be4)(fd, buf);
+		if (plen == -1) {
+			/* EOF
+			 */
+			break;
+		}
+		fprintf(stderr, "packet length: %i\n", plen);
+
+		assert(plen <= bufsz); /* ensure data fits buffer */
+
+		n = hcns(read_exact)(fd, buf, plen);
+		assert(n == plen);
+		
+		doit(buf, plen);
+	}
 #endif
 
 	HC_FREE(buf);
