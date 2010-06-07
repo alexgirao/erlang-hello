@@ -1,22 +1,25 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <errno.h>  /* /usr/include/asm-generic/errno.h */
+#include <assert.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
-/*
-*/
+#include <higherc/higherc.h>
+#include <higherc/byte.h>
+#include <higherc/bytewise.h>
+#include <higherc/str.h>
+#include <higherc/s.h>
+#include <higherc/alloc.h>
 
-#define ERL_TINY_ATOM_EXT (ERL_ATOM_EXT + 1000)      /* ERL_ATOM_EXT that has at most sizeof(HC_ST_S)-1 bytes */
-#define ERL_TINY_STRING_EXT (ERL_STRING_EXT + 1000)  /* ERL_STRING_EXT that has at most sizeof(HC_ST_S)-1 bytes */
-#define ERL_TINY_TYPE_MAXLEN (sizeof(HC_ST_S)-1)
+#include "erl_interface.h"
 
-HC_DECL_PRIVATE_I(eterm,
-		  int type;
-		  int len;  /* composite type arity, string/atom len */
-		  union {
-			  long i_val;
-			  double d_val;
-			  struct eterm *children;  /* composite type children */
-			  HC_ST_S str[1]; /* holds ERL_STRING_EXT / ERL_ATOM_EXT data, 0 terminated */
-			  char tinystr[sizeof(HC_ST_S)]; /* ERL_TINY_ATOM_EXT, ERL_TINY_STRING_EXT */
-		  } value;
-	);
+#include "eterm.h"
+
+HC_DECL_PUBLIC_I(eterm);
 
 static void print_s_repr(char *prefix, HC_ST_S *s, char *suffix)
 {
@@ -78,7 +81,7 @@ void encode_double(HC_ST_S *x, double dbl)
 	ei_encode_double(x->s, &x->len, dbl);
 }
 
-void _encode_double_type70(char *buf, int *index, double p)
+static void _encode_double_type70(char *buf, int *index, double p)
 {
 	char *s = buf + *index;
 	char *s0 = s;
@@ -180,8 +183,6 @@ int decode_double_type70(const char *buf, int *index, double *p)
 	hcns(u4) u4u4[2];
 
 	if (*s++ != 70) return -1;
-	
-	//if (sscanf(s, "%lf", &f) != 1) return -1;
 
 	assert(*((unsigned char*)&endiancheck) == 0xef);  /* little endian only so far */
 	
@@ -342,4 +343,151 @@ void eterm_show(int level, struct eterm *h)
 		count++;
 	}
 	eterm_end(i);
+}
+
+/* assumes, h->type and h->len are already set, doesn't decode
+ * composite terms or nil
+ */
+static void decode1term(const char *buf, int *index, struct eterm *h)
+{
+	switch (h->type) {
+	case ERL_SMALL_INTEGER_EXT:
+	case ERL_INTEGER_EXT:
+		assert(ei_decode_long(buf, index, &h->value.i_val) == 0);
+		break;
+	case 70: /* IEEE 754 */
+		assert(decode_double_type70(buf, index, &h->value.d_val) == 0);
+		break;
+	case ERL_FLOAT_EXT:
+		assert(ei_decode_double(buf, index, &h->value.d_val) == 0);
+		break;
+	case ERL_ATOM_EXT:
+		if (h->len <= ERL_TINY_TYPE_MAXLEN) {
+			h->type = ERL_TINY_ATOM_EXT;
+			assert(ei_decode_atom(buf, index, h->value.tinystr) == 0);
+		} else {
+			hcns(s_alloc)(h->value.str, h->len + 1);  /* need extra byte for '\0', as manual says */
+			assert(ei_decode_atom(buf, index, h->value.str->s) == 0);
+			h->value.str->len = h->len;
+		}
+		break;
+	case ERL_STRING_EXT:
+		if (h->len <= ERL_TINY_TYPE_MAXLEN) {
+			h->type = ERL_TINY_STRING_EXT;
+			assert(ei_decode_string(buf, index, h->value.tinystr) == 0);
+		} else {
+			hcns(s_alloc)(h->value.str, h->len + 1);  /* need extra byte for '\0', as manual says */
+			assert(ei_decode_string(buf, index, h->value.str->s) == 0);
+			h->value.str->len = h->len;
+		}
+		break;
+	case ERL_REFERENCE_EXT:
+	case ERL_NEW_REFERENCE_EXT:
+	case ERL_PORT_EXT:
+	case ERL_PID_EXT:
+	case ERL_BINARY_EXT:
+	case ERL_SMALL_BIG_EXT:
+	case ERL_LARGE_BIG_EXT:
+	case ERL_PASS_THROUGH:
+	case ERL_NEW_CACHE:
+	case ERL_CACHED_ATOM:
+		fprintf(stderr, "unimplemented type: i=%i, t=%i (%c), l=%i\n",
+			*index, h->type, h->type, h->len);
+		assert(skip_term(buf, index) == 0);
+		break;
+	case ERL_SMALL_TUPLE_EXT:
+	case ERL_LARGE_TUPLE_EXT:
+	case ERL_LIST_EXT:
+	case ERL_NIL_EXT:
+		HC_FATAL("invalid data, nil not expected %i (%c)", h->type, h->type);
+	default:
+		HC_FATAL("unknown type: i=%i, t=%i (%c), l=%i\n",
+			 *index, h->type, h->type, h->len);
+	}
+}
+
+static struct eterm *eterm_decode0(const char *buf, int len, int *index, int depth, struct eterm *parent, struct eterm *h)
+{
+	int n = parent ? parent->len : -1;
+
+/* 	printf("debug: entering depth %i\n", depth); */
+
+	while (*index < len && n--) {
+		h = eterm_new0(h);
+		assert(ei_get_type(buf, index, &h->type, &h->len) == 0);
+
+		switch (h->type) {
+		case ERL_SMALL_TUPLE_EXT:
+		case ERL_LARGE_TUPLE_EXT:
+			assert(ei_decode_tuple_header(buf, index, NULL) == 0); /* skip tuple header */
+			h->value.children = eterm_decode0(buf, len, index, depth + 1, h, NULL);
+			break;
+		case ERL_LIST_EXT:
+			assert(ei_decode_list_header(buf, index, NULL) == 0); /* skip list header */
+			h->value.children = eterm_decode0(buf, len, index, depth + 1, h, NULL);
+			break;
+		default:
+			decode1term(buf, index, h);
+		}
+
+	}
+
+	if (parent && parent->type == ERL_LIST_EXT) {
+		/* list terms expects a tail item (any other term)
+		 */
+		struct eterm tmp[1];
+		unsigned char *str;
+
+		assert(ei_get_type(buf, index, &tmp->type, &tmp->len) == 0);
+
+		switch (tmp->type) {
+		case ERL_LIST_EXT:
+			assert(ei_decode_list_header(buf, index, NULL) == 0); /* skip list header */
+			h = eterm_decode0(buf, len, index, depth, tmp, h); /* decode tail list as sibling through ``tmp'' */
+			parent->len += tmp->len; /* ``tmp'' gets updated in inner calls */
+			break;
+		case ERL_STRING_EXT:
+			HC_ALLOC(str, tmp->len + 1); /* need extra byte for '\0', as manual says */
+
+			assert(ei_decode_string(buf, index, (char *)str) == 0);
+
+			for (n=0; n < tmp->len; n++) {
+				h = eterm_new0(h);
+				h->type = ERL_SMALL_INTEGER_EXT;
+				h->value.i_val = str[n];
+			}
+
+			h = eterm_new0(h);
+			h->type = ERL_NIL_EXT;
+
+			parent->len += tmp->len;
+
+			HC_FREE(str);
+			break;
+		case ERL_NIL_EXT:
+			/* proper list, ends with NIL
+			 */
+			assert(ei_decode_list_header(buf, index, NULL) == 0); /* skip list header */
+			assert(*index == len || depth > 0);
+
+			h = eterm_new0(h);
+			h->type = ERL_NIL_EXT;
+			break;
+		default:
+/* 			printf("debug: improper list at %i\n", depth); */
+			h = eterm_new0(h);
+			h->type = tmp->type;
+			h->len = tmp->len;
+			decode1term(buf, index, h);
+		}
+	}
+
+/* 	printf("debug: leaving depth %i\n", depth); */
+
+	return h;
+}
+
+struct eterm *eterm_decode(const char *buf, int len, int *index)
+{
+	return eterm_decode0(buf, len, index, 0, NULL, NULL);
 }

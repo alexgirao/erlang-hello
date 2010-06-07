@@ -21,7 +21,7 @@
 #include "erl_interface.h"
 #include "ei.h"
 
-#include "common-inc.c"
+#include "eterm.h"
 
 int main(int argc, char **argv)
 {
