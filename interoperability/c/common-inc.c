@@ -2,6 +2,22 @@
 /*
 */
 
+#define ERL_TINY_ATOM_EXT (ERL_ATOM_EXT + 1000)      /* ERL_ATOM_EXT that has at most sizeof(HC_ST_S)-1 bytes */
+#define ERL_TINY_STRING_EXT (ERL_STRING_EXT + 1000)  /* ERL_STRING_EXT that has at most sizeof(HC_ST_S)-1 bytes */
+#define ERL_TINY_TYPE_MAXLEN (sizeof(HC_ST_S)-1)
+
+HC_DECL_PRIVATE_I(eterm,
+		  int type;
+		  int len;  /* composite type arity, string/atom len */
+		  union {
+			  long i_val;
+			  double d_val;
+			  struct eterm *children;  /* composite type children */
+			  HC_ST_S str[1]; /* holds ERL_STRING_EXT / ERL_ATOM_EXT data, 0 terminated */
+			  char tinystr[sizeof(HC_ST_S)]; /* ERL_TINY_ATOM_EXT, ERL_TINY_STRING_EXT */
+		  } value;
+	);
+
 static void print_s_repr(char *prefix, HC_ST_S *s, char *suffix)
 {
 	HC_DEF_S(r);
@@ -257,28 +273,6 @@ int skip_term(const char* buf, int *index)
 	return 0;
 }
 
-/* highlevel erlang terms
- */
-
-HC_DECL_PRIVATE_I(eterm,
-		  /* ei_term t[1]; / * type in t->ei_type */
-		  int type;
-		  //int arity;
-		  //int size;
-		  int len;  /* composite type arity, string/atom len */
-		  union {
-			  long i_val;
-			  double d_val;
-			  struct eterm *children;  /* composite type children */
-			  HC_ST_S str[1]; /* holds ERL_STRING_EXT / ERL_ATOM_EXT data, 0 terminated */
-
-			  //char atom_name[MAXATOMLEN+1];
-			  //erlang_pid pid;
-			  //erlang_port port;
-			  //erlang_ref ref;
-		  } value;
-	);
-
 void eterm_free(struct eterm *h)
 {
 	struct eterm_iter i[1];
@@ -327,6 +321,10 @@ void eterm_show(int level, struct eterm *h)
 		case ERL_STRING_EXT:
 			printf("%i: [%i]: %p: %i [", level, count, h, h->type);
 			print_s_repr(NULL, h->value.str, "]\n");
+			break;
+		case ERL_TINY_ATOM_EXT:
+		case ERL_TINY_STRING_EXT:
+			printf("%i: [%i]: %p: %i [%s]\n", level, count, h, h->type, h->value.tinystr);
 			break;
 		case 70: /* newFloatTag */
 		case ERL_FLOAT_EXT:

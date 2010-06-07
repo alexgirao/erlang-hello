@@ -36,14 +36,24 @@ static void decode1term(const char *buf, int *index, struct eterm *h)
 		assert(ei_decode_double(buf, index, &h->value.d_val) == 0);
 		break;
 	case ERL_ATOM_EXT:
-		hcns(s_alloc)(h->value.str, h->len + 1);  /* need extra byte for '\0', as manual says */
-		assert(ei_decode_atom(buf, index, h->value.str->s) == 0);
-		h->value.str->len = h->len;
+		if (h->len <= ERL_TINY_TYPE_MAXLEN) {
+			h->type = ERL_TINY_ATOM_EXT;
+			assert(ei_decode_atom(buf, index, h->value.tinystr) == 0);
+		} else {
+			hcns(s_alloc)(h->value.str, h->len + 1);  /* need extra byte for '\0', as manual says */
+			assert(ei_decode_atom(buf, index, h->value.str->s) == 0);
+			h->value.str->len = h->len;
+		}
 		break;
 	case ERL_STRING_EXT:
-		hcns(s_alloc)(h->value.str, h->len + 1);  /* need extra byte for '\0', as manual says */
-		assert(ei_decode_string(buf, index, h->value.str->s) == 0);
-		h->value.str->len = h->len;
+		if (h->len <= ERL_TINY_TYPE_MAXLEN) {
+			h->type = ERL_TINY_STRING_EXT;
+			assert(ei_decode_string(buf, index, h->value.tinystr) == 0);
+		} else {
+			hcns(s_alloc)(h->value.str, h->len + 1);  /* need extra byte for '\0', as manual says */
+			assert(ei_decode_string(buf, index, h->value.str->s) == 0);
+			h->value.str->len = h->len;
+		}
 		break;
 	case ERL_REFERENCE_EXT:
 	case ERL_NEW_REFERENCE_EXT:

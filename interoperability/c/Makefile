@@ -1,7 +1,7 @@
 
 ERLANG_HOME = /usr/local/lib/erlang
-EI_VSN = 3.6.2
-#EI_VSN = 3.6.5
+#EI_VSN = 3.6.2
+EI_VSN = 3.6.5
 
 TOKYO_BUILDDIR = /home/alexgirao/build/tokyocabinet-1.4.44
 HIGHERC_HOME = /home/alexgirao/projects/higherc
