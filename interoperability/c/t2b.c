@@ -46,7 +46,7 @@ int main(int argc, char **argv)
 
 	encode_version(buf);
 
-	encode_list_header(buf, 8);
+	encode_list_header(buf, 9);
 	encode_long(buf, 1);
 	encode_double_type70(buf, 1.618034);
 	encode_atomz(buf, "a_atom");
@@ -54,13 +54,27 @@ int main(int argc, char **argv)
 	encode_boolean(buf, 1);
 	encode_boolean(buf, 0);
 
-	/* {a_atom, 1, 1.618034, "a_string"}
+	/* {a_tuple, 1, 1.618034, "a_string"}
 	 */
 	encode_tuple_header(buf, 4);
 	encode_atomz(buf, "a_tuple");
 	encode_char(buf, 1);
 	encode_double_type70(buf, 1.618034);
 	encode_stringz(buf, "another string");
+
+	/* [a_improper_list, [c, d, [e | f]]]
+	 */
+
+	encode_list_header(buf, 2);
+	  encode_atomz(buf, "a_improper_list");
+	  encode_list_header(buf, 3);
+	    encode_atomz(buf, "c");
+	    encode_atomz(buf, "d");
+	    encode_list_header(buf, 1);
+	      encode_atomz(buf, "e");
+	     encode_atomz(buf, "f");  /* improper list tail */
+	   encode_empty_list(buf); /* every proper list ends with an empty list (nil) */	
+	 encode_empty_list(buf); /* every proper list ends with an empty list (nil) */	
 
 #if 0
 	/* [a_list, 0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144]

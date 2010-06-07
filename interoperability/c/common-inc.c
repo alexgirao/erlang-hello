@@ -310,32 +310,38 @@ void eterm_free(struct eterm *h)
 void eterm_show(int level, struct eterm *h)
 {
 	struct eterm_iter i[1];
+	int count = 1, n;
 
 	eterm_forward(i, h);
 	while ((h = eterm_next(i))) {
+		for (n=0; n < level; n++) {
+			fwrite("  ", 2, 1, stdout);
+		}
+
 		switch (h->type) {
 		case ERL_SMALL_INTEGER_EXT:
 		case ERL_INTEGER_EXT:
-			printf("%i: %p: %i %li\n", level, h, h->type, h->value.i_val);
+			printf("%i: [%i]: %p: %i %li\n", level, count, h, h->type, h->value.i_val);
 			break;
 		case ERL_ATOM_EXT:
 		case ERL_STRING_EXT:
-			printf("%i: %p: %i [", level, h, h->type);
+			printf("%i: [%i]: %p: %i [", level, count, h, h->type);
 			print_s_repr(NULL, h->value.str, "]\n");
 			break;
 		case 70: /* newFloatTag */
 		case ERL_FLOAT_EXT:
-			printf("%i: %p: %i %f\n", level, h, h->type, h->value.d_val);
+			printf("%i: [%i]: %p: %i %f\n", level, count, h, h->type, h->value.d_val);
 			break;
 		case ERL_SMALL_TUPLE_EXT:
 		case ERL_LARGE_TUPLE_EXT:
 		case ERL_LIST_EXT:
-			printf("%i: %p: %i %i items\n", level, h, h->type, h->len);
+			printf("%i: [%i]: %p: %i %i items\n", level, count, h, h->type, h->len);
 			eterm_show(level + 1, h->value.children);
 			break;
 		default:
-			printf("%i: %p: %i\n", level, h, h->type);
+			printf("%i: [%i]: %p: %i\n", level, count, h, h->type);
 		}
+		count++;
 	}
 	eterm_end(i);
 }
