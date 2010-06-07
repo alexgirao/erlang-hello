@@ -21,14 +21,19 @@
 
 HC_DECL_PUBLIC_I(eterm);
 
-static void print_s_repr(char *prefix, HC_ST_S *s, char *suffix)
+static void print_s_reprn(char *prefix, char *s, int len, char *suffix)
 {
 	HC_DEF_S(r);
-	hcns(s_repr)(r, s);
+	hcns(s_reprn)(r, s, len);
 	if (prefix) printf("%s", prefix);
 	fwrite(r->s, r->len, 1, stdout);
 	if (suffix) printf("%s", suffix);
 	hcns(s_free)(r);
+}
+
+static void print_s_repr(char *prefix, HC_ST_S *s, char *suffix)
+{
+	print_s_reprn(prefix, s->s, s->len, suffix);
 }
 
 // otp_src_R13B04/lib/erl_interface/src/misc/ei_decode_term.c
@@ -325,7 +330,8 @@ void eterm_show(int level, struct eterm *h)
 			break;
 		case ERL_TINY_ATOM_EXT:
 		case ERL_TINY_STRING_EXT:
-			printf("%i: [%i]: %p: %i [%s]\n", level, count, h, h->type, h->value.tinystr);
+			printf("%i: [%i]: %p: %i [", level, count, h, h->type);
+			print_s_reprn(NULL, h->value.tinystr, h->len, "]\n");
 			break;
 		case 70: /* newFloatTag */
 		case ERL_FLOAT_EXT:

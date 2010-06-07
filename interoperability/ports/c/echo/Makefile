@@ -8,7 +8,7 @@ HIGHERC_HOME = /home/alexgirao/projects/higherc
 
 CFLAGS = -Wall -I$(TOKYO_BUILDDIR) -I$(HIGHERC_HOME) -I$(ERLANG_HOME)/lib/erl_interface-$(EI_VSN)/include
 LDFLAGS = -static -L$(TOKYO_BUILDDIR) -L$(HIGHERC_HOME) -L$(ERLANG_HOME)/lib/erl_interface-$(EI_VSN)/lib
-LIBS = -ltokyocabinet -lhigherc -lbz2 -lz -lrt -lpthread -lm -lc -lerl_interface -lei
+LIBS = ../../../c/eterm.o -ltokyocabinet -lhigherc -lbz2 -lz -lrt -lpthread -lm -lc -lerl_interface -lei
 
 all: test
 
