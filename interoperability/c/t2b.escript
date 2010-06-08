@@ -3,12 +3,8 @@
 
 main(_Args) ->
     L = [
-	 1,
-	 1.618034,
-	 a_atom,
-	 "a string",
-	 true,
-	 false,
+	 1, 1.618034, a_atom, "a string", true, false,
+	 <<"1234567890123456">>, <<"12345678901234567">>,
 	 {a_tuple, 1, 1.618034, "another string"},
 	 [a_improper_list, [c, d, [e | f]]],
 	 [a_list, 0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377]

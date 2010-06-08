@@ -46,13 +46,15 @@ int main(int argc, char **argv)
 
 	encode_version(buf);
 
-	encode_list_header(buf, 9);
+	encode_list_header(buf, 11);
 	encode_long(buf, 1);
 	encode_double_type70(buf, 1.618034);
 	encode_atomz(buf, "a_atom");
 	encode_stringz(buf, "a string");
 	encode_boolean(buf, 1);
 	encode_boolean(buf, 0);
+	encode_binary(buf, "1234567890123456", 16); /* tiny */
+	encode_binary(buf, "12345678901234567", 17);
 
 	/* {a_tuple, 1, 1.618034, "a_string"}
 	 */

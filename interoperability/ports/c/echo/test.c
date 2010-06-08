@@ -68,11 +68,17 @@ static void do_echo(HC_ST_S *out, struct eterm *h)
 		case ERL_STRING_EXT:
 			encode_stringn(out, t->value.str->s, t->len);
 			break;
+		case ERL_BINARY_EXT:
+			encode_binary(out, t->value.str->s, t->len);
+			break;
 		case ERL_TINY_ATOM_EXT:
 			encode_atomn(out, t->value.tinystr, t->len);
 			break;
 		case ERL_TINY_STRING_EXT:
 			encode_stringn(out, t->value.tinystr, t->len);
+			break;
+		case ERL_TINY_BINARY_EXT:
+			encode_binary(out, t->value.tinystr, t->len);
 			break;
 		case ERL_SMALL_TUPLE_EXT:
 		case ERL_LARGE_TUPLE_EXT:

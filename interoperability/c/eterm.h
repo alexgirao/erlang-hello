@@ -3,7 +3,9 @@
 
 #define ERL_TINY_ATOM_EXT (ERL_ATOM_EXT + 1000)      /* ERL_ATOM_EXT that has at most sizeof(HC_ST_S)-1 bytes */
 #define ERL_TINY_STRING_EXT (ERL_STRING_EXT + 1000)  /* ERL_STRING_EXT that has at most sizeof(HC_ST_S)-1 bytes */
+#define ERL_TINY_BINARY_EXT (ERL_BINARY_EXT + 1000)
 #define ERL_TINY_TYPE_MAXLEN (sizeof(HC_ST_S)-1)
+#define ERL_TINY_BINARY_MAXLEN (sizeof(HC_ST_S)) /* binary doesn't have '\0' */
 
 HC_DECL_PUBLIC_I_HEADERS(eterm,
 		  int type;
@@ -30,6 +32,7 @@ void encode_atomn(HC_ST_S *x, const char* s, int len);
 void encode_atomz(HC_ST_S *x, const char* s);
 void encode_stringn(HC_ST_S *x, const char* s, int len);
 void encode_stringz(HC_ST_S *x, const char* s);
+void encode_binary(HC_ST_S *x, void *s, int len);
 void encode_tuple_header(HC_ST_S *x, long n);
 void encode_list_header(HC_ST_S *x, int n);
 void encode_empty_list(HC_ST_S *x);

@@ -20,3 +20,6 @@ test.o: test.c
 
 clean:
 	rm -fv *.o
+
+test.o: ../../../c/eterm.h
+test: ../../../c/eterm.o

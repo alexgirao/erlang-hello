@@ -156,6 +156,14 @@ void encode_stringz(HC_ST_S *x, const char* s)
 	encode_stringn(x, s, hcns(slen)(s));
 }
 
+void encode_binary(HC_ST_S *x, void *s, int len)
+{
+	int i = x->len;
+	ei_encode_binary(NULL, &i, s, len);
+	hcns(s_alloc)(x, i);
+	ei_encode_binary(x->s, &x->len, s, len);
+}
+
 void encode_tuple_header(HC_ST_S *x, long n)
 {
 	int i = x->len;
@@ -298,6 +306,7 @@ void eterm_free(struct eterm *h)
 			break;
 		case ERL_ATOM_EXT:
 		case ERL_STRING_EXT:
+		case ERL_BINARY_EXT:
 			hcns(s_free)(t->value.str);
 			break;
 		}
@@ -325,12 +334,14 @@ void eterm_show(int level, struct eterm *h)
 			break;
 		case ERL_ATOM_EXT:
 		case ERL_STRING_EXT:
-			printf("%i: [%i]: %p: %i [", level, count, h, h->type);
+		case ERL_BINARY_EXT:
+			printf("%i: [%i]: %p: %.4i [", level, count, h, h->type);
 			print_s_repr(NULL, h->value.str, "]\n");
 			break;
 		case ERL_TINY_ATOM_EXT:
 		case ERL_TINY_STRING_EXT:
-			printf("%i: [%i]: %p: %i [", level, count, h, h->type);
+		case ERL_TINY_BINARY_EXT:
+			printf("%i: [%i]: %p: %.4i [", level, count, h, h->type);
 			print_s_reprn(NULL, h->value.tinystr, h->len, "]\n");
 			break;
 		case 70: /* newFloatTag */
@@ -387,11 +398,20 @@ static void decode1term(const char *buf, int *index, struct eterm *h)
 			h->value.str->len = h->len;
 		}
 		break;
+	case ERL_BINARY_EXT:
+		if (h->len <= ERL_TINY_BINARY_MAXLEN) {
+			h->type = ERL_TINY_BINARY_EXT;
+			assert(ei_decode_binary(buf, index, h->value.tinystr, NULL) == 0);
+		} else {
+			hcns(s_alloc)(h->value.str, h->len);
+			assert(ei_decode_binary(buf, index, h->value.str->s, NULL) == 0);
+			h->value.str->len = h->len;
+		}
+		break;
 	case ERL_REFERENCE_EXT:
 	case ERL_NEW_REFERENCE_EXT:
 	case ERL_PORT_EXT:
 	case ERL_PID_EXT:
-	case ERL_BINARY_EXT:
 	case ERL_SMALL_BIG_EXT:
 	case ERL_LARGE_BIG_EXT:
 	case ERL_PASS_THROUGH:
