@@ -78,6 +78,8 @@ do_echo_loop(Socket) ->
 	    io:format("error: ~p~n", [M]),
 	    Err;
 
+        {error, closed} ->
+            ok;
 	M ->
 	    io:format("flushing unknown message ~p~n", [M]),
 	    do_echo_loop(Socket)

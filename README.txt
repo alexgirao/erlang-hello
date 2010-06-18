@@ -24,8 +24,12 @@
 
 - server3
 
-    - gen_server2 custom behaviour module (from LShift)
+    - gen_server2 custom behaviour module (from LShift's RabbitMQ)
 
 - server4a
 
     - asynchronous accept server example
+
+- server5
+
+    - tcp_listener and tcp_acceptor usage (from LShift's RabbitMQ)
