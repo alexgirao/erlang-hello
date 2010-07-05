@@ -185,3 +185,8 @@ se.escript
 ls2.escript
 
     - list_ext (108) vs string_ext (107)
+
+dicttest.escript
+
+    - how to use dict module
+    - how to use catch expression
