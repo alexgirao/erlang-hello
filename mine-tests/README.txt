@@ -190,3 +190,8 @@ dicttest.escript
 
     - how to use dict module
     - how to use catch expression
+
+mcast0.erl
+
+    - udp networking
+    - multicast listening
