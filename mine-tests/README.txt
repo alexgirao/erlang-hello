@@ -195,3 +195,9 @@ mcast0.erl
 
     - udp networking
     - multicast listening
+
+gcd.escript
+
+    - greatest common denominator (GCD)
+    - float to integer (erlang:trunc/1)
+    - integer and float formatting (io:format/2)

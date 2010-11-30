@@ -57,6 +57,9 @@ main(_) ->
 		       }
 		  end, M),
     
+    %io:format("M = ~p~n", [M]),
+    %io:format("N = ~p~n", [N]),
+
     lists:foreach(fun ({I, K, T}) ->
 			  io:format("serie ~p has ~p operations~n", [I, K]),
 			  lists:foreach(fun ({J, R}) ->
