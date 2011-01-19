@@ -1,1 +1,15 @@
 based on rabbitmq-server-1.8.0
+
+concurrent accept: how it works? what are the advantages?
+
+    in tcp_listener.erl, there is an option to start multiple acceptor
+    processes, such processes will each invoke prim_inet:async_accept
+    for the same listening socket, tracking down the calls i got to
+    the port command in
+    otp_src_R14B01/erts/preloaded/src/prim_inet.erl which calls
+    erlang:port_control(LSocket, ?TCP_REQ_ACCEPT, [Time]) which in
+    turn may call tcp_inet_ctl in
+    otp_src_R14B01/erts/emulator/drivers/common/inet_drv.c, from a
+    basic reading of the code, it seems that the port driver enqueue
+    accepts when switch from state TCP_STATE_ACCEPTING to
+    TCP_STATE_MULTI_ACCEPTING.

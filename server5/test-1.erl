@@ -1,7 +1,7 @@
--module('test-0').
+-module('test-1').
 -export([main/0, startup/2, shutdown/2, connection_made/1, echo/1]).
 
-% make && erl -noshell -s test-0 main -s init stop
+% make && erl -noshell -s test-1 main -s init stop
 % for i in `seq 1 3000`; do date '+%N' | nc -q1 localhost 8070; done
 
 -define(TCP_OPTIONS, [
@@ -12,17 +12,17 @@
 		     ]
        ).
 
-startup(_IPAddress, _Port) ->
-    io:format("startup~n"),
+startup(IPAddress, Port) ->
+    io:format("~p:startup(~p, ~p) called~n", [?MODULE, IPAddress, Port]),
     ok.
 
-shutdown(_IPAddress, _Port) ->
-    io:format("shutdown~n"),
+shutdown(IPAddress, Port) ->
+    io:format("~p:shutdown(~p, ~p) called~n", [?MODULE, IPAddress, Port]),
     ok.
 
 connection_made(Socket) ->
-    % 
     WorkerPID = proc_lib:spawn_link(?MODULE, echo, [Socket]),
+    io:format("~p:connection_made(~p) called on acceptor ~p, new worker ~p created~n", [?MODULE, Socket, self(), WorkerPID]),
     gen_tcp:controlling_process(Socket, WorkerPID),
     WorkerPID.
 
@@ -36,6 +36,7 @@ echo_loop(Socket) ->
             gen_tcp:send(Socket, Data),
             echo_loop(Socket);
         {error, closed} ->
+	    io:format("we're done with worker ~p~n", [self()]),
 	    exit(normal);
         R ->
 	    io:format("unknown result, exiting: ~p~n", [R]),
@@ -50,7 +51,8 @@ main() ->
 	    ?TCP_OPTIONS,
 	    {?MODULE, startup, []},
 	    {?MODULE, shutdown, []},
-	    {?MODULE, connection_made, []},
+	    {?MODULE, connection_made, []},  % AcceptCallback
+	    5,  % ConcurrentAcceptorCount
 	    ?MODULE % label
 	   ),
     receive
