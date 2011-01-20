@@ -1,0 +1,155 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+<html><head>
+
+ 
+   <title> [erlang-questions] dict, orddict and gb_tree
+   </title>
+   <link rel="Index" href="http://www.erlang.org/pipermail/erlang-questions/2007-February/index.html">
+   <link rel="made" href="mailto:erlang-questions%40erlang.org?Subject=%5Berlang-questions%5D%20dict%2C%20orddict%20and%20gb_tree&amp;In-Reply-To=45D39155.9080805%40telia.com">
+   <meta name="robots" content="index,nofollow">
+   <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <link rel="Previous" href="http://www.erlang.org/pipermail/erlang-questions/2007-February/025257.html">
+   <link rel="Next" href="http://www.erlang.org/pipermail/erlang-questions/2007-February/025283.html">
+ </head><body bgcolor="#ffffff">
+   <h1>[erlang-questions] dict, orddict and gb_tree</h1>
+    <b>Robert Virding</b> 
+    <a href="mailto:erlang-questions%40erlang.org?Subject=%5Berlang-questions%5D%20dict%2C%20orddict%20and%20gb_tree&amp;In-Reply-To=45D39155.9080805%40telia.com" title="[erlang-questions] dict, orddict and gb_tree">&lt;<img src="025277_files/001026.png" border="0">&gt;
+       </a><br>
+    <i>Mon Feb 19 03:04:21 CET 2007</i>
+    <p></p><ul>
+        <li>Previous message: <a href="http://www.erlang.org/pipermail/erlang-questions/2007-February/025257.html">[erlang-questions] dict, orddict and gb_tree
+</a></li>
+        <li>Next message: <a href="http://www.erlang.org/pipermail/erlang-questions/2007-February/025283.html">[erlang-questions] dict, orddict and gb_tree
+</a></li>
+         <li> <b>Messages sorted by:</b> 
+              <a href="http://www.erlang.org/pipermail/erlang-questions/2007-February/date.html#25277">[ date ]</a>
+              <a href="http://www.erlang.org/pipermail/erlang-questions/2007-February/thread.html#25277">[ thread ]</a>
+              <a href="http://www.erlang.org/pipermail/erlang-questions/2007-February/subject.html#25277">[ subject ]</a>
+              <a href="http://www.erlang.org/pipermail/erlang-questions/2007-February/author.html#25277">[ author ]</a>
+         </li>
+       </ul>
+    <hr>  
+<!--beginarticle-->
+<pre>The plot thickens!
+
+It wasn't difficult to generate the random numbers! Erik Stenman sent me 
+an easy method which works well. I have now converted my db_test module 
+to work on lists of keys, and added a function which can generate keys 
+after various rules, including random numbers.
+
+Here are some new test results. As before all times are in millisecs and 
+are for a whole sequence of keys. For each sequence length I generate 5 
+random sequences and the results are the average of the runs.
+
+Again these are for random sets of Size integer keys from 1 upto Size:
+
+Size          dict             rbdict               gb_trees
+           add   fet   upd    add  fet  upd    add/ent   fet   upd/ent
+
+  10000     42    6.5   31   37.5  5.8  36.8  30.9/46     6.3 30.3/43
+  20000     98   13.8   74   85.8 13.7  86    72.3/104    16    72/102
+  50000    316   41    303   254  41   260     202/291    47   222/302
+100000    854  112    913   573 101   619     478/674   125   549/720
+200000   2435  236   2786  1387 237  1430    1090/1527  301  1274/1626
+500000  18042  694  28868  4277 736  4163    3451/4659  963  3859/4836
+
+Some comments:
+
+1. They basically show the same trends as before.
+
+2. There is a larger spread in the values for the tree algorithms than 
+for dict.
+
+3. I can't explain why fetching is faster in rb-trees than in gb-trees.
+
+4. dict still surprises with fast lookup times.
+
+If any one can find some mistake in my code which lead to systematic 
+errors please tell me. Soon there will have to be more statistical 
+results as well. :-) Not!
+
+I will soon release rbdict which will be plug-in compatible with idct 
+and orddict. The module must be cleaned up a little first. Then I can 
+add a delete column to my table.
+
+Robert
+
+
+Robert Virding wrote:
+&gt;<i> I will try some more scan patterns to see what types of figures I get. I 
+</i>&gt;<i> don't really envision calculating random permutations of 500k element 
+</i>&gt;<i> lists. :-)
+</i>&gt;<i> 
+</i>&gt;<i> Richard Carlsson wrote:
+</i>&gt;<i> 
+</i>&gt;&gt;<i>Robert Virding wrote:
+</i>&gt;&gt;<i>
+</i>&gt;&gt;<i>
+</i>&gt;&gt;&gt;<i>3. gb_trees is very slow on adding new values, but rather fast on 
+</i>&gt;&gt;&gt;<i>fetching and updating them. I don't know why this is so.
+</i>&gt;&gt;<i>
+</i>&gt;&gt;<i>
+</i>&gt;&gt;<i>There were several posts to this list years ago with similar
+</i>&gt;&gt;<i>measurements, and I've never seen such strange numbers for add/enter
+</i>&gt;&gt;<i>before. In particular, the difference between enter and add (when the
+</i>&gt;&gt;<i>key does in fact not exist in the tree) should be precisely the time
+</i>&gt;&gt;<i>it takes to do a lookup. Your numbers show a much greater difference
+</i>&gt;&gt;<i>between enter and add, so something seems to be fishy here.
+</i>&gt;&gt;<i>
+</i>&gt;&gt;<i>
+</i>&gt;&gt;&gt;<i>4. It is a big win for gb_trees if you know whether you have an 
+</i>&gt;&gt;&gt;<i>existing key or not when modifying the table.
+</i>&gt;&gt;<i>
+</i>&gt;&gt;<i>
+</i>&gt;&gt;<i>Yes, that is because if the key is known to be present, there will
+</i>&gt;&gt;<i>be no need to do any rebalancing (or even check for rebalancing), so
+</i>&gt;&gt;<i>the update can be made much faster. Hence, for algorithms that do a
+</i>&gt;&gt;<i>lot of updates, it can definitely be better to fully populate the tree
+</i>&gt;&gt;<i>in advance, so that update can be used throughout instead of enter.
+</i>&gt;&gt;<i>(However, the functional-array implementation that Dan G. and I posted
+</i>&gt;&gt;<i>to the list a while back is much faster still, if you have a range of
+</i>&gt;&gt;<i>integer keys.)
+</i>&gt;&gt;<i>
+</i>&gt;&gt;<i>
+</i>&gt;&gt;&gt;<i>5. I was a bit surprised that red-black trees could match gb_trees in 
+</i>&gt;&gt;&gt;<i>fetching as red-black allows some inbalance in the tree. Perhaps the 
+</i>&gt;&gt;&gt;<i>order of insertion was right for it?
+</i>&gt;&gt;<i>
+</i>&gt;&gt;<i>
+</i>&gt;&gt;<i>Try a random set of keys and let us know.
+</i>&gt;&gt;<i>
+</i>&gt;&gt;<i>    /Richard
+</i>&gt;&gt;<i>
+</i>&gt;&gt;<i>
+</i>&gt;<i> 
+</i>&gt;<i> _______________________________________________
+</i>&gt;<i> erlang-questions mailing list
+</i>&gt;<i> <img src="025277_files/000036.png" border="0">
+</i>&gt;<i> <a href="http://www.erlang.org/mailman/listinfo/erlang-questions">http://www.erlang.org/mailman/listinfo/erlang-questions</a>
+</i>&gt;<i> 
+</i>-------------- next part --------------
+An embedded and charset-unspecified text was scrubbed...
+Name: db_test.erl
+Url: <a href="http://www2.erlang.org/pipermail/erlang-questions/attachments/20070219/1b437cb7/attachment.ksh">http://www2.erlang.org/pipermail/erlang-questions/attachments/20070219/1b437cb7/attachment.ksh</a> 
+</pre>
+
+<!--endarticle-->
+    <hr>
+    <p></p><ul>
+        <!--threads-->
+	<li>Previous message: <a href="http://www.erlang.org/pipermail/erlang-questions/2007-February/025257.html">[erlang-questions] dict, orddict and gb_tree
+</a></li>
+	<li>Next message: <a href="http://www.erlang.org/pipermail/erlang-questions/2007-February/025283.html">[erlang-questions] dict, orddict and gb_tree
+</a></li>
+         <li> <b>Messages sorted by:</b> 
+              <a href="http://www.erlang.org/pipermail/erlang-questions/2007-February/date.html#25277">[ date ]</a>
+              <a href="http://www.erlang.org/pipermail/erlang-questions/2007-February/thread.html#25277">[ thread ]</a>
+              <a href="http://www.erlang.org/pipermail/erlang-questions/2007-February/subject.html#25277">[ subject ]</a>
+              <a href="http://www.erlang.org/pipermail/erlang-questions/2007-February/author.html#25277">[ author ]</a>
+         </li>
+       </ul>
+
+<hr>
+<a href="http://www2.erlang.org/mailman/listinfo/erlang-questions">More information about the erlang-questions
+mailing list</a><br>
+</body></html>

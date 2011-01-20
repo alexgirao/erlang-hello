@@ -201,3 +201,10 @@ gcd.escript
     - greatest common denominator (GCD)
     - float to integer (erlang:trunc/1)
     - integer and float formatting (io:format/2)
+
+gb_trees0.erl
+
+    - how to use gb_trees module
+    - gb_trees is typically faster than dict for large sets (> 10k),
+      see ../articles/025277.html, it also has the ordered keys
+      feature

@@ -60,6 +60,9 @@ init({IPAddress, Port, SocketOpts,
                                              {active, false}]) of
         {ok, LSock} ->
             lists:foreach(fun (_) ->
+						% AcceptorSup must be a simple_one_for_one
+						% supervisor (e.g.: tcp_acceptor_sup), see
+						% supervisor module documentation
                                   {ok, _APid} = supervisor:start_child(
                                                   AcceptorSup, [LSock])
                           end,

@@ -1,0 +1,147 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+<html><head>
+
+ 
+   <title> [erlang-questions] dict, orddict and gb_tree
+   </title>
+   <link rel="Index" href="http://www.erlang.org/pipermail/erlang-questions/2007-February/index.html">
+   <link rel="made" href="mailto:erlang-questions%40erlang.org?Subject=%5Berlang-questions%5D%20dict%2C%20orddict%20and%20gb_tree&amp;In-Reply-To=535AFB8F-C058-48D4-A938-0D2DB95310C3%40zoominternet.net">
+   <meta name="robots" content="index,nofollow">
+   <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <link rel="Previous" href="http://www.erlang.org/pipermail/erlang-questions/2007-February/025182.html">
+   <link rel="Next" href="http://www.erlang.org/pipermail/erlang-questions/2007-February/025243.html">
+ </head><body bgcolor="#ffffff">
+   <h1>[erlang-questions] dict, orddict and gb_tree</h1>
+    <b>Robert Virding</b> 
+    <a href="mailto:erlang-questions%40erlang.org?Subject=%5Berlang-questions%5D%20dict%2C%20orddict%20and%20gb_tree&amp;In-Reply-To=535AFB8F-C058-48D4-A938-0D2DB95310C3%40zoominternet.net" title="[erlang-questions] dict, orddict and gb_tree">&lt;<img src="025240_files/001026.png" border="0">&gt;
+       </a><br>
+    <i>Wed Feb 14 01:37:19 CET 2007</i>
+    <p></p><ul>
+        <li>Previous message: <a href="http://www.erlang.org/pipermail/erlang-questions/2007-February/025182.html">[erlang-questions] dict, orddict and gb_tree
+</a></li>
+        <li>Next message: <a href="http://www.erlang.org/pipermail/erlang-questions/2007-February/025243.html">[erlang-questions] dict, orddict and gb_tree
+</a></li>
+         <li> <b>Messages sorted by:</b> 
+              <a href="http://www.erlang.org/pipermail/erlang-questions/2007-February/date.html#25240">[ date ]</a>
+              <a href="http://www.erlang.org/pipermail/erlang-questions/2007-February/thread.html#25240">[ thread ]</a>
+              <a href="http://www.erlang.org/pipermail/erlang-questions/2007-February/subject.html#25240">[ subject ]</a>
+              <a href="http://www.erlang.org/pipermail/erlang-questions/2007-February/author.html#25240">[ author ]</a>
+         </li>
+       </ul>
+    <hr>  
+<!--beginarticle-->
+<pre>Robert Baruch wrote:
+&gt;<i> On Feb 9, 2007, at 10:11 AM, Richard Carlsson wrote:
+</i>&gt;<i> 
+</i>&gt;&gt;<i>gb_trees is slightly more lightweight and a little bit faster on most
+</i>&gt;&gt;<i>operations than dict, so they are particularly good if you have large
+</i>&gt;&gt;<i>numbers of moderately sized tables. But in general, you're not likely
+</i>&gt;&gt;<i>to notice any difference until you really start to push the limits, so
+</i>&gt;&gt;<i>for everyday programs, you can use either without loss.
+</i>&gt;<i> 
+</i>&gt;<i> I wrote some code a few days ago that had to store about 17,000 key/ 
+</i>&gt;<i> value pairs, where the key was an integer. I found that gb_trees was  
+</i>&gt;<i> far faster in lookup than dict was. I'm not sure if 17,000 is  
+</i>&gt;<i> supposed to be past the limits, but it sure was in my case :)
+</i>
+I had to test this so I wrote a small test program to compare the 
+different implementations. It builds dictionaries with integer keys and 
+a single atom as value. Three things are tested: add a new key/value to 
+a dictionary, fetch all the values, and update all the values. To try 
+and get a little less regular sequence of keys the keys are taken from 
+the middle out of the ranges. So, for example, with 1000 keys the 
+sequence is 500,501,499,502,498,503,...
+
+Gb_trees has different functions for adding/updating the trees depending 
+on whether you KNOW if the key already exists, add, enter and update. 
+There are two values for gb_trees for adding a new value and updating an 
+existing value, they are using add/enter and update/enter.Enter takes 
+longer time as it much first check whether the key is already in the 
+tree. I don't know if this due to the algorithm or the implementation. 
+If this is a problem depends, of course, on your application.
+
+For fun I implemented red-black trees directly out of Okasaki to get 
+some more comparison, this is rbdict. It is dict/orddict compatible. Of 
+course.
+
+Here are the tables, first one with orddict for the smaller sizes and 
+then one without (it was getting too wide to fit in). The figures are 
+millisec and rough averages over a number of runs. They are good enough 
+to see the trends.
+
+
+Size        orddict          dict           rbdict          gb_trees
+         add  fet  upd   add  fet  upd  add  fet  upd    add   fet  upd
+
+   5000  563  550 1300
+  10000 2250 2200 4718    32   15   32   31   15   31   78/125  15  31/31
+  20000 8500 9200 18890   94   15   70   78   15   70  200/266  16  46/79
+
+Size          dict             rbdict               gb_trees
+          add   fet   upd    add  fet  upd        add    fet   upd
+
+  10000    32   15    32     31   15    31     78/125    15   31/31
+  20000    94   15    70     78   15    70    200/266    16   46/79
+  50000   300   40   300    200   40   180    625/830    45  120/200
+100000   850  100   850    420   94   390   1450/1900   95  266/438
+200000  2580  230  2610    890  190   870   3300/5450  190  550/920
+500000 17400  680 21500   2420  500  2350  11750/19000 500 1440/2520
+
+
+Some comments about the results:
+
+1. orddict is nice and quadratic as it should be. It is really only 
+suitable for small trees.
+2. Seeing I implemented dict I must say that it produced good results 
+and hung on quite well, until about 50000 elements. This is not due to 
+algorithm itself but rather due to the way in which the internal table 
+is grown. Should probaby be fixed.
+3. gb_trees is very slow on adding new values, but rather fast on 
+fetching and updating them. I don't know why this is so.
+4. It is a big win for gb_trees if you know whether you have an existing 
+key or not when modifying the table.
+5. I was a bit surprised that red-black trees could match gb_trees in 
+fetching as red-black allows some inbalance in the tree. Perhaps the 
+order of insertion was right for it?
+6. (The obvious) There is no best algorithm but you should test your 
+application to find out which is best for you.
+
+
+It was to help with the last point that dict/orddict have exactly the 
+same interface. The idea was that you could have a whole range of XXdict 
+libraries and choose the one which best fit your needs, all you need to 
+do to use another is change the module name, a DICT macro.
+
+I may just complete rbdict and add it to the libraries. This may be the 
+time to extend the interface with more useful functions.
+
+I don't know if the has helped any, or just added to the confusion, but 
+at least we have figures. :-) I include my test module, check for any 
+really bad errors.
+
+Robert
+
+P.S. I wonder what trapexit will do to these tables? :-)
+
+</pre>
+
+<!--endarticle-->
+    <hr>
+    <p></p><ul>
+        <!--threads-->
+	<li>Previous message: <a href="http://www.erlang.org/pipermail/erlang-questions/2007-February/025182.html">[erlang-questions] dict, orddict and gb_tree
+</a></li>
+	<li>Next message: <a href="http://www.erlang.org/pipermail/erlang-questions/2007-February/025243.html">[erlang-questions] dict, orddict and gb_tree
+</a></li>
+         <li> <b>Messages sorted by:</b> 
+              <a href="http://www.erlang.org/pipermail/erlang-questions/2007-February/date.html#25240">[ date ]</a>
+              <a href="http://www.erlang.org/pipermail/erlang-questions/2007-February/thread.html#25240">[ thread ]</a>
+              <a href="http://www.erlang.org/pipermail/erlang-questions/2007-February/subject.html#25240">[ subject ]</a>
+              <a href="http://www.erlang.org/pipermail/erlang-questions/2007-February/author.html#25240">[ author ]</a>
+         </li>
+       </ul>
+
+<hr>
+<a href="http://www2.erlang.org/mailman/listinfo/erlang-questions">More information about the erlang-questions
+mailing list</a><br>
+</body></html>
