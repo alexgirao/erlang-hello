@@ -1,4 +1,4 @@
-based on rabbitmq-server-1.8.0
+based on rabbitmq-server-2.2.0
 
 concurrent accept: how it works? what are the advantages?
 
@@ -13,3 +13,8 @@ concurrent accept: how it works? what are the advantages?
     basic reading of the code, it seems that the port driver enqueue
     accepts when switch from state TCP_STATE_ACCEPTING to
     TCP_STATE_MULTI_ACCEPTING.
+
+testing on erlang shell
+
+	ERL_LIBS="$(pwd)" erl -boot start_sasl
+	1> spawn('test-1', main, []).
