@@ -37,17 +37,21 @@ new_test(V) ->
 person_record_fields() ->
     record_info(fields, person).
 
-zip(L, V) ->
-    {element(1, V), zip(L, V, 2, [])}.
+% debug_record
+
+zip([H|T], V) ->
+    zip(T, V, 3, [{H, element(2, V)}]).
 zip([H|T], V, I, Acc) ->
     zip(T, V, I+1, [{H, element(I, V)} | Acc]);
-zip([], _, _, Acc) ->
-    lists:reverse(Acc).
+zip([], V, _, Acc) ->
+    {element(1, V), lists:reverse(Acc)}.
 
-debug_record(R) ->
-    A = case element(1, R) of
-	person -> {ok, zip(record_info(fields, person), R)};
-	person_f -> {ok, zip(record_info(fields, person_f), R)};
-	test -> {ok, zip(record_info(fields, test), R)};
+-define(r(I), I -> {ok, zip(record_info(fields, I), R)}).
+
+debug_record(R) when is_tuple(R) ->
+    case element(1, R) of
+	?r(person);
+	?r(person_f);
+	?r(test);
 	_ -> {unknown, R}
     end.
