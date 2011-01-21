@@ -1,4 +1,4 @@
--module(echo1).
+-module(echo3).
 
 -export([init/1, do_echo/1, main/1]).
 
@@ -68,18 +68,18 @@ do_echo(Socket) ->
     do_echo_loop(Socket).
 
 do_echo_loop(Socket) ->
-    prim_inet:async_recv(Socket, 0, -1),
+    inet:setopts(Socket, [{active, once}]),
     receive
-	{inet_async, Socket, _Ref, {ok, Data}} = M ->
+	{tcp, Socket, Data} = M ->
 	    io:format("~p ~p~n", [Socket, M]),
 	    gen_tcp:send(Socket, Data),
 	    do_echo_loop(Socket);
 
-	{inet_async, Socket, _Ref, {error, closed}} = M ->
+	{tcp_closed, Socket} = M ->
 	    io:format("~p ~p~n", [Socket, M]),
 	    exit(normal);
 
-	{inet_async, Socket, _Ref, {error, _} = Error} = M ->
+	{tcp_error, Socket, Error} = M ->
 	    io:format("~p ~p~n", [Socket, M]),
             exit(Error);
 

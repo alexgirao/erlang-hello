@@ -1,4 +1,4 @@
--module(echo1).
+-module(echo2).
 
 -export([init/1, do_echo/1, main/1]).
 
@@ -72,7 +72,9 @@ do_echo_loop(Socket) ->
     receive
 	{inet_async, Socket, _Ref, {ok, Data}} = M ->
 	    io:format("~p ~p~n", [Socket, M]),
-	    gen_tcp:send(Socket, Data),
+	    try erlang:port_command(Socket, Data)
+            catch error:Error -> exit(Error)
+            end,
 	    do_echo_loop(Socket);
 
 	{inet_async, Socket, _Ref, {error, closed}} = M ->
@@ -82,6 +84,16 @@ do_echo_loop(Socket) ->
 	{inet_async, Socket, _Ref, {error, _} = Error} = M ->
 	    io:format("~p ~p~n", [Socket, M]),
             exit(Error);
+
+	% inet_reply comes from erlang:port_command/2
+
+        {inet_reply, Socket, ok} = M ->
+	    io:format("~p ~p~n", [Socket, M]),
+            do_echo_loop(Socket);
+
+        {inet_reply, Socket, Status} = M ->
+	    io:format("~p ~p~n", [Socket, M]),
+            exit(Status);
 
 	%
 

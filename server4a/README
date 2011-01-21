@@ -3,7 +3,27 @@
 
 	erlc echo0.erl && erl -noshell -s echo0 main 7000 -s init stop
 	erlc echo1.erl && erl -noshell -s echo1 main 7000 -s init stop
+	erlc echo2.erl && erl -noshell -s echo2 main 7000 -s init stop
+	erlc echo3.erl && erl -noshell -s echo3 main 7000 -s init stop
+	erlc echo4.erl && erl -noshell -s echo4 main 7000 -s init stop
 
 - otp_src_R13B01-prim_inet.erl added for reference
+
 - echo0.erl: usage of prim_inet:async_accept
+
 - echo1.erl: usage of prim_inet:async_accept and prim_inet:async_recv
+
+- echo2.erl: usage of prim_inet:async_accept, prim_inet:async_recv and
+  erlang:port_command/2 (async send), inspired by
+  ../articles/latency.html
+
+- echo3.erl: usage of prim_inet:async_accept and inet:setopts(Socket,
+  [{active, once}]), inspired by ../articles/latency.html
+
+- echo4.erl: maybe the most recommended way of doing selective
+  receive-free low-latency recv/send
+
+notes
+
+	{active,true} mode provides no flow control, see inet module
+	manual
