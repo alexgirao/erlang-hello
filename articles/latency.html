@@ -1,0 +1,215 @@
+<!DOCTYPE HTML>
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<meta charset="utf-8">
+<title>Erlang Latency Guide</title>
+<link rel="me" type="text/html" href="http://www.google.com/profiles/rigtorp">
+<link rel="alternate" type="application/atom+xml" href="http://www.rigtorp.se/atom.xml">
+<link rel="index" title="Erik Rigtorp" href="http://www.rigtorp.se/"> 
+<link rel="stylesheet" href="latency_files/syntax.css" type="text/css">
+<link rel="stylesheet" href="latency_files/screen.css" type="text/css" media="screen, projection">
+</head><body><div id="zz">
+  <p><a href="http://www.rigtorp.se/">Home</a>
+</p><div id="post">
+<h1>Erlang Latency Guide</h1>
+
+<h2 id="introduction">Introduction</h2>
+
+<p>Latency is a tricky subject, sometimes it's not even clear what or
+how to measure it. I've had the experience of writing a fairly complex
+system requiring low latencies in Erlang. Fortunately Erlang provides
+really good baseline performance. Most of the time you simply write
+your program and it will perform well. There are however a few tricks
+that can be used to lower the latencies of a specific path in the
+system. This document describes a few of these tricks.
+
+
+</p><h2 id="yield">Yield</h2>
+
+<p><a href="http://erlang.org/">Erlang</a> allows you to design
+efficient concurrent systems without caring how processes are
+scheduled or how many cores the system is running on. When running
+Erlang with multiple schedulers (generally one per CPU-core) the
+runtime will balance the load between the schedulers by migrating
+processes to starved schedulers. There is no way to bind processes to
+schedulers or control how processes are migrated between
+schedulers. This introduces a non-deterministic behavior in the
+system and makes it hard to control latency.
+
+</p><p>A common pattern is to have
+a <a href="http://en.wikipedia.org/wiki/Multiplexer">
+demultiplexer</a> that receives a message, sends it to some other
+process/processes and then performs some additional processing on the
+message:
+
+</p><pre><code>
+loop(State) -&gt;
+    receive 
+        Msg -&gt;
+            Pid = lookup_pid(Msg, State),
+	    Pid ! Msg,
+	    State2 = update_state(Msg, State),
+	    loop(State2)
+    end.
+</code></pre>
+
+<p>After the message has been sent the receiving process will be ready
+to execute, but unless the receiving process is on a different
+scheduler the demultiplexer will first finish executing. Ideally we
+would bind the demultiplexer to one scheduler and bind the receiving
+processes to the other schedulers, but that's not allowed in Erlang.
+
+</p><p>Erlang provides only one simple, but powerful way to control
+scheduling: The <a href="http://www.erlang.org/doc/man/erlang.html">
+built-in function
+(BIF)</a> 
+<a href="http://www.erlang.org/doc/man/erlang.html#erlang:yield-0"> 
+<code>erlang:yield/0</code></a> lets processes voluntarily give up
+execution and let other processes get a chance to execute.
+
+</p><p>The demultiplexer pattern can be modified by adding
+<code>erlang:yield()</code> after sending the message:
+
+</p><pre><code>
+loop(State) -&gt;
+    receive 
+        Msg -&gt;
+            Pid = lookup_pid(Msg, State),
+	    Pid ! Msg,
+            erlang:yield(),
+	    State2 = update_state(Msg, State),
+	    loop(State2)
+    end.
+</code></pre>
+
+<p>After the message has been sent the demultiplexer will give up
+execution. If the demultiplexer and the receiver are on the same
+scheduler the receiver will execute before the demultiplexer finishes
+executing, if they are on different schedulers they will execute in
+parallel.
+
+</p><p>Using the <code>erlang:yield/0</code> BIF it's possible to control
+the scheduling of Erlang processes. If used correctly this can reduce
+the latency in a system.
+
+
+</p><h2 id="network">Network</h2>
+
+<p>All network I/O in Erlang is implemented as
+an <a href="http://ftp.sunet.se/pub/lang/erlang/doc/man/erl_driver.html">
+Erlang driver</a>. The driver is interfaced by the
+module <code>prim_inet</code> which in turn is interfaced by the
+network related modules in
+the <a href="http://www.erlang.org/doc/apps/kernel/index.html"> kernel
+application</a>.
+
+</p><p>There is a performance issue with the <code>prim_inet:send/2</code>
+and <code>prim_inet:recv/2</code> functions affecting all the network
+related modules. When calling <code>prim_inet:send/2</code>
+or <code>prim_inet:recv/2</code> the process will do a selective
+receive. If the process's message queue is long there will be a
+performance penalty from doing this selective receive.
+
+</p><p>For receiving there is a simple solution to this problem: use
+the <a href="http://www.erlang.org/doc/man/inet.html#setopts-2">
+<code>{active, once}</code> socket option</a>. 
+
+</p><p>A simple selective receive-free TCP receiver:
+
+</p><pre><code>
+loop(Sock) -&gt;
+    inet:setopts(Sock, [{active, once}]),
+    receive
+        {tcp, Sock, Data} -&gt;
+            loop(Sock);
+        {tcp_error, Sock, Reason} -&gt;
+            exit(Reason);
+        {tcp_closed, Sock} -&gt;
+            exit()
+    end.
+</code></pre>
+
+<p>To implement sending without doing a selective receive it is
+necessary to use the low-level port interface
+function <a href="http://www.erlang.org/doc/man/erlang.html#port_command-2"><code>
+erlang:port_command/2</code></a>. Calling <code>erlang:port_command(Sock,
+Data)</code> on a TCP socket would send the data <code>Data</code> on
+the socket and return a reference <code>Ref</code>. The socket will
+reply by sending <code>{inet_reply, Ref, Status}</code> to the process
+that called <code>erlang:port_command</code>.
+
+</p><p>A simple selective receive-free TCP writer:
+
+</p><pre><code>
+loop(Sock) -&gt;
+    receive
+        {inet_reply, _, ok} -&gt;
+            loop(Sock);
+        {inet_reply, _, Status} -&gt;
+            exit(Status);
+        Msg -&gt;
+            try erlang:port_command(Sock, Msg)
+            catch error:Error -&gt; exit(Error)
+            end,
+            loop(Sock)
+    end.
+</code></pre>
+
+<p>Though not Erlang specific it is important to remember to tune the
+send and receive buffer sizes. If the TCP receive window is full data
+may be delayed up to one network round trip. For UDP, packets will be
+dropped.
+
+
+</p><h2 id="distribution">Distribution</h2>
+
+<p>Erlang allows you to send messages between processes at different
+nodes on the same or different computers. It is also possible to
+interact
+with <a href="http://www.erlang.org/doc/tutorial/overview.html#cnode">
+C-nodes</a> (Erlang nodes implemented in C). The communication is done
+over TCP/IP and obviously this introduces latencies, especially when
+communicating between nodes on a network.
+
+</p><p>Even when the nodes are running on the same computer they
+communicate using TCP/IP over
+the <a href="http://en.wikipedia.org/wiki/Loopback"> loopback
+interface</a>. Different operating systems have widely different
+loopback performance
+(<a href="http://en.wikipedia.org/wiki/Solaris_%28operating_system%29">Solaris</a>
+has lower latency than <a href="http://en.wikipedia.org/wiki/Linux">
+Linux</a>). If your system uses the loopback interface it's a good
+idea to consider this.
+
+
+</p><h2 id="reading">Further Reading</h2>
+
+<p>
+</p><ul>
+
+<li><code>erts/preloaded/src/prim_inet.erl</code> from the Erlang
+release
+
+</li><li><code>erts/emulator/drivers/common/inet_drv.c</code> from the
+Erlang release
+
+</li></ul>
+
+
+
+</div>
+
+
+<p class="c">
+⁂<br>
+<a href="http://www.rigtorp.se/atom.xml" rel="alternate">Feed</a><br>
+<a href="http://www.rigtorp.se/" rel="me">rigtorp.se</a><br>
+<a href="http://github.com/rigtorp" rel="me">github.com/rigtorp</a><br>
+<a href="http://www.flickr.com/photos/erkki" rel="me">flickr.com/photos/erkki</a><br>
+<a href="http://se.linkedin.com/in/rigtorp" rel="me">se.linkedin.com/in/rigtorp</a><br>
+<a href="http://www.google.com/profiles/rigtorp" rel="me">google.com/profiles/rigtorp</a><br>
+
+<a rel="license" href="http://creativecommons.org/licenses/by/3.0/us/">CC</a> •
+ written by <a href="mailto:erik%20a%20rigtorp.com">Erik Rigtorp</a>
+
+</p></div></body></html>

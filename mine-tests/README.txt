@@ -211,3 +211,7 @@ gb_trees0.erl
     - gb_trees is typically faster than dict for large sets (> 10k),
       see ../articles/025277.html, it also has the ordered keys
       feature
+
+loop-state.erl
+
+    - how to manage state in processes

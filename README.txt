@@ -4,7 +4,7 @@
 
 - getting_started
 
-	- from: erl5.6.4/doc/getting_started/part_frame.html
+    - from: erl5.6.4/doc/getting_started/part_frame.html
 
 - design_principles
 
@@ -33,3 +33,8 @@
 - server5
 
     - tcp_listener and tcp_acceptor usage (from LShift's RabbitMQ)
+
+- server6
+
+    - low latency networking
+    - implement instructions at articles/latency.html
