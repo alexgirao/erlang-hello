@@ -99,6 +99,7 @@ fib2.erl / fib2.py
 records.erl / records.escript
 
 	- records usage
+	- how to use record_info/2 BIF
 
 tt.erl / tt.escript / tt.txt
 
@@ -138,6 +139,8 @@ http_util_elias.erl
 
     - heavy unit testing
     - heavy string manipulation
+    - how to export all functions in a module, directive
+      "-compile(export_all)"
 
     - reference: http_util_elias.txt
 

@@ -53,4 +53,6 @@ main(_) ->
     ,P3 = P0#person{b=29}
     ,io:format("~p age: ~p~n", [P3#person.a, P3#person.b])
 
+    ,io:format("person_record_fields(): ~p~n", [records:person_record_fields()])
+
     .

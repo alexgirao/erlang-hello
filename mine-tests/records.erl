@@ -2,7 +2,8 @@
 -export([
     new_person/1, new_person/2,
     new_woman/2,
-    new_test/0, new_test/1
+    new_test/0, new_test/1,
+    person_record_fields/0
     ]).
 
 -record(person, {name, age}).
@@ -31,3 +32,6 @@ new_test() ->
 
 new_test(V) ->
     #test{a=1, b=2, _=V}.
+
+person_record_fields() ->
+    record_info(fields, person).
