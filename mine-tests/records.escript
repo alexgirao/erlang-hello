@@ -55,4 +55,11 @@ main(_) ->
 
     ,io:format("person_record_fields(): ~p~n", [records:person_record_fields()])
 
+    ,io:format("P0: ~p~n", [records:debug_record(P0)])
+    ,io:format("P1: ~p~n", [records:debug_record(P1)])
+    ,io:format("P2: ~p~n", [records:debug_record(P2)])
+    ,io:format("T0: ~p~n", [records:debug_record(T0)])
+    ,io:format("T1: ~p~n", [records:debug_record(T1)])
+    ,io:format("??: ~p~n", [records:debug_record({tag,1,2,3})])
+
     .

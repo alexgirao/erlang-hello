@@ -3,7 +3,8 @@
     new_person/1, new_person/2,
     new_woman/2,
     new_test/0, new_test/1,
-    person_record_fields/0
+    person_record_fields/0,
+    debug_record/1
     ]).
 
 -record(person, {name, age}).
@@ -35,3 +36,18 @@ new_test(V) ->
 
 person_record_fields() ->
     record_info(fields, person).
+
+zip(L, V) ->
+    {element(1, V), zip(L, V, 2, [])}.
+zip([H|T], V, I, Acc) ->
+    zip(T, V, I+1, [{H, element(I, V)} | Acc]);
+zip([], _, _, Acc) ->
+    lists:reverse(Acc).
+
+debug_record(R) ->
+    A = case element(1, R) of
+	person -> {ok, zip(record_info(fields, person), R)};
+	person_f -> {ok, zip(record_info(fields, person_f), R)};
+	test -> {ok, zip(record_info(fields, test), R)};
+	_ -> {unknown, R}
+    end.
