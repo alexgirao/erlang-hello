@@ -47,4 +47,13 @@ main(_) ->
     true = dict:is_key(a, D),
     false = dict:is_key(z, D),
 
+    %
+
+    L = dict:to_list(D),
+    {a, {1, 2, 3, 4, 5}} = lists:keyfind(a, 1, L),
+    {b, []} = lists:keyfind(b, 1, L),
+
+    E = dict:from_list(L),
+    {ok, {1, 2, 3, 4, 5}} = dict:find(a, E),
+
     ok.
