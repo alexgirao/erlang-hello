@@ -3,27 +3,48 @@
 
 main(_) ->
     D0 = dict:new(),
-    D1 = dict:store(a, b, D0),
-    D2 = dict:store(a, c, D1),
 
-    {'EXIT', {badarg, [{dict, fetch, [a, D0]} | _]}} = (catch dict:fetch(a, D0)),
-    b = dict:fetch(a, D1),
-    c = dict:fetch(a, D2),
+    % store = insert or update
 
-    false = dict:is_key(a, D0),
-    true = dict:is_key(a, D1),
-    true = dict:is_key(a, D2),
+    D1 = dict:store(a, first_value, D0), % insert
+    D2 = dict:store(a, [1], D1), % update
+    D3 = dict:store(z, z_value, D2), % insert, used for erase example below
 
-    error = dict:find(a, D0),
-    {ok, b} = dict:find(a, D1),
-    {ok, c} = dict:find(a, D2),
+    % append/3 = append a value to the current list of values or error
+    % append_list/3 = append a list of values to the current list of values or error
+    % - didn't find "insert or error" on api, append is the one the
+    %   comes closest, but require value to be a list
 
-    D3 = dict:update(a, fun (X) -> atom_to_list(X) end, D2),
-    "c" = dict:fetch(a, D3),
+    D4 = dict:append(a, 2, D3),
+    D5 = dict:append_list(a, [3, 4, 5], D4),
 
-    D4 = dict:erase(a, D3),
+    % update/3 = update or error
+    % update/4 = update or set initial value
 
-    {'EXIT', {badarg, [{dict, fetch, [a, D4]} | _]}} = (catch dict:fetch(a, D4)),
-    {'EXIT', {badarg, [{dict, update, [a, _, D4]} | _]}} = (catch dict:update(a, fun (X) -> atom_to_list(X) end, D4)),
+    D6 = dict:update(a, fun (X) -> list_to_tuple(X) end, D5),  % now 'a' is a tuple instead of a list
+    D7 = dict:update(b, fun (X) -> list_to_tuple(X) end, [], D6),  % fun won't be applied to initial value
+
+    % erase/2 = erase or no action
+
+    D8 = dict:erase(z, D7),
+    D = dict:erase(unknown, D8),
+
+    % fetch = fetch or error
+    % 
+
+    {1, 2, 3, 4, 5} = dict:fetch(a, D),
+    [] = dict:fetch(b, D),
+    {'EXIT', {badarg, _}} = (catch dict:fetch(unknown, D)),
+
+    % find(Key, Dict) -> {ok, Value} | error
+
+    error = dict:find(unknown, D),
+    {ok, {1, 2, 3, 4, 5}} = dict:find(a, D),
+    {ok, []} = dict:find(b, D),
+
+    % is_key(Key, Dict) -> bool()
+
+    true = dict:is_key(a, D),
+    false = dict:is_key(z, D),
 
     ok.
