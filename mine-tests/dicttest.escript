@@ -75,7 +75,7 @@ main(_) ->
 
     H = dict:from_list([{c, c_value}, {d, d_value}]),
 
-    I = dict:merge(fun (K, _V1, _V1) -> throw({duplicated, K}) end, D, H),
+    I = dict:merge(fun (K, _V1, _V2) -> throw({duplicated, K}) end, D, H),
     [a, b, c, d] = lists:sort(dict:fetch_keys(I)),
 
     J = dict:from_list([{a, a_value}]),
