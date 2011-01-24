@@ -1,5 +1,7 @@
-#!/usr/bin/env escript
+%#!/usr/bin/env escript
 %% -*- erlang -*-
+
+% escript dicttest.escript
 
 main(_) ->
     D0 = dict:new(),
@@ -55,5 +57,32 @@ main(_) ->
 
     E = dict:from_list(L),
     {ok, {1, 2, 3, 4, 5}} = dict:find(a, E),
+
+    % merge(Fun, Dict1, Dict2) -> Dict3
+
+    F = dict:merge(fun (_K, V1, V2) -> true = (V1 =:= V2), V1 end, D, E),
+
+    % fetch_keys/1
+
+    D_keys = lists:sort(dict:fetch_keys(D)),
+    E_keys = lists:sort(dict:fetch_keys(E)),
+    F_keys = lists:sort(dict:fetch_keys(F)),
+
+    true = D_keys =:= E_keys,
+    true = E_keys =:= F_keys,
+
+    % merge non-duplicated
+
+    H = dict:from_list([{c, c_value}, {d, d_value}]),
+
+    I = dict:merge(fun (K, _V1, _V1) -> throw({duplicated, K}) end, D, H),
+    [a, b, c, d] = lists:sort(dict:fetch_keys(I)),
+
+    J = dict:from_list([{a, a_value}]),
+    [a] = dict:fetch_keys(J),
+
+    {duplicated, a} = (catch dict:merge(fun (K, _V1, _V2) -> throw({duplicated, K}) end, D, J)),
+
+    %
 
     ok.

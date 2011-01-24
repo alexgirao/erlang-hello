@@ -17,12 +17,15 @@ t0() ->
     % enter = insert or update
     % insert = insert or error
     % update = update or error
-    % enter, inser, update = same arguments
+    % enter, insert, update = same arguments
 
     T1 = gb_trees:enter(1, one, T0),
     T2 = gb_trees:enter(2, two, T1),
     T3 = gb_trees:enter(3, three, T2),
     T = gb_trees:enter(3, charlie, T3),
+
+    {'EXIT', _} = (catch gb_trees:insert(1, aaa, T)),
+    {'EXIT', _} = (catch gb_trees:update(unknown, aaa, T)),
 
     io:format("keys: ~p~n", [gb_trees:keys(T)]),
     io:format("values: ~p~n", [gb_trees:values(T)]),
@@ -36,9 +39,9 @@ t0() ->
     % get(Key, Tree) -> Val
     % lookup(Key, Tree) -> {value, Val} | none
 
-    io:format("get(1,T) = ~p~n", [gb_trees:get(1, T)]),
-    io:format("lookup(2,T) = ~p~n", [gb_trees:lookup(2, T)]),
-    io:format("lookup(9,T) = ~p~n", [gb_trees:lookup(9, T)]),
+    io:format("get(1, T) = ~p~n", [gb_trees:get(1, T)]),
+    io:format("lookup(2, T) = ~p~n", [gb_trees:lookup(2, T)]),
+    io:format("lookup(9, T) = ~p~n", [gb_trees:lookup(9, T)]),
 
     % other very useful functions
     %
