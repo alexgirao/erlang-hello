@@ -1,0 +1,34 @@
+https://github.com/noss/iserve/issues#issue/2
+
+subject: iserve_server invalid state after acceptor abnormal exit
+
+Hi,
+
+There is a bug in iserve/src/iserve_server.erl, this bug is also
+present in
+http://www.trapexit.org/A_fast_web_server_demonstrating_some_undocumented_Erlang_features
+article, it happens when the acceptor process (iserve_socket) receives
+two consecutives abnormal exists (easy to simulate in shell), upon the
+second exit, the function "handle_info({'EXIT', Pid, _Abnormal},
+#state{acceptor=Pid} = State)" won't match and a new acceptor will not
+be created, silently stopping the service, the following patch solves
+the problem:
+
+@@ -91,12 +91,12 @@ handle_info({'EXIT', Pid, normal}, #state{acceptor=Pid} = State) ->
+ %% The current acceptor has died, wait a little and try again
+ handle_info({'EXIT', Pid, _Abnormal}, #state{acceptor=Pid} = State) ->
+     timer:sleep(2000),
+-    iserve_socket:start_link(State#state.cb_mod, 
++    New_pid = iserve_socket:start_link(State#state.cb_mod, 
+                              State#state.cb_data, 
+                              self(), 
+                              State#state.listen_socket, 
+                              State#state.port),
+-    {noreply, State};
++    {noreply, State#state{acceptor=New_pid}};
+
+ handle_info(_Info, State) ->
+     {noreply, State}.
+
+Alexandre Girao
+https://github.com/alexgirao

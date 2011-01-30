@@ -48,6 +48,7 @@ handle_cast({create, _Pid}, #state{listen_socket = Listen_socket} = State) ->
     {noreply, State#state{acceptor=New_pid}};
 
 handle_cast(_Msg, State) ->
+    io:format("flushing unknown cast: ~p~n", [_Msg]),
     {noreply, State}.
 
 handle_info({'EXIT', Pid, normal}, #state{acceptor=Pid} = State) ->
@@ -56,10 +57,12 @@ handle_info({'EXIT', Pid, normal}, #state{acceptor=Pid} = State) ->
 %% The current acceptor has died, wait a little and try again
 handle_info({'EXIT', Pid, _Abnormal}, #state{acceptor=Pid} = State) ->
     timer:sleep(2000),
-    New_pid = iserve_socket:start_link(self(), State#state.listen_socket, State#state.port),
-    {noreply, State#state{acceptor=New_pid}};
+    _New_pid = iserve_socket:start_link(self(), State#state.listen_socket, State#state.port),
+    io:format("new acceptor created after an abnormal exit: ~p~n", [_New_pid]),
+    {noreply, State#state{acceptor=_New_pid}};
 
 handle_info(_Info, State) ->
+    io:format("flushing unknown message: ~p~n", [_Info]),
     {noreply, State}.
 
 terminate(_Reason, State) ->

@@ -1,15 +1,19 @@
 -module(iserve).
--export([create_table/1, 
+-export([create_table/0, create_table/1, 
          add_callback/5, delete_callback/3, 
          print_callbacks/0,lookup/3]).
 
 -record(iserve_callback, {key,                 % {Port, 'GET'|'POST', Abs_path}
                           mf}).                % {Mod, Func}
 
+create_table() ->
+    mnesia:create_table(iserve_callback,
+                        [{attributes, record_info(fields, iserve_callback)}]).
+
 create_table(Nodes) ->
     mnesia:create_table(iserve_callback,
                         [{attributes, record_info(fields, iserve_callback)},
-                         {disc_copies, Nodes}]).
+			 {disc_copies, Nodes}]).
 
 lookup(Port, Method, Path) ->
     case ets:lookup(iserve_callback, {Port, Method, Path}) of
