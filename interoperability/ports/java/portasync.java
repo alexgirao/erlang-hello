@@ -1,5 +1,11 @@
 /* WARNING: PipedInputStream.available() method will never tell if the
  * pipe was closed, asynchronicity is impratical here.
+ *
+ * simulate with (nc localhost 9999 and ^C on other shell):
+ *
+ *    ok: nc -l 9999 | java portsync | hexdump -C
+ *  fail: nc -l 9999 | java portasync | hexdump -C
+ *
  */
 
 import java.io.File;
