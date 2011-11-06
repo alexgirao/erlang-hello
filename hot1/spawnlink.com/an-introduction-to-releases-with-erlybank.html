@@ -1,0 +1,636 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head profile="http://gmpg.org/xfn/11">
+
+
+
+	<title>An Introduction to Releases with Erlybank | spawn_link</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<link rel="stylesheet" href="an-introduction-to-releases-with-erlybank_files/style.css" type="text/css" media="all" title="Simplish">
+	<link rel="alternate" type="application/rss+xml" title="spawn_link RSS Feed" href="http://spawnlink.com/feeds.feedburner.com/spawn_link">
+	<link rel="alternate" type="application/rss+xml" title="spawn_link comments RSS Feed" href="http://spawnlink.com/comments/feed/index.html">
+	<link rel="alternate" type="application/atom+xml" title="spawn_link Atom Feed" href="http://spawnlink.com/feeds.feedburner.com/spawn_link">
+	<link rel="pingback" href="http://spawnlink.com/xmlrpc.php">
+	<link rel="archives" title="July 2009" href="http://spawnlink.com/articles/2009/07/index.html">
+	<link rel="archives" title="March 2009" href="http://spawnlink.com/articles/2009/03/index.html">
+	<link rel="archives" title="September 2008" href="http://spawnlink.com/articles/2008/09/index.html">
+	<link rel="archives" title="August 2008" href="http://spawnlink.com/articles/2008/08/index.html">
+
+<link rel="EditURI" type="application/rsd+xml" title="RSD" href="http://spawnlink.com/xmlrpc.php?rsd">
+<link rel="wlwmanifest" type="application/wlwmanifest+xml" href="http://spawnlink.com/wp-includes/wlwmanifest.xml"> 
+<meta name="generator" content="WordPress 2.6.1">
+
+
+<!-- all in one seo pack 1.4.6.13 [208,269] -->
+<meta name="description" content="This is the sixth article in the otp introduction series. If you haven't yet, I recommend you start with the first article which talks about gen_server and lays">
+<meta name="keywords" content="erlang,erlybank,otp guide,otp introduction,otp tutorial,releases">
+<!-- /all in one seo pack -->
+
+</head><body>
+<div id="container">
+	<div id="header">
+		<h1><span><a href="http://spawnlink.com/index.html">spawn_link</a></span></h1>
+		<h2>Linking You to Erlang</h2>
+	</div>
+	<div id="page">
+<!-- goto ^(index page image archive ...).php:/^div#content -->
+
+		<div id="content">
+
+
+			<div class="hentry" id="article-132">
+				<h2 class="entry-title">An Introduction to Releases with Erlybank</h2>
+
+				<div class="posted">Posted by <span class="entry-author author vcard"><a class="url fn n" href="http://spawnlink.com/articles/author/admin/index.html" title="More posts by Mitchell">Mitchell</a></span>					<abbr class="published posted_date" title="2008-09-17T07:05:20-04:00">on September 17, 2008</abbr>
+				</div>
+				<br class="clear">	
+				<div class="entry-content">
+					<p>This is the sixth article in the <a href="http://spawnlink.com/articles/tag/otp-introduction/index.html">otp introduction series</a>. If you haven’t yet, I recommend you <a href="http://spawnlink.com/articles/an-introduction-to-gen_server-erlybank/index.html">start with the first article</a> which talks about gen_server and lays the foundation for our bank system. If you’re a quick learner, you can <a href="http://spawnlink.com/wp-content/uploads/2008/09/erlybank-part6.zip">download the ErlyBank sources</a> as of the beginning of this post. </p>
+<p>This article will introduce release management of an Erlang 
+application. This is not necessarily restricted to Erlang/OTP 
+applications, and is a general tool that may be used for all your Erlang
+ applications. </p>
+<p><strong>Release Management</strong> refers to consolidating an 
+application and its dependencies into a single package which can be 
+easily started and stopped as a whole. Releases can be “installed” into 
+an Erlang runtime system. Releases can also be upgraded in real-time, so
+ when a new version of the application is created, it can be seamlessly 
+installed into the system without bringing it down. (Note that real-time
+ system upgrades are covered in the next article, not this one!)</p>
+<p>After bundling the ErlyBank system as an application, restructuring 
+it to be an Erlang release is very easy. But first, we’ll need to do 
+some housecleaning to the directory structure.</p>
+<p><span id="more-132"></span></p>
+<h2>Release Directory Structure</h2>
+<p>In general, all application releases follow a certain directory 
+structure. This structure is not required but it is a common practice 
+which increases in readability of application files:</p>
+<div class="code">
+<pre>Application-Vsn/ebin
+               /include
+               /priv
+               /src</pre>
+</div>
+<p>&nbsp;</p>
+<p>The <tt>src</tt> directory contains all the *.erl files, the sources for an application. The <tt>ebin</tt> directory contains all the compiled *.beam files for the sources and the application specification file. The <tt>include</tt> directory contains all the *.hrl files which may be included by the sources. And the <tt>priv</tt> directory contains any executables that are used by the application, such as port applications and Erlang drivers.</p>
+<p>All these directories are under a parent directory named <tt>Application-Vsn</tt> where Application is the name of the application and Vsn is the version. </p>
+<p>Reorganizing ErlyBank to follow this structure is quite easy and I 
+will do this before moving on. Simply move all the *.erl files to the <tt>src/</tt> directory, and move erlybank.app to the <tt>ebin/</tt> directory. </p>
+<p>Another important thing to remember is that when compiling Erlang 
+sources, the resulting beam file is usually placed in the same directory
+ as the erl file. To make it so that our sources are compiled into the <tt>ebin/</tt>
+ directory, compilation should be done with the following command, which
+ you may easily turn into a make command or whatever you want:</p>
+<div class="code">
+<pre>erlc -o ../ebin eb_app.erl eb_sup.erl eb_event_manager.erl eb_atm.erl eb_withdrawal_handler.erl eb_server.erl</pre>
+</div>
+<p>&nbsp;</p>
+<p>The above command should be run from the <tt>src/</tt> directory and will place all beam files in the corresponding <tt>ebin/</tt> directory.</p>
+<h2>Release Specification File</h2>
+<p>The one thing you need to create a release is a release specification file. This file is used by the <tt>systools</tt> module to figure out how to package the Erlang application. This file format is documented very well at the <a href="http://www.erlang.org/doc/man/rel.html">release resource documentation</a>, which I recommend you glance over now. The release specification I’ve created for the ErlyBank release is:</p>
+<div class="code">
+<pre>{release, {"eb_rel", "1"},
+          {erts, "5.6.3"},
+          [{kernel, "2.12.3"},
+           {stdlib, "1.15.3"},
+           {sasl, "2.1.5.3"},
+           {erlybank, "1.0"}]
+}.</pre>
+</div>
+<p>&nbsp;</p>
+<p>The contents of the file are saved as <strong>eb_rel-1.rel</strong>. <span class="code inline">eb_rel</span> is the name of the release with “1″ being the version number. The tuple <span class="code inline">{erts, “5.6.3″}</span>
+ specifies the version of the Erlang runtime system that the release is 
+meant for. This can be obtained by opening the Erlang shell and seeing 
+what version you have. Following these tuples, there is a list of more 
+tuples which specify the applications for this release. By convention 
+they are listed in order of dependency but <tt>systools</tt> is smart enough to figure this out on its own when you create the boot script later. </p>
+<p>The versions of dependencies can be retrieved by using the <span class="code inline">application:loaded_applications/0</span> method. </p>
+<p>One thing you may notice that was added was the dependency on <a href="http://www.erlang.org/doc/apps/sasl/index.html">sasl</a>, which stands for “System Architecture Support Libraries.” The sasl application is required for the <a href="http://www.erlang.org/doc/man/release_handler.html">release handler</a> module which is used to install releases into a system. </p>
+<h2>Creating a Boot Script</h2>
+<p>The purpose of the release specification file is create a boot script
+ that we will use to boot up the entire release quickly and easily. To 
+create the boot script, run the following commands:</p>
+<div class="code">
+<pre>Chip ~/.../6_release_management: erl -pa ./ebin
+Erlang (BEAM) emulator version 5.6.3 [source] [async-threads:0] [kernel-poll:false]                                     
+
+Eshell V5.6.3  (abort with ^G)
+1&gt; systools:make_script("eb_rel-1", [local]).
+ok</pre>
+</div>
+<p>&nbsp;</p>
+<p>The important thing is that the Erlang shell is started by appending <strong>ebin</strong> to the code path. This is what the <tt>pa</tt> flag does. This is so that the <tt>systools</tt> module can find the erlybank.app file.</p>
+<p>Once the shell is open, the systools:make_script/2 method is used to 
+create the boot script. The make_script method accepts as its first 
+argument the name of the release spec file without the extension, and it
+ is expected to be in the current working directory. The second argument
+ is a list of options. The option specified here, <span class="code inline">local</span>, uses the complete path of where the dependency applications are found instead of using variables such as <tt>$ROOT</tt>. This is useful for testing in a development environment. When you’re ready to package it for true release, omit this option. </p>
+<p>If the result of calling the function is <span class="code inline">ok</span>, then you should find a eb_rel-1.boot file in the current working directory. This file is used to start the Erlang system. </p>
+<h2>Starting the System with the Boot File</h2>
+<p>Remember how easy it was to start the ErlyBank system using <span class="code inline">application:start/1</span>? Well now its even easier by typing the following into the shell:</p>
+<div class="code">
+<pre>erl -boot eb_rel-1</pre>
+</div>
+<p>&nbsp;</p>
+<p>The Erlang system will locate the boot file specified and will follow
+ it to startup the system. You can test that it worked by using the 
+ErlyBank server to create accounts, make deposits, etc. </p>
+<p>To shut down the system, use the normal <tt>q()</tt> command in the shell. All processes will be gracefully stopped.</p>
+<h2>Packaging the Release</h2>
+<p>The final step is to make the system a nice single package that can 
+be carried around different systems to ease in setup and installation. 
+This can all be done in a single step now that we already have the 
+correct directory structure and a compiled boot script.</p>
+<div class="code">
+<pre>4&gt; systools:make_tar("eb_rel-1").
+ok</pre>
+</div>
+<p>&nbsp;</p>
+<p>In the working directory, there should now be an <strong>eb_rel-1.tar.gz</strong>. That’s all there is to it!</p>
+<h2>Installing a Packaged Release</h2>
+<p>To install the packaged release, we first need to copy the tar.gz package we created earlier into the <tt>$ROOT/releases</tt> directory. <tt>$ROOT</tt> can be determined by running <span class="code inline">code:root_dir().</span>. Next, start up and Erlang shell and make sure the <tt>sasl</tt>
+ application is started so we can use the release_handler module. Also, 
+make sure the shell is running with valid permissions to make changes to
+ the <tt>$ROOT</tt> directory. This may require running <tt>erl</tt> with <tt>sudo</tt>. </p>
+<div class="code">
+<pre>3&gt; release_handler:unpack_release("eb_rel-1").
+{ok,"1"} </pre>
+</div>
+<p>&nbsp;</p>
+<p>The unpack_release method does just what it says. It unpacks the package file, copying the libs to the <span class="code inline">code:lib_dir()</span>
+ and created a proper release directory. Since this is the initial 
+release, there is no need to “install” it, as its already done. </p>
+<p>Now restart the Erlang shell, start sasl, and you should now be able to start erlybank with <span class="code inline">application:start(erlybank)</span> anywhere! The system has been installed!</p>
+<p>Alternatively you can start the ErlyBank application with a single command:</p>
+<div class="code">
+<pre>erl -boot $ROOT/releases/1/start</pre>
+</div>
+<p>&nbsp;</p>
+<p><strong>$ROOT</strong> must be replaced with the root directory of the Erlang install!</p>
+<h2>Final Notes</h2>
+<p>In this article I introduced creating a basic release, covering 
+topics such as creating boot scripts, packaging a release, and 
+installing a release. The real power of releases, however, comes at the 
+ability to perform system upgrades to a running system, and this will be
+ covered in the next, and final, article in the series. </p>
+<p>If you wish to download all the files as of the end of this post, I have <a href="http://spawnlink.com/wp-content/uploads/2008/09/erlybank-part6-complete.zip">zipped them up here</a>.</p>
+									</div>
+				<ul class="meta">
+					<li class="tags">Tags: <a href="http://spawnlink.com/articles/tag/erlang/index.html" rel="tag">erlang</a>, <a href="http://spawnlink.com/articles/tag/erlybank/index.html" rel="tag">erlybank</a>, <a href="http://spawnlink.com/articles/tag/otp-guide/index.html" rel="tag">otp guide</a>, <a href="http://spawnlink.com/articles/tag/otp-introduction/index.html" rel="tag">otp introduction</a>, <a href="http://spawnlink.com/articles/tag/otp-tutorial/index.html" rel="tag">otp tutorial</a>, <a href="http://spawnlink.com/articles/tag/releases/index.html" rel="tag">releases</a></li>
+					<li>Meta:
+						<a href="http://spawnlink.com/articles/an-introduction-to-releases-with-erlybank/index.html#comments">16 comments</a>,
+						<a href="http://spawnlink.com/articles/an-introduction-to-releases-with-erlybank/index.html" rel="bookmark">permalink</a>,
+						<a href="http://spawnlink.com/articles/an-introduction-to-releases-with-erlybank/feed/index.html">rss</a>					</li>
+				</ul>
+				<!-- <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+				xmlns:dc="http://purl.org/dc/elements/1.1/"
+				xmlns:trackback="http://madskills.com/public/xml/rss/module/trackback/">
+			<rdf:Description rdf:about="http://spawnlink.com/articles/an-introduction-to-releases-with-erlybank/"
+    dc:identifier="http://spawnlink.com/articles/an-introduction-to-releases-with-erlybank/"
+    dc:title="An Introduction to Releases with Erlybank"
+    trackback:ping="http://spawnlink.com/articles/an-introduction-to-releases-with-erlybank/trackback/" />
+</rdf:RDF> -->
+			</div>
+
+			<h5><a name="trackbacks">Trackbacks</a></h5>
+					<p>Use <a href="http://spawnlink.com/articles/an-introduction-to-releases-with-erlybank/index.html" rel="trackback">this link</a> to trackback from your own site.</p>
+		
+		
+	<h5><a name="comments">Comments</a></h5>
+						<p><a href="http://spawnlink.com/articles/an-introduction-to-releases-with-erlybank/index.html#commentform">Leave a response</a></p>
+				
+	
+			<div id="comments_div">
+			<ol id="comments" class="comments">
+
+							<li class="comment" id="comment-94">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-releases-with-erlybank_files/77ab755a765880fc8015bc7b5786c33e.png" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n"><a href="http://www.citizencult.org/" rel="external nofollow">Zamous</a></span></span>
+						<abbr class="comment-published" title="2008-09-17T11:37:35-04:00">Sep 17, 2008 11:37</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>What about test files?  Should they still be in your src and compiled to ebin with your application?</p>
+<p>Also, mochiweb seems to be a bit different.  They keep the .hrl and .app files inside the src directory.</p>
+<p>Lastly, what is best way to run erlang apps and detach from them, so 
+they can run like a server without console open?  I know we could 
+possibly use nohup or screen, however what is typical “erlang” way?</p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-95">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-releases-with-erlybank_files/a19463aed440a84b80d746a19eb3a5bc.jpeg" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n"><a href="http://www.a13x.info/" rel="external nofollow">alex</a></span></span>
+						<abbr class="comment-published" title="2008-09-17T13:01:38-04:00">Sep 17, 2008 13:01</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>First of all, thanks a lot for the series of articles about 
+Erlang. It helped me a lot to understand few “fuzzy” things in Erlang.</p>
+<p>I’m also curious to run an application in a “daemon” state. It would 
+be excellent if you could elaborate on that and update the articles.</p>
+<p>Thanks again!</p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-96">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-releases-with-erlybank_files/2828f28fb012308a7786eee83b8293c5.jpeg" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n"><a href="http://mitchellhashimoto.com/" rel="external nofollow">Mitchell</a></span></span>
+						<abbr class="comment-published" title="2008-09-17T14:02:14-04:00">Sep 17, 2008 14:02</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>Generally test files I put in a separate test/ directory. But 
+there is no real standard way I have found yet (not very much open 
+source Erlang projects relative to other languages). And sometimes the 
+test() method is directly on the module itself which means that its just
+ in the src/ directory anyways. All matters how you test.</p>
+<p>Some projects do put .hrl files in the src directory, I’m not sure 
+why this is. I’m guessing, but I haven’t tested, that the src/ directory
+ isn’t exposed when doing an include in other projects, while the 
+include/ directory is in the include path. Again, this is something I’ll
+ have to check out and this paragraph of the comment is all complete 
+bullshit until I do <img src="an-introduction-to-releases-with-erlybank_files/icon_smile.gif" alt=":)" class="wp-smiley"> </p>
+<p>As for .app in the src directory, this is okay but you’ll have to add
+ the src/ directory to the code path when you start the Erlang shell so 
+you can make the script. Additionally when I put the app in the src 
+directory I had problems starting the application once the package was 
+installed. Maybe I was doing something wrong… But I’ve always found 
+things to be a lot easier and smoother for me when I put it in the ebin 
+directory.</p>
+<p>And to answer both your and Alex’s question: There is a <strong>-detached</strong> flag you can pass on the <tt>erl</tt>
+ command. This will detach it from the shell. Be warned that to reattach
+ to the shell, you’ll need to set a node name (with sname or otherwise) 
+so you can use the “remsh” flag later to reattach to a node.</p>
+<p>I’ll look into the src/ and include/ for hrls when I have time, my client work at CitrusByte has been crazy! So busy lately.</p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-97">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-releases-with-erlybank_files/34602bcf1d503a187ba73d6bcdcbcb9e.jpeg" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n"><a href="http://poundbang.in/" rel="external nofollow">Harish Mallipeddi</a></span></span>
+						<abbr class="comment-published" title="2008-09-17T19:02:18-04:00">Sep 17, 2008 19:02</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>The link to the zip file at the end of the post leads to a 404 <img src="an-introduction-to-releases-with-erlybank_files/icon_sad.gif" alt=":(" class="wp-smiley"></p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-98">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-releases-with-erlybank_files/2828f28fb012308a7786eee83b8293c5.jpeg" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n"><a href="http://mitchellhashimoto.com/" rel="external nofollow">Mitchell</a></span></span>
+						<abbr class="comment-published" title="2008-09-17T19:31:15-04:00">Sep 17, 2008 19:31</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>Harish,</p>
+<p>Sorry for that, I had a bad symbolic link on a folder! It was pointing to a non-existent location. I fixed it now <img src="an-introduction-to-releases-with-erlybank_files/icon_smile.gif" alt=":)" class="wp-smiley"></p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-99">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-releases-with-erlybank_files/ad516503a11cd5ca435acc9bb6523536.png" class="photo avatar avatar-48 avatar-default" height="48" width="48"> <span class="fn n"><a href="http://www.alvinashcraft.com/2008/09/18/dew-drop-september-18-2008/" rel="external nofollow">Dew Drop – September 18, 2008 | Alvin Ashcraft's Morning Dew</a></span></span>
+						<abbr class="comment-published" title="2008-09-18T07:50:18-04:00">Sep 18, 2008 07:50</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>[...] An Introduction to Releases with ErlyBank (Mitchell Hashimoto) [...]</p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-100">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-releases-with-erlybank_files/7c905bfbfd75c288b4e64e4cc9174eaa.jpeg" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n"><a href="http://grailscrowd.com/members/dima767" rel="external nofollow">Dmitriy Kopylenko</a></span></span>
+						<abbr class="comment-published" title="2008-09-18T11:35:23-04:00">Sep 18, 2008 11:35</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>Mitchell. Very inforamtive series of articles you have going here. Thanks for that.</p>
+<p>I would really love to see some pointers, examples in the future 
+installments, on how to integrate Java (using JInterface) with Erlybank 
+e.g. write Java client.</p>
+<p>Thanks.</p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-106">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-releases-with-erlybank_files/77ab755a765880fc8015bc7b5786c33e.png" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n"><a href="http://www.citizencult.org/" rel="external nofollow">Zamous</a></span></span>
+						<abbr class="comment-published" title="2008-09-19T21:18:15-04:00">Sep 19, 2008 21:18</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>I know your company does a lot of Ruby on Rails, so assuming 
+you use Textmate?  I have a really simple command to compile Erlang in 
+erl shell from Textmate if interested:</p>
+<p><a href="http://www.citizencult.org/2008/09/18/compiling-erlang-within-textmate/" rel="nofollow">http://www.citizencult.org/2008/09/18/compiling-erlang-within-textmate/</a></p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-107">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-releases-with-erlybank_files/2828f28fb012308a7786eee83b8293c5.jpeg" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n"><a href="http://mitchellhashimoto.com/" rel="external nofollow">Mitchell</a></span></span>
+						<abbr class="comment-published" title="2008-09-19T21:22:03-04:00">Sep 19, 2008 21:22</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>Zamous,</p>
+<p>I saw this blog post already (I’m a troll, really <img src="an-introduction-to-releases-with-erlybank_files/icon_sad.gif" alt=":(" class="wp-smiley"> haha) and its great, but unfortunately I use emacs almost exclusively now <img src="an-introduction-to-releases-with-erlybank_files/icon_smile.gif" alt=":)" class="wp-smiley"> But thanks, its a great contribution to the textmate community.</p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-112">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-releases-with-erlybank_files/ad516503a11cd5ca435acc9bb6523536.png" class="photo avatar avatar-48 avatar-default" height="48" width="48"> <span class="fn n"><a href="http://zhesto.wordpress.com/2008/09/26/links-for-2008-09-25/" rel="external nofollow">links for 2008-09-25 « Bloggitation</a></span></span>
+						<abbr class="comment-published" title="2008-09-25T13:23:55-04:00">Sep 25, 2008 13:23</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>[...] An Introduction to Releases with Erlybank (tags: erlang programming spawnlink) [...]</p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-177">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-releases-with-erlybank_files/2b7e46ee829969df6a6396898efb5e7a.png" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n">Stephan</span></span>
+						<abbr class="comment-published" title="2008-10-03T05:38:11-04:00">Oct 03, 2008 05:38</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>Hi, </p>
+<p>thanks for this article series, it really brings light to my darkness <img src="an-introduction-to-releases-with-erlybank_files/icon_wink.gif" alt=";)" class="wp-smiley"> </p>
+<p>But I have a question: At the end you say to start SASL. Is this an application? Can you give an example?</p>
+<p>Regards,<br>
+ Stephan</p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-179">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-releases-with-erlybank_files/2828f28fb012308a7786eee83b8293c5.jpeg" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n"><a href="http://mitchellhashimoto.com/" rel="external nofollow">Mitchell</a></span></span>
+						<abbr class="comment-published" title="2008-10-04T08:39:25-04:00">Oct 04, 2008 08:39</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>Stephan,</p>
+<p>Yes this is an application. To start it from an Erlang shell you can simply write:</p>
+<div class="code">
+<pre>application:start(sasl).</pre>
+</div>
+<p>&nbsp;</p>
+<p>SASL is the “System Architecture Support Layer” or something like 
+that (I could be wrong on that second S). It gives applications logging 
+support, alarm handlers, release handling, etc. It is usually started 
+with every OTP application.</p>
+<p>Mitchell</p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-180">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-releases-with-erlybank_files/afa79197904eeb26d8691d68acfa1f3b.png" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n">David Weldon</span></span>
+						<abbr class="comment-published" title="2008-10-04T13:28:04-04:00">Oct 04, 2008 13:28</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>Let’s say I have a static resource file I needed to read in 
+whenever I start my server - for example a list of US city names. I’m 
+unclear about how paths get resolved so I’m not sure where I should put 
+my file. During development I put it in something like 
+$DEV_DIR/cities/citynames. When I do a release, do I put it in src? If 
+so, when I run file:open(”cities/citynames”, [read]) will it know where 
+to look?</p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-1592">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-releases-with-erlybank_files/6f502b167f863566748d4757779a269d.jpeg" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n">Dan Milstein</span></span>
+						<abbr class="comment-published" title="2009-01-15T22:01:14-05:00">Jan 15, 2009 22:01</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>First off, have to join with everyone in saying just how extremely useful this series of articles is.</p>
+<p>Second off, about .app files in the src/ directory.  The comment 
+above mentions that MochiWeb does this, but, in fact, the Makefile with 
+MW copies it to ebin/.  So that does seem to be the right place.</p>
+<p>Also, my understanding of .hrl files and include/ is that it’s only 
+important to put them in include/ if code outside of your application 
+will need to include them (which is more or less what you say, above, I 
+think).  Otherwise, src/ is fine.</p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-8425">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-releases-with-erlybank_files/f7b8180cd018667d333bd83fcd455971.png" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n">Wakhanu Abiud</span></span>
+						<abbr class="comment-published" title="2009-06-08T23:36:29-04:00">Jun 08, 2009 23:36</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>Hi Mitchell,</p>
+<p>You are a great man. Your tutorials on OTP behaviours and release 
+handling have really broadened my understanding of the erlang language.</p>
+<p>Now there is one thing I would like to know. I have followed your 
+step by step explanation of how to create an application up to 
+installing a release and things have worked out pretty well. However, in
+ my  “Myapplication.erl” file I have specified something like:</p>
+<p>start(_Type, _Args) -&gt;<br>
+    erlangsmppgw:start_link().<br>
+So when I first ran the function : erlangsmppgw_app:start(normal,[]), I 
+was so pleased that this automatically invoked my application to run as 
+expected .i.e the server process “erlangsmppgw” was spawned and called 
+the rest of the program.</p>
+<p>Next, I package the application into a release and finally test as instructed by typing:<br>
+export ROOT=/usr/local/lib/erlang<br>
+ erl -boot $ROOT/releases/1/start</p>
+<p>The end result is that myapplication “erlangsmppgw_app” is actually started” as shown<br>
+ by :<br>
+     =PROGRESS REPORT==== 9-Jun-2009::10:15:35 ===<br>
+         application: erlangsmppgw_app<br>
+          started_at: nonode@nohost</p>
+<p>- However, I dont see an invocation to the function 
+“erlangsmppgw:start_link()” which I earlier on specified in the 
+“erlangsmppgw_app.erl”. In other words “erlangsmppgw:start_link()” 
+should start my server, but It doesnt. So how do I go around this?</p>
+<p>Any assistance accorded will be highly appreciated</p>
+<p>Thanks</p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-9377">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-releases-with-erlybank_files/ad516503a11cd5ca435acc9bb6523536.png" class="photo avatar avatar-48 avatar-default" height="48" width="48"> <span class="fn n"><a href="http://streamhacker.com/2009/07/02/how-to-create-an-erlang-first-target-system/" rel="external nofollow">How to Create an Erlang First Target System « streamhacker.com</a></span></span>
+						<abbr class="comment-published" title="2009-07-02T07:20:53-04:00">Jul 02, 2009 07:20</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>[...] Exit the console. You should find FIRST-1.0.tar.gz in 
+your current directory. Ideally, this would be the last step, but more 
+likely, you’ll need to do the customizations covered below. Unpack the 
+tarball into your target directory and cd into it. For a different take 
+on these first steps, check out An Introduction to Releases with 
+Erlybank. [...]</p>
+					</div>
+				</li>
+
+			
+			</ol>
+		</div><!-- #comments_div (id needs rename) -->
+
+	
+
+
+
+<form action="http://spawnlink.com/wp-comments-post.php" class="comments" id="commentform" method="post">
+
+<fieldset>
+  <legend>Comments</legend>
+  
+    <p>
+      <label>Name: <small>(required)</small><br>
+        <input name="author" id="author" size="30" tabindex="1" type="text">
+      </label>
+    </p>
+
+    <p>
+      <label>Email: <small>(required)</small><br>
+        <input name="email" id="email" size="30" tabindex="2" type="text">
+        <small>(will not be published)</small>
+      </label>
+    </p>
+
+    <p>
+      <label>Url:<br>
+        <input name="url" id="url" size="30" tabindex="3" type="text">
+      </label>
+    </p>
+
+  
+  <!--<p><small><strong>XHTML:</strong> You can use these tags: &lt;a href=&quot;&quot; title=&quot;&quot;&gt; &lt;abbr title=&quot;&quot;&gt; &lt;acronym title=&quot;&quot;&gt; &lt;b&gt; &lt;blockquote cite=&quot;&quot;&gt; &lt;cite&gt; &lt;code&gt; &lt;del datetime=&quot;&quot;&gt; &lt;em&gt; &lt;i&gt; &lt;q cite=&quot;&quot;&gt; &lt;strike&gt; &lt;strong&gt; </small></p>-->
+
+  <p>
+      Comments:<br>
+      <textarea name="comment" id="comment" cols="100%" rows="20" tabindex="4"></textarea></p>
+
+  <p>
+    <input name="submit" id="submit" tabindex="5" value="Submit" type="submit">
+    <input name="comment_post_ID" value="132" type="hidden">
+  </p>
+  </fieldset>
+</form>
+
+
+
+
+			<div class="navigation">
+				<div class="alignleft">« <a href="http://spawnlink.com/articles/bundling-erlybank-as-an-application/index.html">Bundling ErlyBank as an Application</a></div>
+				<div class="alignright"><a href="http://spawnlink.com/articles/where-did-the-articles-go/index.html">Where did the articles go?</a> »</div>
+			</div>
+
+
+		</div><!-- #content -->
+
+<div id="sidebar">
+	<ul>
+			<li id="search" class="search">
+		<form id="searchform" method="get" action="../../index.html">
+	<div>
+		<input id="s" name="s" value="Search..." type="text">
+	</div>
+</form>
+		</li>
+		
+		<li><h2 class="sidebar-title">About</h2>
+		  <div>
+		    <img src="an-introduction-to-releases-with-erlybank_files/photo.gif">
+		  </div>
+		  <p>
+		  I'm <a href="http://mitchellhashimoto.com/">Mitchell Hashimoto</a>, and this is my <a href="http://erlang.org/">Erlang</a> blog, made with the goal of
+		  expanding the general knowledge of Erlang tools and best practices.
+		  </p>
+ 		  <p>
+		  This blog is now in <b>read-only</b> mode. Since I haven't worked with Erlang in some time, I'm no longer updating this blog, but will keep it up for reference.
+		  </p>       
+		</li>
+		
+		<li id="syndicate"><h2 class="sidebar-title">Subscribe</h2>
+		  <p><a href="http://spawnlink.com/feeds.feedburner.com/spawn_link" rel="alternate" type="application/rss+xml"><img src="an-introduction-to-releases-with-erlybank_files/feed-icon16x16.png" alt=""></a>&nbsp;
+			<a href="http://spawnlink.com/feeds.feedburner.com/spawn_link"><img src="an-introduction-to-releases-with-erlybank_files/spawn_link.gif" style="border: 0pt none;" alt="" height="26" width="88"></a></p>
+		</li>
+
+		<li id="tags"><h2 class="sidebar-title">Popular Tags</h2>
+			<ul>
+			<a href="http://spawnlink.com/articles/tag/application/index.html" class="tag-link-22" title="2 topics" rel="tag" style="font-size: 9.27273pt;">application</a>
+<a href="http://spawnlink.com/articles/tag/bank-manager/index.html" class="tag-link-15" title="1 topic" rel="tag" style="font-size: 8pt;">bank manager</a>
+<a href="http://spawnlink.com/articles/tag/beginner/index.html" class="tag-link-6" title="7 topics" rel="tag" style="font-size: 15.6364pt;">beginner</a>
+<a href="http://spawnlink.com/articles/tag/best-practices/index.html" class="tag-link-9" title="1 topic" rel="tag" style="font-size: 8pt;">best practices</a>
+<a href="http://spawnlink.com/articles/tag/configuration/index.html" class="tag-link-32" title="1 topic" rel="tag" style="font-size: 8pt;">configuration</a>
+<a href="http://spawnlink.com/articles/tag/erlang/index.html" class="tag-link-5" title="12 topics" rel="tag" style="font-size: 22pt;">erlang</a>
+<a href="http://spawnlink.com/articles/tag/erlybank/index.html" class="tag-link-19" title="6 topics" rel="tag" style="font-size: 14.3636pt;">erlybank</a>
+<a href="http://spawnlink.com/articles/tag/eunit/index.html" class="tag-link-27" title="1 topic" rel="tag" style="font-size: 8pt;">eunit</a>
+<a href="http://spawnlink.com/articles/tag/gen_event/index.html" class="tag-link-20" title="1 topic" rel="tag" style="font-size: 8pt;">gen_event</a>
+<a href="http://spawnlink.com/articles/tag/gen_fsm/index.html" class="tag-link-18" title="1 topic" rel="tag" style="font-size: 8pt;">gen_fsm</a>
+<a href="http://spawnlink.com/articles/tag/gen_server/index.html" class="tag-link-16" title="1 topic" rel="tag" style="font-size: 8pt;">gen_server</a>
+<a href="http://spawnlink.com/articles/tag/guides/index.html" class="tag-link-4" title="3 topics" rel="tag" style="font-size: 10.5455pt;">guides</a>
+<a href="http://spawnlink.com/articles/tag/hot-code-swapping/index.html" class="tag-link-10" title="2 topics" rel="tag" style="font-size: 9.27273pt;">hot code swapping</a>
+<a href="http://spawnlink.com/articles/tag/otp/index.html" class="tag-link-8" title="4 topics" rel="tag" style="font-size: 11.8182pt;">otp</a>
+<a href="http://spawnlink.com/articles/tag/otp-guide/index.html" class="tag-link-25" title="1 topic" rel="tag" style="font-size: 8pt;">otp guide</a>
+<a href="http://spawnlink.com/articles/tag/otp-introduction/index.html" class="tag-link-17" title="7 topics" rel="tag" style="font-size: 15.6364pt;">otp introduction</a>
+<a href="http://spawnlink.com/articles/tag/otp-tutorial/index.html" class="tag-link-24" title="1 topic" rel="tag" style="font-size: 8pt;">otp tutorial</a>
+<a href="http://spawnlink.com/articles/tag/otp-upgrade/index.html" class="tag-link-26" title="1 topic" rel="tag" style="font-size: 8pt;">otp upgrade</a>
+<a href="http://spawnlink.com/articles/tag/releases/index.html" class="tag-link-23" title="1 topic" rel="tag" style="font-size: 8pt;">releases</a>
+<a href="http://spawnlink.com/articles/tag/resources/index.html" class="tag-link-7" title="1 topic" rel="tag" style="font-size: 8pt;">resources</a>
+<a href="http://spawnlink.com/articles/tag/russian/index.html" class="tag-link-31" title="1 topic" rel="tag" style="font-size: 8pt;">russian</a>
+<a href="http://spawnlink.com/articles/tag/supervisor/index.html" class="tag-link-21" title="1 topic" rel="tag" style="font-size: 8pt;">supervisor</a>
+<a href="http://spawnlink.com/articles/tag/translated/index.html" class="tag-link-30" title="1 topic" rel="tag" style="font-size: 8pt;">translated</a>
+<a href="http://spawnlink.com/articles/tag/unit-testing/index.html" class="tag-link-28" title="1 topic" rel="tag" style="font-size: 8pt;">unit testing</a>			</ul>
+		</li>
+
+		<li id="archives"><h2 class="sidebar-title">Archives</h2>
+			<ul>
+				<li><a href="http://spawnlink.com/articles/2009/07/index.html" title="July 2009">July 2009</a></li>
+	<li><a href="http://spawnlink.com/articles/2009/03/index.html" title="March 2009">March 2009</a></li>
+	<li><a href="http://spawnlink.com/articles/2008/09/index.html" title="September 2008">September 2008</a></li>
+	<li><a href="http://spawnlink.com/articles/2008/08/index.html" title="August 2008">August 2008</a></li>
+			</ul>
+		</li>
+
+				</ul>
+</div><!-- #sidebar -->
+
+
+		<br class="clear">
+	</div><!--// #page -->
+
+	<div id="footer">
+	<hr>
+	<p><a href="http://spawnlink.com/index.html">spawn_link</a></p>
+	<ul>
+		<li><a href="http://wordpress.org/" title="WordPress Engine">WordPress</a> | 
+			<span class="vcard">
+				<a class="url fn n" rel="follow designer" title="Simplish Style" href="http://labs.utopian.net/blogs/simplish/">
+					<span class="given-name">Simplish</span>
+					<span class="additional-name hidden"> from <span class="org">Utopian.net Labs</span></span>
+				</a>
+			</span>
+		</li>
+	</ul>
+	</div><!--// #footer -->
+</div><!--// #container -->
+
+<!--// Original theme design by Jeffrey Allen Hardy - http://quotedprintable.com/pages/scribbish -->
+<!--// Initial Typo to WordPress theme port by Kenny Pitt - http://pittcrew.net/geekblog/scribbishwp -->
+
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script><script src="an-introduction-to-releases-with-erlybank_files/ga.js" type="text/javascript"></script>
+<script type="text/javascript">
+var pageTracker = _gat._getTracker("UA-97719-7");
+pageTracker._trackPageview();
+</script>
+<!-- Dynamic Page Served (once) in 0.210 seconds -->
+<!-- Cached page served by WP-Cache -->
+</body></html>

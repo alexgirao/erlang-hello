@@ -1,0 +1,517 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head profile="http://gmpg.org/xfn/11">
+
+
+
+	<title>Using Supervisors to Keep ErlyBank Afloat | spawn_link</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<link rel="stylesheet" href="using-supervisors-to-keep-erlybank-afloat_files/style.css" type="text/css" media="all" title="Simplish">
+	<link rel="alternate" type="application/rss+xml" title="spawn_link RSS Feed" href="http://spawnlink.com/feeds.feedburner.com/spawn_link">
+	<link rel="alternate" type="application/rss+xml" title="spawn_link comments RSS Feed" href="http://spawnlink.com/comments/feed/index.html">
+	<link rel="alternate" type="application/atom+xml" title="spawn_link Atom Feed" href="http://spawnlink.com/feeds.feedburner.com/spawn_link">
+	<link rel="pingback" href="http://spawnlink.com/xmlrpc.php">
+	<link rel="archives" title="July 2009" href="http://spawnlink.com/articles/2009/07/index.html">
+	<link rel="archives" title="March 2009" href="http://spawnlink.com/articles/2009/03/index.html">
+	<link rel="archives" title="September 2008" href="http://spawnlink.com/articles/2008/09/index.html">
+	<link rel="archives" title="August 2008" href="http://spawnlink.com/articles/2008/08/index.html">
+
+<link rel="EditURI" type="application/rsd+xml" title="RSD" href="http://spawnlink.com/xmlrpc.php?rsd">
+<link rel="wlwmanifest" type="application/wlwmanifest+xml" href="http://spawnlink.com/wp-includes/wlwmanifest.xml"> 
+<meta name="generator" content="WordPress 2.6.1">
+
+
+<!-- all in one seo pack 1.4.6.13 [208,269] -->
+<meta name="description" content="This is the fourth article in the otp introduction series. If you haven't yet, I recommend you start with the first article which talks about gen_server and">
+<meta name="keywords" content="beginner,erlang,erlybank,otp,otp introduction,supervisor">
+<!-- /all in one seo pack -->
+
+</head><body>
+<div id="container">
+	<div id="header">
+		<h1><span><a href="http://spawnlink.com/index.html">spawn_link</a></span></h1>
+		<h2>Linking You to Erlang</h2>
+	</div>
+	<div id="page">
+<!-- goto ^(index page image archive ...).php:/^div#content -->
+
+		<div id="content">
+
+
+			<div class="hentry" id="article-87">
+				<h2 class="entry-title">Using Supervisors to Keep ErlyBank Afloat</h2>
+
+				<div class="posted">Posted by <span class="entry-author author vcard"><a class="url fn n" href="http://spawnlink.com/articles/author/admin/index.html" title="More posts by Mitchell">Mitchell</a></span>					<abbr class="published posted_date" title="2008-09-13T06:46:24-04:00">on September 13, 2008</abbr>
+				</div>
+				<br class="clear">	
+				<div class="entry-content">
+					<p>This is the fourth article in the <a href="http://spawnlink.com/articles/tag/otp-introduction/index.html">otp introduction series</a>. If you haven’t yet, I recommend you <a href="http://spawnlink.com/articles/an-introduction-to-gen_server-erlybank/index.html">start with the first article</a>
+ which talks about gen_server and lays the foundation for our bank 
+system. If you are a quick learner, you can view the currently completed
+ erlang files so far: <a href="http://spawnlink.com/otp-intro-4-supervisor-eb-server/index.html">eb_server.erl</a>, <a href="http://spawnlink.com/otp-intro-4-supervisors-eb-event-manager/index.html">eb_event_manager.erl</a>, <a href="http://spawnlink.com/otp-intro-4-supervisor-eb-withdrawal-handler/index.html">eb_withdrawal_handler.erl</a>, and <a href="http://spawnlink.com/otp-intro-4-supervisors-eb-atm/index.html">eb_atm.erl</a>. </p>
+<p><strong>The Scenario:</strong> The thing that makes us feel good 
+about banks and ATMs is that they are always there. We can deposit and 
+get money whenever want, 24 hours a day, using an ATM. Or we can go into
+ any bank branch when they’re open, and know we have complete access to 
+our funds. To achieve this security, we need to make sure that our 
+system to run ErlyBank always stays working: the processes must always 
+be running. ErlyBank has commissioned us to achieve this goal. 100% 
+uptime! (Or as close to that as we can get) </p>
+<p><strong>The Result:</strong> Using an OTP <a href="http://www.erlang.org/doc/man/supervisor.html">supervisor</a>, we will create a process whose responsibility it is to watch the running processes and make sure they stay up. </p>
+<p><span id="more-87"></span></p>
+<h2>What is a Supervisor?</h2>
+<p>A supervisor is a process which monitors what are called <em>child</em> processes. If a child process goes down, it uses that child’s <em>restart strategy</em> to restart the process. This system can keep Erlang systems running forever.</p>
+<p>The supervisor is part of what is called a <em>supervision tree</em>.
+ A well written Erlang/OTP application starts with a root supervisor, 
+which watches over child supervisors, which in turn watch over more 
+supervisors or processes. The idea is that if a supervisor goes down, 
+the parent supervisor will restart it, all the way up to the root 
+supervisor. The Erlang runtime has a <em>heart</em> option which will 
+watch the entire system and restart it if the root supervisor were to 
+die. This way, the supervision tree will always be intact.</p>
+<p>There is only <strong>one callback</strong> for a supervisor: <span class="code inline">init/1</span>.
+ Its role is to return a list of child processes and restart strategies 
+for each process, so the supervisor knows what to watch and what actions
+ to take if something goes wrong.</p>
+<h2>Decoupling eb_server and the Event Manager</h2>
+<p>One of the things I did in the last article on gen_event was 
+explicitly start the event manager process in the init method of 
+eb_server. I did this at the time because it was the only option I 
+really had if I wanted to easily start the server with that dependency. 
+But now that we’re going to be implementing startup and stop using a 
+supervisor, we can start the event manager within the supervisor tree. 
+So let’s take out the eb_event_manager startup from the server.</p>
+<p>To do this, simply remove line 84 from eb_server.erl, which is the 
+startup for the event manager. Additionally, I added at this location 
+the add_handler call to add eb_withdrawal_handler to the event manager. 
+So the init method of eb_server now looks like this:</p>
+<div class="code">
+<pre><span style="color: rgb(240, 223, 175);">init</span>([]) -&gt;
+  eb_event_manager:add_handler(eb_withdrawal_handler),
+  {ok, dict:new()}.</pre>
+</div>
+<p>&nbsp;</p>
+<p><a href="http://spawnlink.com/otp-intro-4-supervisors-eb-server-event/index.html">Click here</a> to view eb_server.erl after this change.</p>
+<h2>The Supervisor Skeleton</h2>
+<p>A basic skeleton for writing a supervisor can be <a href="http://spawnlink.com/otp-intro-4-supervisors-eb-sup-skeleton/index.html">viewed here</a>.
+ As you can see, it has a start method and has a basic init method, 
+which is returning a restart strategy and a fake child spec for now. 
+Restart strategies and child specifications are covered in the next 
+section of this article.</p>
+<p>Save the skeleton as <strong>eb_sup.erl</strong>. The naming of this 
+file is another convention. The supervisor for a certain group is always
+ suffixed with “_sup.” Its not mandatory but its standard practice.</p>
+<h2>Restart Strategies</h2>
+<p>A supervisor has one restart strategy, which it uses in conjunction 
+with the child specification, to determine what it should in case one of
+ the supervisor’s child processes dies. The following are the possible 
+restart strategies:</p>
+<ul>
+<li><span class="code inline">one_for_one</span> - When one of the child processes dies, the supervisor restarts it. Other child processes aren’t affected.</li>
+<li><span class="code inline">one_for_all</span> - When one of the child processes dies, all the other child processes are terminated, and then all restarted.</li>
+<li><span class="code inline">rest_for_one</span> - When one of the 
+child processes dies, the “rest” of the child processes defined after it
+ in the child specification list are terminated, then all restarted.</li>
+</ul>
+<p>When specifying the restart strategy, it takes the following format:</p>
+<div class="code">
+<pre>{RestartStrategy, MaxRetries, MaxTime}</pre>
+</div>
+<p>&nbsp;</p>
+<p>This is very simple to understand after you wrap your mind around the
+ english: If a child process is restarted more than MaxRetries times in 
+MaxTime seconds, then the supervisor terminates all child processes and 
+then itself. This is to avoid an infinite loop of restarting a child 
+process. </p>
+<h2>Child Specification Syntax and Concepts</h2>
+<p>The init callback for the supervisor is responsible for returning a 
+list of child specifications. These specs tell the supervisor which 
+processes to start and how to start them. The supervisor starts the 
+processes in order from left to right (beginning of the list to the end 
+of the list). A restart strategy is a tuple with the following format:</p>
+<div class="code">
+<pre>{Id, StartFunc, Restart, Shutdown, Type, Modules}
+
+Definitions:
+Id = term()
+ StartFunc = {M,F,A}
+  M = F = atom()
+  A = [term()]
+ Restart = permanent | transient | temporary
+ Shutdown = brutal_kill | int()&gt;=0 | infinity
+ Type = worker | supervisor
+ Modules = [Module] | dynamic
+  Module = atom()</pre>
+</div>
+<p>&nbsp;</p>
+<p><span class="code inline">Id</span> is only used internally by the 
+supervisor to store the child specification, but its a general 
+convention to have the ID be the same as the module name of the child 
+process unless you’re starting multiple instances of your module, in 
+that case suffix the ID with the number. </p>
+<p><span class="code inline">StartFunc</span> is a tuple in the format of <span class="code inline">{Module, Function, Args}</span> which specifies the function to call to start the process. <strong>REALLY IMPORTANT:</strong> The start function <em>must</em> create <em>and link</em> to the process, and should return <span class="code inline">{ok, Pid}</span>, <span class="code inline">{ok, Pid, Other}</span>, or <span class="code inline">{error, Reason}</span>.
+ The normal OTP start_link methods follow this rule. But if you 
+implement a module which starts its own custom processes, make sure you 
+use <strong>spawn_link</strong> to start them (hence the blog title, if you didn’t know).</p>
+<p><span class="code inline">Restart</span> is one of three atoms, 
+defined above in the code block. If restart is “permanent” then the 
+process is always restarted. If the value is “temporary” then the 
+process is never restarted. And if the value is “transient” the process 
+is only restarted if it terminated abnormally.</p>
+<p><span class="code inline">Shutdown</span> tells the supervisor how to
+ terminate child processes. The atom “brutal_kill” shuts the child 
+process down without calling the terminate method. Any integer greater 
+than zero represents a timeout for a graceful shutdown. And the atom 
+“infinity” will gracefully shutdown the process and wait forever for it 
+to stop. </p>
+<p><span class="code inline">Type</span> tells the supervisor whether 
+the child is another supervisor or any other process. If it is a 
+supervisor, use the atom “supervisor” otherwise use the atom “worker.”</p>
+<p><span class="code inline">Modules</span> is either a list of modules 
+this process affects or the atom “dynamic.” 95% of the time, you will 
+just use the single OTP callback module in a list for this value. You 
+use “dynamic” if the process is a gen_event process, since the modules 
+it affects are dynamic (multiple handlers that can’t be determined right
+ away). This list is only used for release handling and is not important
+ in the context of this article, but will be used in a future article 
+about release handling.</p>
+<p>Whew! That was a lot of information to soak up in so little time. It 
+took me quite a long time to remember the format of the child specs and 
+the different restart strategies, so don’t sweat it if you can’t 
+remember. You can always reference this information on the <a href="http://www.erlang.org/doc/man/supervisor.html">supervisor</a> manual page. </p>
+<h2>Event Manager Child Spec</h2>
+<p>The first thing we want to start is the event manager, since the 
+server depends on it. The child specification looks something like this:</p>
+<div class="code">
+<pre>  <span style="color: rgb(240, 223, 175);">EventManager</span> = {eb_event_manager,{eb_event_manager, start_link,[]},
+            permanent,2000,worker,dynamic}.</pre>
+</div>
+<p>&nbsp;</p>
+<p>After reading the child specification syntax section this piece of 
+code should be fairly straightforward. You will probably need to go back
+ and reference the spec to see what each parameter does, and that is 
+completely normal! Its better to go back and understand the code than 
+nod your head and forget it in a few minutes. The one “weird” thing in 
+the spec, I suppose, is the module list is set to “dynamic.” This is 
+because it is a gen_event and the number of modules it uses is dynamic 
+because of the handlers plugging into it. In other cases, you would list
+ out all modules the process uses. </p>
+<p>Here is the init method after adding this child spec:</p>
+<div class="code">
+<pre><span style="color: rgb(240, 223, 175);">init</span>([]) -&gt;
+  <span style="color: rgb(240, 223, 175);">EventManager</span> = {eb_event_manager,{eb_event_manager, start_link,[]},
+            permanent,2000,worker,dynamic},
+  {ok,{{one_for_one,5,10}, [<span style="color: rgb(240, 223, 175);">EventManager</span>]}}.</pre>
+</div>
+<p>&nbsp;</p>
+<p>I like to assign each child spec to a variable, and then use these 
+variables for the return value, rather than putting the specs directly 
+into the return value. One of my biggest peeves in Erlang is when a 
+programmer nests lists and tuples so deeply that you can’t see where one
+ ends and another begins, so I recommend you assign each to a variable 
+too. </p>
+<p>If you compile and run the supervisor now (I think you should!), after running the start_link method of the supervisor, type <span class="code inline">whereis(eb_event_manager)</span> and it should return the pid of the event manager process. Then, if you kill the supervisor, by doing <span class="code inline">exit(whereis(eb_sup), kill)</span>,
+ and then try to get the eb_event_manager pid again, you should get the 
+result that it is undefined, since the process has been killed. </p>
+<p>Also, for fun, kill the eb_event_manager while it is running under 
+the supervisor. Wait a couple seconds and check the process again. It 
+should be back up!</p>
+<h2>Server and ATM</h2>
+<p>With the child spec reference and the example given above, you should
+ have enough know-how to get the server and ATM up and running. So if 
+you feel like challenging yourself, do that now. If not, I’ve posted the
+ specs to get both up below:</p>
+<div class="code">
+<pre><span style="color: rgb(240, 223, 175);">Server</span> = {eb_server, {eb_server, start_link, []},
+            permanent,2000,worker,[eb_server]},
+  <span style="color: rgb(240, 223, 175);">ATM</span> = {eb_atm, {eb_atm, start_link, []},
+         permanent,2000,worker,[eb_atm]},</pre>
+</div>
+<p>&nbsp;</p>
+<p>After you create these specs, add them to the list returned by the init method. Make sure that you add them <em>after</em> the event manager.</p>
+<p>You can view the completed eb_sup.erl by <a href="http://spawnlink.com/otp-intro-4-supervisors-eb-sup-completed/index.html">clicking here</a>.</p>
+<h2>Adding and Removing Children at Runtime</h2>
+<p>Unfortunately I couldn’t think of a witty scenario to fit this into 
+ErlyBank, but I felt that it was important to mention that you can 
+dynamically add and remove child specs to an already running supervisor 
+process by using the <a href="http://www.erlang.org/doc/man/supervisor.html#start_child-2">start_child</a> and <a href="http://www.erlang.org/doc/man/supervisor.html#delete_child-2">delete_child</a> methods. </p>
+<p>They are pretty straightforward so I won’t repeat what the manual 
+says here and I’ve linked the methods so you can go directly to them to 
+check them out.</p>
+<h2>Final Notes</h2>
+<p>In this article about <a href="http://www.erlang.org/doc/man/supervisor.html">supervisors</a>
+ I introduced concepts such as the supervisor tree, restart strategies, 
+child specifications, and dynamically adding and removing children. </p>
+<p>This concludes article four of the Erlang/OTP introduction series. 
+Article five is already written and queued up for publishing in another 
+few days and will introduce <a href="http://www.erlang.org/doc/man/application.html">applications</a>.</p>
+									</div>
+				<ul class="meta">
+					<li class="tags">Tags: <a href="http://spawnlink.com/articles/tag/beginner/index.html" rel="tag">beginner</a>, <a href="http://spawnlink.com/articles/tag/erlang/index.html" rel="tag">erlang</a>, <a href="http://spawnlink.com/articles/tag/erlybank/index.html" rel="tag">erlybank</a>, <a href="http://spawnlink.com/articles/tag/otp/index.html" rel="tag">otp</a>, <a href="http://spawnlink.com/articles/tag/otp-introduction/index.html" rel="tag">otp introduction</a>, <a href="http://spawnlink.com/articles/tag/supervisor/index.html" rel="tag">supervisor</a></li>
+					<li>Meta:
+						<a href="http://spawnlink.com/articles/using-supervisors-to-keep-erlybank-afloat/index.html#comments">5 comments</a>,
+						<a href="http://spawnlink.com/articles/using-supervisors-to-keep-erlybank-afloat/index.html" rel="bookmark">permalink</a>,
+						<a href="http://spawnlink.com/articles/using-supervisors-to-keep-erlybank-afloat/feed/index.html">rss</a>					</li>
+				</ul>
+				<!-- <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+				xmlns:dc="http://purl.org/dc/elements/1.1/"
+				xmlns:trackback="http://madskills.com/public/xml/rss/module/trackback/">
+			<rdf:Description rdf:about="http://spawnlink.com/articles/using-supervisors-to-keep-erlybank-afloat/"
+    dc:identifier="http://spawnlink.com/articles/using-supervisors-to-keep-erlybank-afloat/"
+    dc:title="Using Supervisors to Keep ErlyBank Afloat"
+    trackback:ping="http://spawnlink.com/articles/using-supervisors-to-keep-erlybank-afloat/trackback/" />
+</rdf:RDF> -->
+			</div>
+
+			<h5><a name="trackbacks">Trackbacks</a></h5>
+					<p>Use <a href="http://spawnlink.com/articles/using-supervisors-to-keep-erlybank-afloat/index.html" rel="trackback">this link</a> to trackback from your own site.</p>
+		
+		
+	<h5><a name="comments">Comments</a></h5>
+						<p><a href="http://spawnlink.com/articles/using-supervisors-to-keep-erlybank-afloat/index.html#commentform">Leave a response</a></p>
+				
+	
+			<div id="comments_div">
+			<ol id="comments" class="comments">
+
+							<li class="comment" id="comment-64">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="using-supervisors-to-keep-erlybank-afloat_files/dc36cce25ef1f477dde814da0e560c1a.png" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n">Jonathon Mah</span></span>
+						<abbr class="comment-published" title="2008-09-13T15:00:20-04:00">Sep 13, 2008 15:00</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>Thanks again, Mitchell! I’m really taking a lot away from your series.</p>
+<p>Errata: The event manager child spec uses “[eb_event_manager]” in the first occurrence, but “dynamic” in init/1.</p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-71">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="using-supervisors-to-keep-erlybank-afloat_files/2828f28fb012308a7786eee83b8293c5.jpeg" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n"><a href="http://mitchellhashimoto.com/" rel="external nofollow">Mitchell</a></span></span>
+						<abbr class="comment-published" title="2008-09-13T18:40:14-04:00">Sep 13, 2008 18:40</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>I fixed the error you caught! Awesome, thanks <img src="using-supervisors-to-keep-erlybank-afloat_files/icon_wink.gif" alt=";)" class="wp-smiley"> And I’m glad the series has been helpful!</p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-85">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="using-supervisors-to-keep-erlybank-afloat_files/73a7fe766fedfb9a82bd85b3a340c288.png" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n">Jeremy</span></span>
+						<abbr class="comment-published" title="2008-09-16T17:48:03-04:00">Sep 16, 2008 17:48</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>These tutorials have been immensely helpful. I appreciate them 
+very much. I do have one question concerning the supervisor and the 
+event manager. Using the supervisor, how should event handlers be 
+registered? Particularly, how should the eb_withdrawal_handler be 
+registered? Obviously, it can be done in the repl, but how would this be
+ done in a running system?</p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-93">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="using-supervisors-to-keep-erlybank-afloat_files/2828f28fb012308a7786eee83b8293c5.jpeg" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n"><a href="http://mitchellhashimoto.com/" rel="external nofollow">Mitchell</a></span></span>
+						<abbr class="comment-published" title="2008-09-17T07:46:01-04:00">Sep 17, 2008 07:46</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>Jeremy,</p>
+<p>Right, this is a good question. The technique I use is to use the <a href="http://www.erlang.org/doc/man/gen_event.html#add_sup_handler-3" rel="nofollow">gen_event:add_sup_handler/3</a>
+ method. Its not as simple as throwing something into a supervision tree
+ but at least using that method your handler will receive messages if 
+the event handler crashes or if the handler somehow went bad. </p>
+<p>Using these messages you can reattach the event handler as soon as 
+the event server re-registers itself. Although theoretically this would 
+require a timer to check if the event server is up, in my project its 
+always been back up almost instantaneously. But to be safe, you should 
+implement a timer that tries adding itself to the event server every two
+ seconds or so. </p>
+<p>Also be sure if you do use this that you add some logic to make sure 
+that it doesn’t retry to connect forever and that it caps out at some 
+point <img src="using-supervisors-to-keep-erlybank-afloat_files/icon_smile.gif" alt=":)" class="wp-smiley"> </p>
+<p>This is what I do but I haven’t seen any “official” word on how to do
+ it so if any of the other readers has a better way of doing this, I’d 
+greatly appreciate it!</p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-181">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="using-supervisors-to-keep-erlybank-afloat_files/afa79197904eeb26d8691d68acfa1f3b.png" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n">David Weldon</span></span>
+						<abbr class="comment-published" title="2008-10-04T14:27:06-04:00">Oct 04, 2008 14:27</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>As I’m writing this I’m watching Kevin Smith’s “Erlang in 
+Practice” episode 8. In it he claims that you need to explicitly trap 
+exits in order for a supervisor to notice that something has gone wrong.
+ In our example we would add: </p>
+<p>init([]) -&gt;<br>
+    process_flag(trap_exit, true),</p>
+<p>to eb_server.erl. Did Kevin get it wrong on this one?</p>
+					</div>
+				</li>
+
+			
+			</ol>
+		</div><!-- #comments_div (id needs rename) -->
+
+	
+
+
+
+<form action="http://spawnlink.com/wp-comments-post.php" class="comments" id="commentform" method="post">
+
+<fieldset>
+  <legend>Comments</legend>
+  
+    <p>
+      <label>Name: <small>(required)</small><br>
+        <input name="author" id="author" size="30" tabindex="1" type="text">
+      </label>
+    </p>
+
+    <p>
+      <label>Email: <small>(required)</small><br>
+        <input name="email" id="email" size="30" tabindex="2" type="text">
+        <small>(will not be published)</small>
+      </label>
+    </p>
+
+    <p>
+      <label>Url:<br>
+        <input name="url" id="url" size="30" tabindex="3" type="text">
+      </label>
+    </p>
+
+  
+  <!--<p><small><strong>XHTML:</strong> You can use these tags: &lt;a href=&quot;&quot; title=&quot;&quot;&gt; &lt;abbr title=&quot;&quot;&gt; &lt;acronym title=&quot;&quot;&gt; &lt;b&gt; &lt;blockquote cite=&quot;&quot;&gt; &lt;cite&gt; &lt;code&gt; &lt;del datetime=&quot;&quot;&gt; &lt;em&gt; &lt;i&gt; &lt;q cite=&quot;&quot;&gt; &lt;strike&gt; &lt;strong&gt; </small></p>-->
+
+  <p>
+      Comments:<br>
+      <textarea name="comment" id="comment" cols="100%" rows="20" tabindex="4"></textarea></p>
+
+  <p>
+    <input name="submit" id="submit" tabindex="5" value="Submit" type="submit">
+    <input name="comment_post_ID" value="87" type="hidden">
+  </p>
+  </fieldset>
+</form>
+
+
+
+
+			<div class="navigation">
+				<div class="alignleft">« <a href="http://spawnlink.com/articles/an-introduction-to-gen_event-account-notifications/index.html">An introduction to gen_event: Account Notifications</a></div>
+				<div class="alignright"><a href="http://spawnlink.com/articles/bundling-erlybank-as-an-application/index.html">Bundling ErlyBank as an Application</a> »</div>
+			</div>
+
+
+		</div><!-- #content -->
+
+<div id="sidebar">
+	<ul>
+			<li id="search" class="search">
+		<form id="searchform" method="get" action="../../index.html">
+	<div>
+		<input id="s" name="s" value="Search..." type="text">
+	</div>
+</form>
+		</li>
+		
+		<li><h2 class="sidebar-title">About</h2>
+		  <div>
+		    <img src="using-supervisors-to-keep-erlybank-afloat_files/photo.gif">
+		  </div>
+		  <p>
+		  I'm <a href="http://mitchellhashimoto.com/">Mitchell Hashimoto</a>, and this is my <a href="http://erlang.org/">Erlang</a> blog, made with the goal of
+		  expanding the general knowledge of Erlang tools and best practices.
+		  </p>
+ 		  <p>
+		  This blog is now in <b>read-only</b> mode. Since I haven't worked with Erlang in some time, I'm no longer updating this blog, but will keep it up for reference.
+		  </p>       
+		</li>
+		
+		<li id="syndicate"><h2 class="sidebar-title">Subscribe</h2>
+		  <p><a href="http://spawnlink.com/feeds.feedburner.com/spawn_link" rel="alternate" type="application/rss+xml"><img src="using-supervisors-to-keep-erlybank-afloat_files/feed-icon16x16.png" alt=""></a>&nbsp;
+			<a href="http://spawnlink.com/feeds.feedburner.com/spawn_link"><img src="using-supervisors-to-keep-erlybank-afloat_files/spawn_link.gif" style="border: 0pt none;" alt="" height="26" width="88"></a></p>
+		</li>
+
+		<li id="tags"><h2 class="sidebar-title">Popular Tags</h2>
+			<ul>
+			<a href="http://spawnlink.com/articles/tag/application/index.html" class="tag-link-22" title="2 topics" rel="tag" style="font-size: 9.27273pt;">application</a>
+<a href="http://spawnlink.com/articles/tag/bank-manager/index.html" class="tag-link-15" title="1 topic" rel="tag" style="font-size: 8pt;">bank manager</a>
+<a href="http://spawnlink.com/articles/tag/beginner/index.html" class="tag-link-6" title="7 topics" rel="tag" style="font-size: 15.6364pt;">beginner</a>
+<a href="http://spawnlink.com/articles/tag/best-practices/index.html" class="tag-link-9" title="1 topic" rel="tag" style="font-size: 8pt;">best practices</a>
+<a href="http://spawnlink.com/articles/tag/configuration/index.html" class="tag-link-32" title="1 topic" rel="tag" style="font-size: 8pt;">configuration</a>
+<a href="http://spawnlink.com/articles/tag/erlang/index.html" class="tag-link-5" title="12 topics" rel="tag" style="font-size: 22pt;">erlang</a>
+<a href="http://spawnlink.com/articles/tag/erlybank/index.html" class="tag-link-19" title="6 topics" rel="tag" style="font-size: 14.3636pt;">erlybank</a>
+<a href="http://spawnlink.com/articles/tag/eunit/index.html" class="tag-link-27" title="1 topic" rel="tag" style="font-size: 8pt;">eunit</a>
+<a href="http://spawnlink.com/articles/tag/gen_event/index.html" class="tag-link-20" title="1 topic" rel="tag" style="font-size: 8pt;">gen_event</a>
+<a href="http://spawnlink.com/articles/tag/gen_fsm/index.html" class="tag-link-18" title="1 topic" rel="tag" style="font-size: 8pt;">gen_fsm</a>
+<a href="http://spawnlink.com/articles/tag/gen_server/index.html" class="tag-link-16" title="1 topic" rel="tag" style="font-size: 8pt;">gen_server</a>
+<a href="http://spawnlink.com/articles/tag/guides/index.html" class="tag-link-4" title="3 topics" rel="tag" style="font-size: 10.5455pt;">guides</a>
+<a href="http://spawnlink.com/articles/tag/hot-code-swapping/index.html" class="tag-link-10" title="2 topics" rel="tag" style="font-size: 9.27273pt;">hot code swapping</a>
+<a href="http://spawnlink.com/articles/tag/otp/index.html" class="tag-link-8" title="4 topics" rel="tag" style="font-size: 11.8182pt;">otp</a>
+<a href="http://spawnlink.com/articles/tag/otp-guide/index.html" class="tag-link-25" title="1 topic" rel="tag" style="font-size: 8pt;">otp guide</a>
+<a href="http://spawnlink.com/articles/tag/otp-introduction/index.html" class="tag-link-17" title="7 topics" rel="tag" style="font-size: 15.6364pt;">otp introduction</a>
+<a href="http://spawnlink.com/articles/tag/otp-tutorial/index.html" class="tag-link-24" title="1 topic" rel="tag" style="font-size: 8pt;">otp tutorial</a>
+<a href="http://spawnlink.com/articles/tag/otp-upgrade/index.html" class="tag-link-26" title="1 topic" rel="tag" style="font-size: 8pt;">otp upgrade</a>
+<a href="http://spawnlink.com/articles/tag/releases/index.html" class="tag-link-23" title="1 topic" rel="tag" style="font-size: 8pt;">releases</a>
+<a href="http://spawnlink.com/articles/tag/resources/index.html" class="tag-link-7" title="1 topic" rel="tag" style="font-size: 8pt;">resources</a>
+<a href="http://spawnlink.com/articles/tag/russian/index.html" class="tag-link-31" title="1 topic" rel="tag" style="font-size: 8pt;">russian</a>
+<a href="http://spawnlink.com/articles/tag/supervisor/index.html" class="tag-link-21" title="1 topic" rel="tag" style="font-size: 8pt;">supervisor</a>
+<a href="http://spawnlink.com/articles/tag/translated/index.html" class="tag-link-30" title="1 topic" rel="tag" style="font-size: 8pt;">translated</a>
+<a href="http://spawnlink.com/articles/tag/unit-testing/index.html" class="tag-link-28" title="1 topic" rel="tag" style="font-size: 8pt;">unit testing</a>			</ul>
+		</li>
+
+		<li id="archives"><h2 class="sidebar-title">Archives</h2>
+			<ul>
+				<li><a href="http://spawnlink.com/articles/2009/07/index.html" title="July 2009">July 2009</a></li>
+	<li><a href="http://spawnlink.com/articles/2009/03/index.html" title="March 2009">March 2009</a></li>
+	<li><a href="http://spawnlink.com/articles/2008/09/index.html" title="September 2008">September 2008</a></li>
+	<li><a href="http://spawnlink.com/articles/2008/08/index.html" title="August 2008">August 2008</a></li>
+			</ul>
+		</li>
+
+				</ul>
+</div><!-- #sidebar -->
+
+
+		<br class="clear">
+	</div><!--// #page -->
+
+	<div id="footer">
+	<hr>
+	<p><a href="http://spawnlink.com/index.html">spawn_link</a></p>
+	<ul>
+		<li><a href="http://wordpress.org/" title="WordPress Engine">WordPress</a> | 
+			<span class="vcard">
+				<a class="url fn n" rel="follow designer" title="Simplish Style" href="http://labs.utopian.net/blogs/simplish/">
+					<span class="given-name">Simplish</span>
+					<span class="additional-name hidden"> from <span class="org">Utopian.net Labs</span></span>
+				</a>
+			</span>
+		</li>
+	</ul>
+	</div><!--// #footer -->
+</div><!--// #container -->
+
+<!--// Original theme design by Jeffrey Allen Hardy - http://quotedprintable.com/pages/scribbish -->
+<!--// Initial Typo to WordPress theme port by Kenny Pitt - http://pittcrew.net/geekblog/scribbishwp -->
+
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script><script src="using-supervisors-to-keep-erlybank-afloat_files/ga.js" type="text/javascript"></script>
+<script type="text/javascript">
+var pageTracker = _gat._getTracker("UA-97719-7");
+pageTracker._trackPageview();
+</script>
+<!-- Dynamic Page Served (once) in 0.214 seconds -->
+<!-- Cached page served by WP-Cache -->
+</body></html>

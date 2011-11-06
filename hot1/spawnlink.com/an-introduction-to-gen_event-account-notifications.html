@@ -1,0 +1,560 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head profile="http://gmpg.org/xfn/11">
+
+
+
+	<title>An introduction to gen_event: Account Notifications | spawn_link</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<link rel="stylesheet" href="an-introduction-to-gen_event-account-notifications_files/style.css" type="text/css" media="all" title="Simplish">
+	<link rel="alternate" type="application/rss+xml" title="spawn_link RSS Feed" href="http://spawnlink.com/feeds.feedburner.com/spawn_link">
+	<link rel="alternate" type="application/rss+xml" title="spawn_link comments RSS Feed" href="http://spawnlink.com/comments/feed/index.html">
+	<link rel="alternate" type="application/atom+xml" title="spawn_link Atom Feed" href="http://spawnlink.com/feeds.feedburner.com/spawn_link">
+	<link rel="pingback" href="http://spawnlink.com/xmlrpc.php">
+	<link rel="archives" title="July 2009" href="http://spawnlink.com/articles/2009/07/index.html">
+	<link rel="archives" title="March 2009" href="http://spawnlink.com/articles/2009/03/index.html">
+	<link rel="archives" title="September 2008" href="http://spawnlink.com/articles/2008/09/index.html">
+	<link rel="archives" title="August 2008" href="http://spawnlink.com/articles/2008/08/index.html">
+
+<link rel="EditURI" type="application/rsd+xml" title="RSD" href="http://spawnlink.com/xmlrpc.php?rsd">
+<link rel="wlwmanifest" type="application/wlwmanifest+xml" href="http://spawnlink.com/wp-includes/wlwmanifest.xml"> 
+<meta name="generator" content="WordPress 2.6.1">
+
+
+<!-- all in one seo pack 1.4.6.13 [208,279] -->
+<meta name="description" content="This is the third article in the otp introduction series. If you haven't yet, I recommend you start with the first article which talks about gen_server and lays">
+<meta name="keywords" content="beginner,erlang,erlybank,gen_event,otp introduction">
+<!-- /all in one seo pack -->
+
+</head><body>
+<div id="container">
+	<div id="header">
+		<h1><span><a href="http://spawnlink.com/index.html">spawn_link</a></span></h1>
+		<h2>Linking You to Erlang</h2>
+	</div>
+	<div id="page">
+<!-- goto ^(index page image archive ...).php:/^div#content -->
+
+		<div id="content">
+
+
+			<div class="hentry" id="article-66">
+				<h2 class="entry-title">An introduction to gen_event: Account Notifications</h2>
+
+				<div class="posted">Posted by <span class="entry-author author vcard"><a class="url fn n" href="http://spawnlink.com/articles/author/admin/index.html" title="More posts by Mitchell">Mitchell</a></span>					<abbr class="published posted_date" title="2008-09-10T07:03:47-04:00">on September 10, 2008</abbr>
+				</div>
+				<br class="clear">	
+				<div class="entry-content">
+					<p>This is the third article in the <a href="http://spawnlink.com/articles/tag/otp-introduction/index.html">otp introduction series</a>. If you haven’t yet, I recommend you <a href="http://spawnlink.com/articles/an-introduction-to-gen_server-erlybank/index.html">start with the first article</a> which talks about gen_server and lays the foundation for our bank system. Again, if you’re a quick learner, you can <a href="http://spawnlink.com/otp-intro-2-gen-fsm-eb-atm-cancel/index.html">look at the completed eb_atm.erl</a> and <a href="http://spawnlink.com/otp-intro-2-gen-fsm-eb-server-authorization/index.html">eb_server.erl</a> here.</p>
+<p><strong>The Scenario:</strong> With central server and ATM software 
+in place, ErlyBank is started to feel good about their technological 
+foundation. But as a security measure, one of their competitors, they’d 
+like a system implemented which dispatches notifications when a 
+withdrawal over a certain amount is executed. They want the ability to 
+change the withdrawal notification amount threshold during runtime. 
+They’ve chosen to hire us to streamline this into the current system 
+software. </p>
+<p><strong>The Result:</strong> We’ll create an event-based notification system using <a href="http://www.erlang.org/doc/man/gen_event.html">gen_event</a>.
+ This will give us a base foundation for creating more notifications in 
+the future, while allowing us to easily plug-in to the current server 
+software.</p>
+<p><span id="more-66"></span></p>
+<h2>What is gen_event?</h2>
+<p><a href="http://www.erlang.org/doc/man/gen_event.html">gen_event</a> 
+is an Erlang/OTP behavior module for implementing event handling 
+functionality. This works by running an event manager process, with many
+ handler processes running along-side it. The event manager receives 
+events from other processes, and each handler in turn is notified about 
+the events, and can do what it pleases with them.</p>
+<p>The callbacks expected for a gen_event handler module are:</p>
+<ul>
+<li><strong>init/1</strong> - Initializes the handler.</li>
+<li><strong>handle_event/2</strong> - Handles any events sent to the notification manager it is listening to. </li>
+<li><strong>handle_call/2</strong> - Handles an event which is sent as a
+ call to the notification manager. A call in this context is the same as
+ a gen_server call: it blocks until a response is sent.</li>
+<li><strong>handle_info/2</strong> - Handles any non-event and non-call messages sent to the handler.</li>
+<li><strong>terminate/2</strong> - Called when the handler is quitting so the process can clean up any open resources.</li>
+<li><strong>code_change/3</strong> - Called when the module is 
+experiencing a real-time system upgrade. This will not be covered in 
+this article, but it will play a central role of a future article in 
+this series.</li>
+</ul>
+<p>Compared to the previous two behavior modules covered in this series,
+ there are relatively few callback methods. But gen_event has just as 
+much use and just as much power as the other OTP modules.</p>
+<h2>Creating the Event Manager</h2>
+<p>First thing we need to do is create the event manager. This is a 
+relatively simple task, since its really just starting a gen_event 
+server and adding a few API methods on top easily add new handlers, send
+ notifications, etc. </p>
+<p>View my <a href="http://spawnlink.com/otp-intro-3-gen-event-manager-skeleton/index.html">event manager skeleton here</a>. I will be pasting in snippets from this point on.</p>
+<p>As you can see, there is nothing out of the ordinary in the file. The
+ start-up method is the same as every other OTP behavior module. And 
+I’ve included a basic API to add a handler to the event manager:</p>
+<div class="code">
+<pre><span style="color: rgb(112, 128, 112);">%%</span><span style="color: rgb(127, 159, 127);">--------------------------------------------------------------------
+</span><span style="color: rgb(112, 128, 112);">%% </span><span style="color: rgb(127, 159, 127);">Function: add_handler(Module) -&gt; ok | {'EXIT',Reason} | term()
+</span><span style="color: rgb(112, 128, 112);">%% </span><span style="color: rgb(127, 159, 127);">Description: Adds an event handler
+</span><span style="color: rgb(112, 128, 112);">%%</span><span style="color: rgb(127, 159, 127);">--------------------------------------------------------------------
+</span><span style="color: rgb(240, 223, 175);">add_handler</span>(<span style="color: rgb(240, 223, 175);">Module</span>) -&gt;
+  gen_event:add_handler(?<span style="color: rgb(220, 163, 163); font-weight: bold;">SERVER</span>, <span style="color: rgb(240, 223, 175);">Module</span>, []).</pre>
+</div>
+<p>&nbsp;</p>
+<p>This just adds an event handler located at <span class="code inline">Module</span> to the event manager. And I’ve also added an easy to use notify method to send along a notification through the event manager:</p>
+<div class="code">
+<pre><span style="color: rgb(112, 128, 112);">%%</span><span style="color: rgb(127, 159, 127);">--------------------------------------------------------------------
+</span><span style="color: rgb(112, 128, 112);">%% </span><span style="color: rgb(127, 159, 127);">Function: notify(Event) -&gt; ok | {error, Reason}
+</span><span style="color: rgb(112, 128, 112);">%% </span><span style="color: rgb(127, 159, 127);">Description: Sends the Event through the event manager.
+</span><span style="color: rgb(112, 128, 112);">%%</span><span style="color: rgb(127, 159, 127);">--------------------------------------------------------------------
+</span><span style="color: rgb(240, 223, 175);">notify</span>(<span style="color: rgb(240, 223, 175);">Event</span>) -&gt;
+  gen_event:notify(?<span style="color: rgb(220, 163, 163); font-weight: bold;">SERVER</span>, <span style="color: rgb(240, 223, 175);">Event</span>).</pre>
+</div>
+<p>&nbsp;</p>
+<p>This also should be pretty easy to understand. It just sends the event along to the event manager. <span class="code inline">gen_event:notify/2</span> is an <strong>asynchronous</strong> request, it will return immediately.</p>
+<h2>Hooking the Event Manager Into the Server</h2>
+<p>We want to make sure that the event manager is always up before the 
+server starts, so for now we will be explicitly putting the start code 
+into the server module. Later, in another article, we will use 
+supervisor trees to do this for us. Here is my new init code for the 
+server:</p>
+<div class="code">
+<pre><span style="color: rgb(240, 223, 175);">init</span>([]) -&gt;
+  eb_event_manager:start_link(),
+  {ok, dict:new()}.</pre>
+</div>
+<p>&nbsp;</p>
+<p>Now that we can assume the event manager will be up during the life 
+of the server process, we can dispatch events at certain times. Our 
+client, ErlyBank, wants to know when a deposit over a certain amount 
+occurs. Here is how I hooked this into the server:</p>
+<div class="code">
+<pre><span style="color: rgb(240, 223, 175);">handle_call</span>({withdraw, <span style="color: rgb(240, 223, 175);">Name</span>, <span style="color: rgb(240, 223, 175);">Amount</span>}, <span style="color: rgb(240, 223, 175);">_From</span>, <span style="color: rgb(240, 223, 175);">State</span>) -&gt;
+  <span style="color: rgb(240, 223, 175); font-weight: bold;">case</span> dict:find(<span style="color: rgb(240, 223, 175);">Name</span>, <span style="color: rgb(240, 223, 175);">State</span>) <span style="color: rgb(240, 223, 175); font-weight: bold;">of</span>
+    {ok, {<span style="color: rgb(240, 223, 175);">_PIN</span>, <span style="color: rgb(240, 223, 175);">Value</span>}} <span style="color: rgb(240, 223, 175); font-weight: bold;">when</span> <span style="color: rgb(240, 223, 175);">Value</span> &lt; <span style="color: rgb(240, 223, 175);">Amount</span> -&gt;
+      {reply, {error, not_enough_funds}, <span style="color: rgb(240, 223, 175);">State</span>};
+    {ok, {<span style="color: rgb(240, 223, 175);">PIN</span>, <span style="color: rgb(240, 223, 175);">Value</span>}} -&gt;
+      <span style="color: rgb(240, 223, 175);">NewBalance</span> = <span style="color: rgb(240, 223, 175);">Value</span> - <span style="color: rgb(240, 223, 175);">Amount</span>,
+      <span style="color: rgb(240, 223, 175);">NewState</span> = dict:store(<span style="color: rgb(240, 223, 175);">Name</span>, {<span style="color: rgb(240, 223, 175);">PIN</span>, <span style="color: rgb(240, 223, 175);">NewBalance</span>}, <span style="color: rgb(240, 223, 175);">State</span>),
+      <span style="color: rgb(112, 128, 112);">% </span><span style="color: rgb(127, 159, 127);">Send notification
+</span>      eb_event_manager:notify({withdraw, <span style="color: rgb(240, 223, 175);">Name</span>, <span style="color: rgb(240, 223, 175);">Amount</span>, <span style="color: rgb(240, 223, 175);">NewBalance</span>}),
+      {reply, {ok, <span style="color: rgb(240, 223, 175);">NewBalance</span>}, <span style="color: rgb(240, 223, 175);">NewState</span>};
+    error -&gt;
+      {reply, {error, account_does_not_exist}, <span style="color: rgb(240, 223, 175);">State</span>}
+  <span style="color: rgb(240, 223, 175); font-weight: bold;">end</span>;</pre>
+</div>
+<p>&nbsp;</p>
+<p>Now whenever a withdrawal occurs, the event is raised through the 
+event manager too. Remember that the notify method is asynchronous and 
+the event manager and handlers all run on separate processes. This makes
+ all this notification happen concurrently, therefore it won’t slow down
+ the withdrawal transaction. Of course, if the cpu is being slammed, it 
+may take more time to execute each process, but in theory, they should 
+happen at the same time.</p>
+<p>Also notice that I don’t check here whether the withdrawal is over a 
+certain amount. ErlyBank didn’t clarify with me what amount they wanted 
+as the threshold, and it would be rather silly to hardcode it into the 
+server process. Its generally a good idea to keep all the logic in the 
+handlers, and just raise the notification. And this is what we will do 
+next!</p>
+<p>The entire contents of eb_server.erl can <a href="http://spawnlink.com/otp-intro-3-gen-event-eb-server-events/index.html">be viewed here</a>.</p>
+<h2>The Handler Skeleton</h2>
+<p>As with all OTP modules, I have a basic skeleton I always start with. The one for event handlers <a href="http://spawnlink.com/otp-intro-3-gen-event-eb-withdrawal-handler-skeleton/index.html">can be viewed here</a>.</p>
+<p>One thing that is different about this module is that there is no <span class="code inline">start_link</span> or start method. This is because to add an event handler we will be using the <span class="code inline">eb_event_manager:add_handler(Module)</span> method, which actually starts and spawns the process for us!</p>
+<div class="code">
+<pre><span style="color: rgb(240, 223, 175);">init</span>([]) -&gt;
+  {ok, 500}.</pre>
+</div>
+<p>&nbsp;</p>
+<p>The init method for a gen_event handler is similar to all other Erlang/OTP behavior modules in that it returns <span class="code inline">{ok, State}</span>
+ where State represents the state data for the process. In this case 
+we’ve returned 500, which we will use to signify what the warning 
+threshold for withdrawal notifications is.</p>
+<h2>Handling the Withdrawal Notification</h2>
+<p>The sole purpose of this event handler is to process the withdrawal 
+notification and do something if the amount withdrawn is over a certain 
+threshold. The event is sent with <span class="code inline">gen_event:notify/2</span> which is an asynchronous message. Asynchronous notifications to handlers are handled in the <span class="code inline">handle_event</span> method. </p>
+<div class="code">
+<pre><span style="color: rgb(240, 223, 175);">handle_event</span>({withdraw, <span style="color: rgb(240, 223, 175);">Name</span>, <span style="color: rgb(240, 223, 175);">Amount</span>, <span style="color: rgb(240, 223, 175);">NewBalance</span>}, <span style="color: rgb(240, 223, 175);">State</span>) <span style="color: rgb(240, 223, 175); font-weight: bold;">when</span> <span style="color: rgb(240, 223, 175);">Amount</span> &gt;= <span style="color: rgb(240, 223, 175);">State</span> -&gt;
+  io:format(<span style="color: rgb(204, 147, 147);">"WITHDRAWAL NOTIFICATION: ~p withdrew ~p leaving ~p left.~n"</span>, [<span style="color: rgb(240, 223, 175);">Name</span>, <span style="color: rgb(240, 223, 175);">Amount</span>, <span style="color: rgb(240, 223, 175);">NewBalance</span>]),
+  {ok, <span style="color: rgb(240, 223, 175);">State</span>};
+<span style="color: rgb(240, 223, 175);">handle_event</span>(<span style="color: rgb(240, 223, 175);">_Event</span>, <span style="color: rgb(240, 223, 175);">State</span>) -&gt;
+  {ok, <span style="color: rgb(240, 223, 175);">State</span>}.</pre>
+</div>
+<p>&nbsp;</p>
+<p>Handling the message is simple. We add a matcher to match the withdrawal message, and we add a guard <span class="code inline">when Amount &gt;= State</span> to only get events when the amount withdrawn is above the threshold.</p>
+<p>When the amount is above the threshold, we output it to the terminal. </p>
+<p>The complete eb_withdrawal_handler.erl can <a href="http://spawnlink.com/otp-intro-3-gen-event-eb-withdrawal-events/index.html">be viewed here</a>.</p>
+<h2>Changing the Threshold During Runtime</h2>
+<p>ErlyBank also mentioned that they want the ability to change the 
+withdrawal notification amount threshold during runtime. To do this, we 
+will add an API method to the actual handler. Here is the API method:</p>
+<div class="code">
+<pre><span style="color: rgb(112, 128, 112);">%%</span><span style="color: rgb(127, 159, 127);">--------------------------------------------------------------------
+</span><span style="color: rgb(112, 128, 112);">%% </span><span style="color: rgb(127, 159, 127);">Function: change_threshold(Amount) -&gt; {ok, Old, NewThreshold}
+</span><span style="color: rgb(112, 128, 112);">%% </span><span style="color: rgb(127, 159, 127);">| {error, Reason}
+</span><span style="color: rgb(112, 128, 112);">%% </span><span style="color: rgb(127, 159, 127);">Description: Changes the withdrawal amount threshold during runtime
+</span><span style="color: rgb(112, 128, 112);">%%</span><span style="color: rgb(127, 159, 127);">--------------------------------------------------------------------
+</span><span style="color: rgb(240, 223, 175);">change_threshold</span>(<span style="color: rgb(240, 223, 175);">Amount</span>) -&gt;
+  gen_event:call(eb_event_manager, ?<span style="color: rgb(220, 163, 163); font-weight: bold;">MODULE</span>, {change_threshold, <span style="color: rgb(240, 223, 175);">Amount</span>}).</pre>
+</div>
+<p>&nbsp;</p>
+<p>This introduces a new gen_event method, the call method. This method 
+sends a request to a specific handler and expects a response, and 
+therefore is <strong>synchronous</strong>. The arguments are: <span class="code inline">call(EventManager, Handler, Message)</span>.
+ So for our arguments we put the event manager module, which that 
+process is registered as, as the first parameter. We put the handler 
+module as the second parameter, and we send a message to change the 
+threshold. </p>
+<p>We handle this request in a callback <span class="code inline">handle_call/2</span>:</p>
+<div class="code">
+<pre><span style="color: rgb(240, 223, 175);">handle_call</span>({change_threshold, <span style="color: rgb(240, 223, 175);">Amount</span>}, <span style="color: rgb(240, 223, 175);">State</span>) -&gt;
+  io:format(<span style="color: rgb(204, 147, 147);">"NOTICE: Changing withdrawal threshold from ~p to ~p~n"</span>, [<span style="color: rgb(240, 223, 175);">State</span>, <span style="color: rgb(240, 223, 175);">Amount</span>]),
+  {ok, {ok, <span style="color: rgb(240, 223, 175);">State</span>, <span style="color: rgb(240, 223, 175);">Amount</span>}, <span style="color: rgb(240, 223, 175);">Amount</span>};
+<span style="color: rgb(240, 223, 175);">handle_call</span>(<span style="color: rgb(240, 223, 175);">_Request</span>, <span style="color: rgb(240, 223, 175);">State</span>) -&gt;
+  <span style="color: rgb(240, 223, 175);">Reply</span> = ok,
+  {ok, <span style="color: rgb(240, 223, 175);">Reply</span>, <span style="color: rgb(240, 223, 175);">State</span>}.</pre>
+</div>
+<p>&nbsp;</p>
+<p>We first output to the terminal that the threshold is changing, and then we reply with <span class="code inline">{ok, OldThreshold, NewThreshold}</span>
+ and set the new state data to the new threshold. Upon receiving the 
+next withdrawal notification, the handler will begin using the new 
+threshold! <img src="an-introduction-to-gen_event-account-notifications_files/icon_smile.gif" alt=":)" class="wp-smiley"> </p>
+<p>The complete eb_withdrawal_handler <a href="http://spawnlink.com/otp-intro-3-gen-event-eb-withdrawal-change-threshold/index.html">can be viewed here</a>.</p>
+<h2>Final Notes</h2>
+<p>In this article about <a href="http://www.erlang.org/doc/man/gen_event.html">gen_event</a>
+ I introduced writing an event manager, dispatch events, writing an 
+event handler, processing those events, and calling an event handler. 
+The only thing I didn’t really cover which is part of gen_event is the 
+ability for an event handler to remove itself or swap itself with 
+another handler. The reason for this is because I don’t have much 
+experience with these myself in a production environment. I haven’t 
+found a position yet where I’ve needed to use them. But if you wish to 
+learn about them, check out the <a href="http://www.erlang.org/doc/man/gen_event.html">gen_event manual page</a>.</p>
+<p>And that concludes part three of the Erlang/OTP introduction series. 
+Article four is queued up for publishing in a few days and will cover <a href="http://www.erlang.org/doc/man/supervisor.html">supervisors</a>.</p>
+									</div>
+				<ul class="meta">
+					<li class="tags">Tags: <a href="http://spawnlink.com/articles/tag/beginner/index.html" rel="tag">beginner</a>, <a href="http://spawnlink.com/articles/tag/erlang/index.html" rel="tag">erlang</a>, <a href="http://spawnlink.com/articles/tag/erlybank/index.html" rel="tag">erlybank</a>, <a href="http://spawnlink.com/articles/tag/gen_event/index.html" rel="tag">gen_event</a>, <a href="http://spawnlink.com/articles/tag/otp-introduction/index.html" rel="tag">otp introduction</a></li>
+					<li>Meta:
+						<a href="http://spawnlink.com/articles/an-introduction-to-gen_event-account-notifications/index.html#comments">10 comments</a>,
+						<a href="http://spawnlink.com/articles/an-introduction-to-gen_event-account-notifications/index.html" rel="bookmark">permalink</a>,
+						<a href="http://spawnlink.com/articles/an-introduction-to-gen_event-account-notifications/feed/index.html">rss</a>					</li>
+				</ul>
+				<!-- <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+				xmlns:dc="http://purl.org/dc/elements/1.1/"
+				xmlns:trackback="http://madskills.com/public/xml/rss/module/trackback/">
+			<rdf:Description rdf:about="http://spawnlink.com/articles/an-introduction-to-gen_event-account-notifications/"
+    dc:identifier="http://spawnlink.com/articles/an-introduction-to-gen_event-account-notifications/"
+    dc:title="An introduction to gen_event: Account Notifications"
+    trackback:ping="http://spawnlink.com/articles/an-introduction-to-gen_event-account-notifications/trackback/" />
+</rdf:RDF> -->
+			</div>
+
+			<h5><a name="trackbacks">Trackbacks</a></h5>
+					<p>Use <a href="http://spawnlink.com/articles/an-introduction-to-gen_event-account-notifications/index.html" rel="trackback">this link</a> to trackback from your own site.</p>
+		
+		
+	<h5><a name="comments">Comments</a></h5>
+						<p><a href="http://spawnlink.com/articles/an-introduction-to-gen_event-account-notifications/index.html#commentform">Leave a response</a></p>
+				
+	
+			<div id="comments_div">
+			<ol id="comments" class="comments">
+
+							<li class="comment" id="comment-49">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-gen_event-account-notifications_files/77ab755a765880fc8015bc7b5786c33e.png" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n"><a href="http://www.citizencult.org/" rel="external nofollow">zamous</a></span></span>
+						<abbr class="comment-published" title="2008-09-10T08:01:05-04:00">Sep 10, 2008 08:01</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>Wow, you are so prolific.  This is great stuff.  You should write a book on OTP.  Can’t wait for supervisors.</p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-50">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-gen_event-account-notifications_files/b7be346288a9fa6e0890a5218f2c91d1.jpeg" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n"><a href="http://michaelgreene.org/" rel="external nofollow">Michael Greene</a></span></span>
+						<abbr class="comment-published" title="2008-09-10T10:30:15-04:00">Sep 10, 2008 10:30</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>Thanks for these articles, they are really filling a huge void.</p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-51">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-gen_event-account-notifications_files/b5948ad02b6dd54809b8169e865e1066.png" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n">Matt</span></span>
+						<abbr class="comment-published" title="2008-09-10T12:07:24-04:00">Sep 10, 2008 12:07</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>Where does eb_event_manager:add_handler get called?</p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-52">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-gen_event-account-notifications_files/2828f28fb012308a7786eee83b8293c5.jpeg" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n"><a href="http://mitchellhashimoto.com/" rel="external nofollow">Mitchell</a></span></span>
+						<abbr class="comment-published" title="2008-09-10T12:19:23-04:00">Sep 10, 2008 12:19</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>It doesn’t! Good catch! I was just testing this in the shell and always did it manually. </p>
+<p>I suppose a logical place to put this, at this point in the code, 
+would be in eb_server after it initializes the the event manager. :-\ </p>
+<p>But, in a future article, I will decouple most of these components and have a general startup script which will do this. <img src="an-introduction-to-gen_event-account-notifications_files/icon_smile.gif" alt=":)" class="wp-smiley"></p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-77">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-gen_event-account-notifications_files/9367d0448b8fc3e6d7f6cd421940ac62.jpeg" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n"><a href="http://concise-software.blogspot.com/" rel="external nofollow">Alain O'Dea</a></span></span>
+						<abbr class="comment-published" title="2008-09-14T17:58:42-04:00">Sep 14, 2008 17:58</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>Would it make sense to use gen_event to capture a log of 
+transactions for ErlyBank with something like mnesia? My first 
+impression is that it would work really nicely.</p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-78">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-gen_event-account-notifications_files/2828f28fb012308a7786eee83b8293c5.jpeg" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n"><a href="http://mitchellhashimoto.com/" rel="external nofollow">Mitchell</a></span></span>
+						<abbr class="comment-published" title="2008-09-14T18:10:21-04:00">Sep 14, 2008 18:10</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>Alain,</p>
+<p>This would definitely be a great use for gen_event. <img src="an-introduction-to-gen_event-account-notifications_files/icon_smile.gif" alt=":)" class="wp-smiley">
+ The basic premise for gen_event is to send everything that could 
+potentially be loggable to it, and let the handlers handle the logic and
+ figuring out what to do with all this data. </p>
+<p>Mitchell</p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-133">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-gen_event-account-notifications_files/208f44461495c7cb94792652eaa8996e.png" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n">Ricardo</span></span>
+						<abbr class="comment-published" title="2008-09-28T03:20:40-04:00">Sep 28, 2008 03:20</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>Thanks Mitchell for this great series.</p>
+<p>I’ve noticed that the skeleton does not include “-behaviour(gen_event).” as the other previos ones. Is that correct?</p>
+<p>Also, a great topic for future articles could be the interaction 
+between an Erlang program with another application via sockets. Why? 
+many times there are some applications that can be controlled via its 
+own API using sockets but fail when the number of open connections is 
+too high. I think that an Erlang broker could be put in the middle; open
+ one connection to the application and receive the request from the 
+application to forward them to the app; and to react to the application 
+responses.</p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-157">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-gen_event-account-notifications_files/208f44461495c7cb94792652eaa8996e.png" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n">Ricardo</span></span>
+						<abbr class="comment-published" title="2008-09-30T11:29:32-04:00">Sep 30, 2008 11:29</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>Matt,</p>
+<p>Indeed, in my case, the handler did never work until I called it explicitly in the server init:</p>
+<p>init(_Args) -&gt;<br>
+  eb_event_manager:start_link(),<br>
+  eb_event_manager:add_handler(eb_withdrawal_handler),<br>
+  {ok, dict:new()}.</p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-606">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-gen_event-account-notifications_files/ec7dcc81259e5d9154cf37db21d311e0.png" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n"><a href="http://easyfilesync.com/" rel="external nofollow">Arek</a></span></span>
+						<abbr class="comment-published" title="2008-11-04T02:21:39-05:00">Nov 04, 2008 02:21</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>Mitchell,<br>
+Thank you for this effort, you have unique style in conveying your idea…<br>
+I wish you write a book about OTP in the same writing style</p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-9718">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-gen_event-account-notifications_files/5001550fc9060b1eed77fbb36edcae8c.png" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n">jimmyrr</span></span>
+						<abbr class="comment-published" title="2009-07-10T15:30:12-04:00">Jul 10, 2009 15:30</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>I think there’s a bug in your skeleton file - the handle_call 
+function should return a tuple with a first value of ‘reply’ - and not 
+‘ok’. Btw - thanks - awesome blog.</p>
+					</div>
+				</li>
+
+			
+			</ol>
+		</div><!-- #comments_div (id needs rename) -->
+
+	
+
+
+
+<form action="http://spawnlink.com/wp-comments-post.php" class="comments" id="commentform" method="post">
+
+<fieldset>
+  <legend>Comments</legend>
+  
+    <p>
+      <label>Name: <small>(required)</small><br>
+        <input name="author" id="author" size="30" tabindex="1" type="text">
+      </label>
+    </p>
+
+    <p>
+      <label>Email: <small>(required)</small><br>
+        <input name="email" id="email" size="30" tabindex="2" type="text">
+        <small>(will not be published)</small>
+      </label>
+    </p>
+
+    <p>
+      <label>Url:<br>
+        <input name="url" id="url" size="30" tabindex="3" type="text">
+      </label>
+    </p>
+
+  
+  <!--<p><small><strong>XHTML:</strong> You can use these tags: &lt;a href=&quot;&quot; title=&quot;&quot;&gt; &lt;abbr title=&quot;&quot;&gt; &lt;acronym title=&quot;&quot;&gt; &lt;b&gt; &lt;blockquote cite=&quot;&quot;&gt; &lt;cite&gt; &lt;code&gt; &lt;del datetime=&quot;&quot;&gt; &lt;em&gt; &lt;i&gt; &lt;q cite=&quot;&quot;&gt; &lt;strike&gt; &lt;strong&gt; </small></p>-->
+
+  <p>
+      Comments:<br>
+      <textarea name="comment" id="comment" cols="100%" rows="20" tabindex="4"></textarea></p>
+
+  <p>
+    <input name="submit" id="submit" tabindex="5" value="Submit" type="submit">
+    <input name="comment_post_ID" value="66" type="hidden">
+  </p>
+  </fieldset>
+</form>
+
+
+
+
+			<div class="navigation">
+				<div class="alignleft">« <a href="http://spawnlink.com/articles/an-introduction-to-gen_fsm-erlybanks-atm/index.html">An introduction to gen_fsm: ErlyBank’s ATM</a></div>
+				<div class="alignright"><a href="http://spawnlink.com/articles/using-supervisors-to-keep-erlybank-afloat/index.html">Using Supervisors to Keep ErlyBank Afloat</a> »</div>
+			</div>
+
+
+		</div><!-- #content -->
+
+<div id="sidebar">
+	<ul>
+			<li id="search" class="search">
+		<form id="searchform" method="get" action="../../index.html">
+	<div>
+		<input id="s" name="s" value="Search..." type="text">
+	</div>
+</form>
+		</li>
+		
+		<li><h2 class="sidebar-title">About</h2>
+		  <div>
+		    <img src="an-introduction-to-gen_event-account-notifications_files/photo.gif">
+		  </div>
+		  <p>
+		  I'm <a href="http://mitchellhashimoto.com/">Mitchell Hashimoto</a>, and this is my <a href="http://erlang.org/">Erlang</a> blog, made with the goal of
+		  expanding the general knowledge of Erlang tools and best practices.
+		  </p>
+ 		  <p>
+		  This blog is now in <b>read-only</b> mode. Since I haven't worked with Erlang in some time, I'm no longer updating this blog, but will keep it up for reference.
+		  </p>       
+		</li>
+		
+		<li id="syndicate"><h2 class="sidebar-title">Subscribe</h2>
+		  <p><a href="http://spawnlink.com/feeds.feedburner.com/spawn_link" rel="alternate" type="application/rss+xml"><img src="an-introduction-to-gen_event-account-notifications_files/feed-icon16x16.png" alt=""></a>&nbsp;
+			<a href="http://spawnlink.com/feeds.feedburner.com/spawn_link"><img src="an-introduction-to-gen_event-account-notifications_files/spawn_link.gif" style="border: 0pt none;" alt="" height="26" width="88"></a></p>
+		</li>
+
+		<li id="tags"><h2 class="sidebar-title">Popular Tags</h2>
+			<ul>
+			<a href="http://spawnlink.com/articles/tag/application/index.html" class="tag-link-22" title="2 topics" rel="tag" style="font-size: 9.27273pt;">application</a>
+<a href="http://spawnlink.com/articles/tag/bank-manager/index.html" class="tag-link-15" title="1 topic" rel="tag" style="font-size: 8pt;">bank manager</a>
+<a href="http://spawnlink.com/articles/tag/beginner/index.html" class="tag-link-6" title="7 topics" rel="tag" style="font-size: 15.6364pt;">beginner</a>
+<a href="http://spawnlink.com/articles/tag/best-practices/index.html" class="tag-link-9" title="1 topic" rel="tag" style="font-size: 8pt;">best practices</a>
+<a href="http://spawnlink.com/articles/tag/configuration/index.html" class="tag-link-32" title="1 topic" rel="tag" style="font-size: 8pt;">configuration</a>
+<a href="http://spawnlink.com/articles/tag/erlang/index.html" class="tag-link-5" title="12 topics" rel="tag" style="font-size: 22pt;">erlang</a>
+<a href="http://spawnlink.com/articles/tag/erlybank/index.html" class="tag-link-19" title="6 topics" rel="tag" style="font-size: 14.3636pt;">erlybank</a>
+<a href="http://spawnlink.com/articles/tag/eunit/index.html" class="tag-link-27" title="1 topic" rel="tag" style="font-size: 8pt;">eunit</a>
+<a href="http://spawnlink.com/articles/tag/gen_event/index.html" class="tag-link-20" title="1 topic" rel="tag" style="font-size: 8pt;">gen_event</a>
+<a href="http://spawnlink.com/articles/tag/gen_fsm/index.html" class="tag-link-18" title="1 topic" rel="tag" style="font-size: 8pt;">gen_fsm</a>
+<a href="http://spawnlink.com/articles/tag/gen_server/index.html" class="tag-link-16" title="1 topic" rel="tag" style="font-size: 8pt;">gen_server</a>
+<a href="http://spawnlink.com/articles/tag/guides/index.html" class="tag-link-4" title="3 topics" rel="tag" style="font-size: 10.5455pt;">guides</a>
+<a href="http://spawnlink.com/articles/tag/hot-code-swapping/index.html" class="tag-link-10" title="2 topics" rel="tag" style="font-size: 9.27273pt;">hot code swapping</a>
+<a href="http://spawnlink.com/articles/tag/otp/index.html" class="tag-link-8" title="4 topics" rel="tag" style="font-size: 11.8182pt;">otp</a>
+<a href="http://spawnlink.com/articles/tag/otp-guide/index.html" class="tag-link-25" title="1 topic" rel="tag" style="font-size: 8pt;">otp guide</a>
+<a href="http://spawnlink.com/articles/tag/otp-introduction/index.html" class="tag-link-17" title="7 topics" rel="tag" style="font-size: 15.6364pt;">otp introduction</a>
+<a href="http://spawnlink.com/articles/tag/otp-tutorial/index.html" class="tag-link-24" title="1 topic" rel="tag" style="font-size: 8pt;">otp tutorial</a>
+<a href="http://spawnlink.com/articles/tag/otp-upgrade/index.html" class="tag-link-26" title="1 topic" rel="tag" style="font-size: 8pt;">otp upgrade</a>
+<a href="http://spawnlink.com/articles/tag/releases/index.html" class="tag-link-23" title="1 topic" rel="tag" style="font-size: 8pt;">releases</a>
+<a href="http://spawnlink.com/articles/tag/resources/index.html" class="tag-link-7" title="1 topic" rel="tag" style="font-size: 8pt;">resources</a>
+<a href="http://spawnlink.com/articles/tag/russian/index.html" class="tag-link-31" title="1 topic" rel="tag" style="font-size: 8pt;">russian</a>
+<a href="http://spawnlink.com/articles/tag/supervisor/index.html" class="tag-link-21" title="1 topic" rel="tag" style="font-size: 8pt;">supervisor</a>
+<a href="http://spawnlink.com/articles/tag/translated/index.html" class="tag-link-30" title="1 topic" rel="tag" style="font-size: 8pt;">translated</a>
+<a href="http://spawnlink.com/articles/tag/unit-testing/index.html" class="tag-link-28" title="1 topic" rel="tag" style="font-size: 8pt;">unit testing</a>			</ul>
+		</li>
+
+		<li id="archives"><h2 class="sidebar-title">Archives</h2>
+			<ul>
+				<li><a href="http://spawnlink.com/articles/2009/07/index.html" title="July 2009">July 2009</a></li>
+	<li><a href="http://spawnlink.com/articles/2009/03/index.html" title="March 2009">March 2009</a></li>
+	<li><a href="http://spawnlink.com/articles/2008/09/index.html" title="September 2008">September 2008</a></li>
+	<li><a href="http://spawnlink.com/articles/2008/08/index.html" title="August 2008">August 2008</a></li>
+			</ul>
+		</li>
+
+				</ul>
+</div><!-- #sidebar -->
+
+
+		<br class="clear">
+	</div><!--// #page -->
+
+	<div id="footer">
+	<hr>
+	<p><a href="http://spawnlink.com/index.html">spawn_link</a></p>
+	<ul>
+		<li><a href="http://wordpress.org/" title="WordPress Engine">WordPress</a> | 
+			<span class="vcard">
+				<a class="url fn n" rel="follow designer" title="Simplish Style" href="http://labs.utopian.net/blogs/simplish/">
+					<span class="given-name">Simplish</span>
+					<span class="additional-name hidden"> from <span class="org">Utopian.net Labs</span></span>
+				</a>
+			</span>
+		</li>
+	</ul>
+	</div><!--// #footer -->
+</div><!--// #container -->
+
+<!--// Original theme design by Jeffrey Allen Hardy - http://quotedprintable.com/pages/scribbish -->
+<!--// Initial Typo to WordPress theme port by Kenny Pitt - http://pittcrew.net/geekblog/scribbishwp -->
+
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script><script src="an-introduction-to-gen_event-account-notifications_files/ga.js" type="text/javascript"></script>
+<script type="text/javascript">
+var pageTracker = _gat._getTracker("UA-97719-7");
+pageTracker._trackPageview();
+</script>
+<!-- Dynamic Page Served (once) in 0.251 seconds -->
+<!-- Cached page served by WP-Cache -->
+</body></html>

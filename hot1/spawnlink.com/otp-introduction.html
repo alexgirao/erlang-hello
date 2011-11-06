@@ -1,0 +1,409 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head profile="http://gmpg.org/xfn/11">
+
+
+
+	<title>Otp Introduction | spawn_link</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<link rel="stylesheet" href="otp-introduction_files/style.css" type="text/css" media="all" title="Simplish">
+	<link rel="alternate" type="application/rss+xml" title="spawn_link RSS Feed" href="http://spawnlink.com/feeds.feedburner.com/spawn_link">
+	<link rel="alternate" type="application/rss+xml" title="spawn_link comments RSS Feed" href="http://spawnlink.com/comments/feed/index.html">
+	<link rel="alternate" type="application/atom+xml" title="spawn_link Atom Feed" href="http://spawnlink.com/feeds.feedburner.com/spawn_link">
+	<link rel="pingback" href="http://spawnlink.com/xmlrpc.php">
+	<link rel="archives" title="July 2009" href="http://spawnlink.com/articles/2009/07/index.html">
+	<link rel="archives" title="March 2009" href="http://spawnlink.com/articles/2009/03/index.html">
+	<link rel="archives" title="September 2008" href="http://spawnlink.com/articles/2008/09/index.html">
+	<link rel="archives" title="August 2008" href="http://spawnlink.com/articles/2008/08/index.html">
+
+<link rel="EditURI" type="application/rsd+xml" title="RSD" href="http://spawnlink.com/xmlrpc.php?rsd">
+<link rel="wlwmanifest" type="application/wlwmanifest+xml" href="http://spawnlink.com/wp-includes/wlwmanifest.xml"> 
+<meta name="generator" content="WordPress 2.6.1">
+
+
+<!-- all in one seo pack 1.4.6.13 [208,244] -->
+<!-- /all in one seo pack -->
+
+</head><body>
+<div id="container">
+	<div id="header">
+		<h1><span><a href="http://spawnlink.com/index.html">spawn_link</a></span></h1>
+		<h2>Linking You to Erlang</h2>
+	</div>
+	<div id="page">
+<!-- goto ^(index page image archive ...).php:/^div#content -->
+
+	<div id="content">
+
+				<h1 class="archive-title">Tag: <span class="archive-subtitle">otp introduction</span></h1>
+
+
+		  <div class="hentry" id="article-144">
+	<h2 class="entry-title">
+	<a href="http://spawnlink.com/articles/performing-real-time-upgrades-to-an-otp-system/index.html" rel="bookmark">Performing Real-time Upgrades to an OTP System</a></h2>
+
+        <div class="posted">
+	Posted by <span class="entry-author author vcard"><a class="url fn n" href="http://spawnlink.com/articles/author/admin/index.html" title="More posts by Mitchell">Mitchell</a></span>	<abbr class="published posted_date" title="2008-09-24T09:19:17-04:00">on September 24, 2008</abbr>
+        </div>
+			  <br class="clear">	
+				<div class="entry-content">
+					<p>This is the seventh and final article of the Erlang/OTP introduction series. If you haven’t already, I recommend you <a href="http://spawnlink.com/articles/an-introduction-to-gen_server-erlybank/index.html">read the first article</a>
+ which lays the foundation for the application which we’ll be upgrading 
+in addition to teaching you the basics of Erlang/OTP before jumping into
+ the topic of this article. If you’re a quick learner or you wish to 
+jump straight into this article, you may <a href="http://spawnlink.com/wp-content/uploads/2008/09/otp_part_6.zip">click here to download a ZIP</a> of all the files up to this point. </p>
+<p><strong>The Scenario:</strong> ErlyBank has been running strong for a
+ few months now and based on customer feedback, the bank wants to 
+implement some additional features. First, they want us to implement a 
+credit-based account. This is similar to a normal account except that 
+withdrawals may be made to go into the negative, meaning that money is 
+owed on the credit account. They also want us to change the ATM so that 
+people can only use the ATM to pay bills with a credit account. And to 
+top this all off, they want us to do these upgrades without significant 
+downtime.</p>
+<p><strong>The Result:</strong> We’ll create a credit server to easily 
+add a credit account system and following that we’ll change the ATM. 
+Luckily for us, once we make these changes, there is a straightforward 
+way of upgrading the system in real-time so that ErlyBank won’t 
+experience much, if any, downtime.</p>
+<p> <a href="http://spawnlink.com/articles/performing-real-time-upgrades-to-an-otp-system/index.html#more-144" class="more-link"><span class="readmore">More…</span></a></p>
+				</div>
+				<ul class="meta">
+	<li class="categories">Category: <a href="http://spawnlink.com/articles/category/uncategorized/index.html" title="View all posts in Uncategorized" rel="category tag">Uncategorized</a></li>
+          <li class="tags">Tags: <a href="http://spawnlink.com/articles/tag/erlang/index.html" rel="tag">erlang</a>, <a href="http://spawnlink.com/articles/tag/erlybank/index.html" rel="tag">erlybank</a>, <a href="http://spawnlink.com/articles/tag/hot-code-swapping/index.html" rel="tag">hot code swapping</a>, <a href="http://spawnlink.com/articles/tag/otp-introduction/index.html" rel="tag">otp introduction</a>, <a href="http://spawnlink.com/articles/tag/otp-upgrade/index.html" rel="tag">otp upgrade</a></li>
+          <li>Meta:
+            <a href="http://spawnlink.com/articles/performing-real-time-upgrades-to-an-otp-system/index.html#comments" title="Comment on Performing Real-time Upgrades to an OTP System">6 comments</a>,
+            <a href="http://spawnlink.com/articles/performing-real-time-upgrades-to-an-otp-system/index.html" rel="bookmark">permalink</a>,
+            <a href="http://spawnlink.com/articles/performing-real-time-upgrades-to-an-otp-system/feed/index.html">rss</a>          </li>
+        </ul>
+			</div>
+	
+		
+		  <div class="hentry" id="article-132">
+	<h2 class="entry-title">
+	<a href="http://spawnlink.com/articles/an-introduction-to-releases-with-erlybank/index.html" rel="bookmark">An Introduction to Releases with Erlybank</a></h2>
+
+        <div class="posted">
+	Posted by <span class="entry-author author vcard"><a class="url fn n" href="http://spawnlink.com/articles/author/admin/index.html" title="More posts by Mitchell">Mitchell</a></span>	<abbr class="published posted_date" title="2008-09-17T07:05:20-04:00">on September 17, 2008</abbr>
+        </div>
+			  <br class="clear">	
+				<div class="entry-content">
+					<p>This is the sixth article in the <a href="http://spawnlink.com/articles/tag/otp-introduction/index.html">otp introduction series</a>. If you haven’t yet, I recommend you <a href="http://spawnlink.com/articles/an-introduction-to-gen_server-erlybank/index.html">start with the first article</a> which talks about gen_server and lays the foundation for our bank system. If you’re a quick learner, you can <a href="http://spawnlink.com/wp-content/uploads/2008/09/erlybank-part6.zip">download the ErlyBank sources</a> as of the beginning of this post. </p>
+<p>This article will introduce release management of an Erlang 
+application. This is not necessarily restricted to Erlang/OTP 
+applications, and is a general tool that may be used for all your Erlang
+ applications. </p>
+<p><strong>Release Management</strong> refers to consolidating an 
+application and its dependencies into a single package which can be 
+easily started and stopped as a whole. Releases can be “installed” into 
+an Erlang runtime system. Releases can also be upgraded in real-time, so
+ when a new version of the application is created, it can be seamlessly 
+installed into the system without bringing it down. (Note that real-time
+ system upgrades are covered in the next article, not this one!)</p>
+<p>After bundling the ErlyBank system as an application, restructuring 
+it to be an Erlang release is very easy. But first, we’ll need to do 
+some housecleaning to the directory structure.</p>
+<p> <a href="http://spawnlink.com/articles/an-introduction-to-releases-with-erlybank/index.html#more-132" class="more-link"><span class="readmore">More…</span></a></p>
+				</div>
+				<ul class="meta">
+	<li class="categories">Category: <a href="http://spawnlink.com/articles/category/uncategorized/index.html" title="View all posts in Uncategorized" rel="category tag">Uncategorized</a></li>
+          <li class="tags">Tags: <a href="http://spawnlink.com/articles/tag/erlang/index.html" rel="tag">erlang</a>, <a href="http://spawnlink.com/articles/tag/erlybank/index.html" rel="tag">erlybank</a>, <a href="http://spawnlink.com/articles/tag/otp-guide/index.html" rel="tag">otp guide</a>, <a href="http://spawnlink.com/articles/tag/otp-introduction/index.html" rel="tag">otp introduction</a>, <a href="http://spawnlink.com/articles/tag/otp-tutorial/index.html" rel="tag">otp tutorial</a>, <a href="http://spawnlink.com/articles/tag/releases/index.html" rel="tag">releases</a></li>
+          <li>Meta:
+            <a href="http://spawnlink.com/articles/an-introduction-to-releases-with-erlybank/index.html#comments" title="Comment on An Introduction to Releases with Erlybank">16 comments</a>,
+            <a href="http://spawnlink.com/articles/an-introduction-to-releases-with-erlybank/index.html" rel="bookmark">permalink</a>,
+            <a href="http://spawnlink.com/articles/an-introduction-to-releases-with-erlybank/feed/index.html">rss</a>          </li>
+        </ul>
+			</div>
+	
+		
+		  <div class="hentry" id="article-111">
+	<h2 class="entry-title">
+	<a href="http://spawnlink.com/articles/bundling-erlybank-as-an-application/index.html" rel="bookmark">Bundling ErlyBank as an Application</a></h2>
+
+        <div class="posted">
+	Posted by <span class="entry-author author vcard"><a class="url fn n" href="http://spawnlink.com/articles/author/admin/index.html" title="More posts by Mitchell">Mitchell</a></span>	<abbr class="published posted_date" title="2008-09-15T07:38:42-04:00">on September 15, 2008</abbr>
+        </div>
+			  <br class="clear">	
+				<div class="entry-content">
+					<p>This is the fifth article in the <a href="http://spawnlink.com/articles/tag/otp-introduction/index.html">otp introduction series</a>. If you haven’t yet, I recommend you <a href="http://spawnlink.com/articles/an-introduction-to-gen_server-erlybank/index.html">start with the first article</a>
+ which talks about gen_server and lays the foundation for our bank 
+system. If you’re a quick learner, you can read the completed erlang 
+files so far: <a href="http://spawnlink.com/otp-intro-5-application-eb-atm/index.html">eb_atm.erl</a>, <a href="http://spawnlink.com/otp-intro-5-applications-eb-event-manager-start/index.html">eb_event_manager.erl</a>, <a href="http://spawnlink.com/otp-intro-5-applications-eb-server-start/index.html">eb_server.erl</a>, <a href="http://spawnlink.com/otp-intro-5-application-eb-sup-start/index.html">eb_sup.erl</a>, and <a href="http://spawnlink.com/otp-intro-5-applications-eb-withdrawal-handle/index.html">eb_withdrawal_handler.erl</a>.</p>
+<p><strong>The Scenario:</strong> The ErlyBank system is in a nice state
+ right now with everything wrapped up under the supervisor, but ErlyBank
+ is pressuring us to come up with a package which specifies an overall 
+version so the system can be upgraded as a whole and can be controlled 
+easily. They’ve commissioned us to do this task. </p>
+<p><strong>The Result:</strong> Erlang/OTP has a built-in module for making a set of modules which achieve some set of functionality into an <em>application</em>. An application can be started and stopped as a unit and can easily be reused in other systems. </p>
+<p> <a href="http://spawnlink.com/articles/bundling-erlybank-as-an-application/index.html#more-111" class="more-link"><span class="readmore">More…</span></a></p>
+				</div>
+				<ul class="meta">
+	<li class="categories">Category: <a href="http://spawnlink.com/articles/category/uncategorized/index.html" title="View all posts in Uncategorized" rel="category tag">Uncategorized</a></li>
+          <li class="tags">Tags: <a href="http://spawnlink.com/articles/tag/application/index.html" rel="tag">application</a>, <a href="http://spawnlink.com/articles/tag/erlang/index.html" rel="tag">erlang</a>, <a href="http://spawnlink.com/articles/tag/erlybank/index.html" rel="tag">erlybank</a>, <a href="http://spawnlink.com/articles/tag/otp-introduction/index.html" rel="tag">otp introduction</a></li>
+          <li>Meta:
+            <a href="http://spawnlink.com/articles/bundling-erlybank-as-an-application/index.html#comments" title="Comment on Bundling ErlyBank as an Application">6 comments</a>,
+            <a href="http://spawnlink.com/articles/bundling-erlybank-as-an-application/index.html" rel="bookmark">permalink</a>,
+            <a href="http://spawnlink.com/articles/bundling-erlybank-as-an-application/feed/index.html">rss</a>          </li>
+        </ul>
+			</div>
+	
+		
+		  <div class="hentry" id="article-87">
+	<h2 class="entry-title">
+	<a href="http://spawnlink.com/articles/using-supervisors-to-keep-erlybank-afloat/index.html" rel="bookmark">Using Supervisors to Keep ErlyBank Afloat</a></h2>
+
+        <div class="posted">
+	Posted by <span class="entry-author author vcard"><a class="url fn n" href="http://spawnlink.com/articles/author/admin/index.html" title="More posts by Mitchell">Mitchell</a></span>	<abbr class="published posted_date" title="2008-09-13T06:46:24-04:00">on September 13, 2008</abbr>
+        </div>
+			  <br class="clear">	
+				<div class="entry-content">
+					<p>This is the fourth article in the <a href="http://spawnlink.com/articles/tag/otp-introduction/index.html">otp introduction series</a>. If you haven’t yet, I recommend you <a href="http://spawnlink.com/articles/an-introduction-to-gen_server-erlybank/index.html">start with the first article</a>
+ which talks about gen_server and lays the foundation for our bank 
+system. If you are a quick learner, you can view the currently completed
+ erlang files so far: <a href="http://spawnlink.com/otp-intro-4-supervisor-eb-server/index.html">eb_server.erl</a>, <a href="http://spawnlink.com/otp-intro-4-supervisors-eb-event-manager/index.html">eb_event_manager.erl</a>, <a href="http://spawnlink.com/otp-intro-4-supervisor-eb-withdrawal-handler/index.html">eb_withdrawal_handler.erl</a>, and <a href="http://spawnlink.com/otp-intro-4-supervisors-eb-atm/index.html">eb_atm.erl</a>. </p>
+<p><strong>The Scenario:</strong> The thing that makes us feel good 
+about banks and ATMs is that they are always there. We can deposit and 
+get money whenever want, 24 hours a day, using an ATM. Or we can go into
+ any bank branch when they’re open, and know we have complete access to 
+our funds. To achieve this security, we need to make sure that our 
+system to run ErlyBank always stays working: the processes must always 
+be running. ErlyBank has commissioned us to achieve this goal. 100% 
+uptime! (Or as close to that as we can get) </p>
+<p><strong>The Result:</strong> Using an OTP <a href="http://www.erlang.org/doc/man/supervisor.html">supervisor</a>, we will create a process whose responsibility it is to watch the running processes and make sure they stay up. </p>
+<p> <a href="http://spawnlink.com/articles/using-supervisors-to-keep-erlybank-afloat/index.html#more-87" class="more-link"><span class="readmore">More…</span></a></p>
+				</div>
+				<ul class="meta">
+	<li class="categories">Category: <a href="http://spawnlink.com/articles/category/uncategorized/index.html" title="View all posts in Uncategorized" rel="category tag">Uncategorized</a></li>
+          <li class="tags">Tags: <a href="http://spawnlink.com/articles/tag/beginner/index.html" rel="tag">beginner</a>, <a href="http://spawnlink.com/articles/tag/erlang/index.html" rel="tag">erlang</a>, <a href="http://spawnlink.com/articles/tag/erlybank/index.html" rel="tag">erlybank</a>, <a href="http://spawnlink.com/articles/tag/otp/index.html" rel="tag">otp</a>, <a href="http://spawnlink.com/articles/tag/otp-introduction/index.html" rel="tag">otp introduction</a>, <a href="http://spawnlink.com/articles/tag/supervisor/index.html" rel="tag">supervisor</a></li>
+          <li>Meta:
+            <a href="http://spawnlink.com/articles/using-supervisors-to-keep-erlybank-afloat/index.html#comments" title="Comment on Using Supervisors to Keep ErlyBank Afloat">5 comments</a>,
+            <a href="http://spawnlink.com/articles/using-supervisors-to-keep-erlybank-afloat/index.html" rel="bookmark">permalink</a>,
+            <a href="http://spawnlink.com/articles/using-supervisors-to-keep-erlybank-afloat/feed/index.html">rss</a>          </li>
+        </ul>
+			</div>
+	
+		
+		  <div class="hentry" id="article-66">
+	<h2 class="entry-title">
+	<a href="http://spawnlink.com/articles/an-introduction-to-gen_event-account-notifications/index.html" rel="bookmark">An introduction to gen_event: Account Notifications</a></h2>
+
+        <div class="posted">
+	Posted by <span class="entry-author author vcard"><a class="url fn n" href="http://spawnlink.com/articles/author/admin/index.html" title="More posts by Mitchell">Mitchell</a></span>	<abbr class="published posted_date" title="2008-09-10T07:03:47-04:00">on September 10, 2008</abbr>
+        </div>
+			  <br class="clear">	
+				<div class="entry-content">
+					<p>This is the third article in the <a href="http://spawnlink.com/articles/tag/otp-introduction/index.html">otp introduction series</a>. If you haven’t yet, I recommend you <a href="http://spawnlink.com/articles/an-introduction-to-gen_server-erlybank/index.html">start with the first article</a> which talks about gen_server and lays the foundation for our bank system. Again, if you’re a quick learner, you can <a href="http://spawnlink.com/otp-intro-2-gen-fsm-eb-atm-cancel/index.html">look at the completed eb_atm.erl</a> and <a href="http://spawnlink.com/otp-intro-2-gen-fsm-eb-server-authorization/index.html">eb_server.erl</a> here.</p>
+<p><strong>The Scenario:</strong> With central server and ATM software 
+in place, ErlyBank is started to feel good about their technological 
+foundation. But as a security measure, one of their competitors, they’d 
+like a system implemented which dispatches notifications when a 
+withdrawal over a certain amount is executed. They want the ability to 
+change the withdrawal notification amount threshold during runtime. 
+They’ve chosen to hire us to streamline this into the current system 
+software. </p>
+<p><strong>The Result:</strong> We’ll create an event-based notification system using <a href="http://www.erlang.org/doc/man/gen_event.html">gen_event</a>.
+ This will give us a base foundation for creating more notifications in 
+the future, while allowing us to easily plug-in to the current server 
+software.</p>
+<p> <a href="http://spawnlink.com/articles/an-introduction-to-gen_event-account-notifications/index.html#more-66" class="more-link"><span class="readmore">More…</span></a></p>
+				</div>
+				<ul class="meta">
+	<li class="categories">Category: <a href="http://spawnlink.com/articles/category/uncategorized/index.html" title="View all posts in Uncategorized" rel="category tag">Uncategorized</a></li>
+          <li class="tags">Tags: <a href="http://spawnlink.com/articles/tag/beginner/index.html" rel="tag">beginner</a>, <a href="http://spawnlink.com/articles/tag/erlang/index.html" rel="tag">erlang</a>, <a href="http://spawnlink.com/articles/tag/erlybank/index.html" rel="tag">erlybank</a>, <a href="http://spawnlink.com/articles/tag/gen_event/index.html" rel="tag">gen_event</a>, <a href="http://spawnlink.com/articles/tag/otp-introduction/index.html" rel="tag">otp introduction</a></li>
+          <li>Meta:
+            <a href="http://spawnlink.com/articles/an-introduction-to-gen_event-account-notifications/index.html#comments" title="Comment on An introduction to gen_event: Account Notifications">10 comments</a>,
+            <a href="http://spawnlink.com/articles/an-introduction-to-gen_event-account-notifications/index.html" rel="bookmark">permalink</a>,
+            <a href="http://spawnlink.com/articles/an-introduction-to-gen_event-account-notifications/feed/index.html">rss</a>          </li>
+        </ul>
+			</div>
+	
+		
+		  <div class="hentry" id="article-52">
+	<h2 class="entry-title">
+	<a href="http://spawnlink.com/articles/an-introduction-to-gen_fsm-erlybanks-atm/index.html" rel="bookmark">An introduction to gen_fsm: ErlyBank’s ATM</a></h2>
+
+        <div class="posted">
+	Posted by <span class="entry-author author vcard"><a class="url fn n" href="http://spawnlink.com/articles/author/admin/index.html" title="More posts by Mitchell">Mitchell</a></span>	<abbr class="published posted_date" title="2008-09-08T06:59:50-04:00">on September 08, 2008</abbr>
+        </div>
+			  <br class="clear">	
+				<div class="entry-content">
+					<p>This is the second article in my Erlang/OTP introduction series. If you haven’t yet, I recommend you <a href="http://spawnlink.com/articles/an-introduction-to-gen_server-erlybank/index.html">read the first article</a>
+ which talks about gen_server and lays the foundation for our bank 
+system before moving onto this article. That being said, if you’re a 
+quick learner, you can <a href="http://spawnlink.com/otp-intro-1-gen-server-eb-server-withdrawal/index.html">look at the completed server file</a> and continue from there.</p>
+<p><strong>The Scenario:</strong> We delivered ErlyBank’s server to them
+ and they were very pleased. But this is the 21st century so they also 
+need a secure and easy to use ATM system, so they’ve asked that we 
+extend the server and also create their ATM backend. User accounts are 
+to be protected with a four-digit PIN. From the ATM you should be able 
+to log in to a previously existing account, and deposit or withdraw 
+funds. There is no need to create a pretty user interface on top of the 
+ATM backend, they have another team doing that. </p>
+<p><strong>The Result:</strong> First, we’ll extend the server software 
+to hold a PIN for accounts, and add an authorization call to it. Then, 
+we’ll use gen_fsm to create the ATM backend. We’ll rely on the server to
+ do all the data validation. </p>
+<p>As always, click read more to get started, if you haven’t already…<br>
+ <a href="http://spawnlink.com/articles/an-introduction-to-gen_fsm-erlybanks-atm/index.html#more-52" class="more-link"><span class="readmore">More…</span></a></p>
+				</div>
+				<ul class="meta">
+	<li class="categories">Category: <a href="http://spawnlink.com/articles/category/uncategorized/index.html" title="View all posts in Uncategorized" rel="category tag">Uncategorized</a></li>
+          <li class="tags">Tags: <a href="http://spawnlink.com/articles/tag/beginner/index.html" rel="tag">beginner</a>, <a href="http://spawnlink.com/articles/tag/erlang/index.html" rel="tag">erlang</a>, <a href="http://spawnlink.com/articles/tag/erlybank/index.html" rel="tag">erlybank</a>, <a href="http://spawnlink.com/articles/tag/gen_fsm/index.html" rel="tag">gen_fsm</a>, <a href="http://spawnlink.com/articles/tag/otp-introduction/index.html" rel="tag">otp introduction</a></li>
+          <li>Meta:
+            <a href="http://spawnlink.com/articles/an-introduction-to-gen_fsm-erlybanks-atm/index.html#comments" title="Comment on An introduction to gen_fsm: ErlyBank’s ATM">14 comments</a>,
+            <a href="http://spawnlink.com/articles/an-introduction-to-gen_fsm-erlybanks-atm/index.html" rel="bookmark">permalink</a>,
+            <a href="http://spawnlink.com/articles/an-introduction-to-gen_fsm-erlybanks-atm/feed/index.html">rss</a>          </li>
+        </ul>
+			</div>
+	
+		
+		  <div class="hentry" id="article-27">
+	<h2 class="entry-title">
+	<a href="http://spawnlink.com/articles/an-introduction-to-gen_server-erlybank/index.html" rel="bookmark">An Introduction to gen_server: “ErlyBank”</a></h2>
+
+        <div class="posted">
+	Posted by <span class="entry-author author vcard"><a class="url fn n" href="http://spawnlink.com/articles/author/admin/index.html" title="More posts by Mitchell">Mitchell</a></span>	<abbr class="published posted_date" title="2008-09-06T08:06:06-04:00">on September 06, 2008</abbr>
+        </div>
+			  <br class="clear">	
+				<div class="entry-content">
+					<p>This is the first article in a series of articles introducing 
+all the concepts pertaining to Erlang/OTP. In order to find all these 
+articles later, they are tagged with a unique tag to the series: <a href="http://spawnlink.com/articles/tag/otp-introduction/index.html">otp introduction</a>. As promised in my <a href="http://spawnlink.com/articles/introduction-to-the-open-telecom-platform/index.html">initial introduction to OTP</a>,
+ we will be making a server to handle the fake bank accounts of people 
+at “ErlyBank” (Yes, I enjoy coming up with silly names). </p>
+<p><strong>The Scenario:</strong> ErlyBank is just starting and they 
+want to start off on the right foot by creating a scalable system for 
+managing the bank accounts of its important customer-base. Having heard 
+about the powers of Erlang, we have been hired to do that! But to test 
+us out, they first want a simple server to handle the creation and 
+destruction of accounts, depositing money, and withdrawing money. They 
+just want a prototype, not something they’ll actually be putting into 
+production. </p>
+<p><strong>The Result:</strong> We will create a simple server and client to do everything they asked using <a href="http://www.erlang.org/doc/man/gen_server.html">gen_server</a>.
+ Since its just a prototype, we’ll store the account information in 
+memory for now. The accounts will only be referenced by name, no other 
+information is necessary to create an account. And of course we’ll have 
+validation on withdrawals and deposits. </p>
+<p><strong>Note:</strong> Before beginning this series, I am assuming you have a basic knowledge of the Erlang syntax. If not, I recommend reading my <a href="http://spawnlink.com/articles/compendium-of-beginner-erlang-resources/index.html">compendium of beginner erlang resources</a> to find a place you can learn Erlang. </p>
+<p>If you’re ready, click read more below to get started! (Unless you’re viewing the whole article already <img src="otp-introduction_files/icon_smile.gif" alt=":)" class="wp-smiley"> )</p>
+<p> <a href="http://spawnlink.com/articles/an-introduction-to-gen_server-erlybank/index.html#more-27" class="more-link"><span class="readmore">More…</span></a></p>
+				</div>
+				<ul class="meta">
+	<li class="categories">Category: <a href="http://spawnlink.com/articles/category/uncategorized/index.html" title="View all posts in Uncategorized" rel="category tag">Uncategorized</a></li>
+          <li class="tags">Tags: <a href="http://spawnlink.com/articles/tag/bank-manager/index.html" rel="tag">bank manager</a>, <a href="http://spawnlink.com/articles/tag/beginner/index.html" rel="tag">beginner</a>, <a href="http://spawnlink.com/articles/tag/erlang/index.html" rel="tag">erlang</a>, <a href="http://spawnlink.com/articles/tag/gen_server/index.html" rel="tag">gen_server</a>, <a href="http://spawnlink.com/articles/tag/otp-introduction/index.html" rel="tag">otp introduction</a></li>
+          <li>Meta:
+            <a href="http://spawnlink.com/articles/an-introduction-to-gen_server-erlybank/index.html#comments" title="Comment on An Introduction to gen_server: “ErlyBank”">22 comments</a>,
+            <a href="http://spawnlink.com/articles/an-introduction-to-gen_server-erlybank/index.html" rel="bookmark">permalink</a>,
+            <a href="http://spawnlink.com/articles/an-introduction-to-gen_server-erlybank/feed/index.html">rss</a>          </li>
+        </ul>
+			</div>
+	
+		
+	<div class="navigation">
+		<div class="alignleft"></div>
+		<div class="alignright"></div>
+	</div>
+	
+			
+	</div>
+
+<div id="sidebar">
+	<ul>
+			<li id="search" class="search">
+		<form id="searchform" method="get" action="../../../index.html">
+	<div>
+		<input id="s" name="s" value="Search..." type="text">
+	</div>
+</form>
+		</li>
+		
+		<li><h2 class="sidebar-title">About</h2>
+		  <div>
+		    <img src="otp-introduction_files/photo.gif">
+		  </div>
+		  <p>
+		  I'm <a href="http://mitchellhashimoto.com/">Mitchell Hashimoto</a>, and this is my <a href="http://erlang.org/">Erlang</a> blog, made with the goal of
+		  expanding the general knowledge of Erlang tools and best practices.
+		  </p>
+ 		  <p>
+		  This blog is now in <b>read-only</b> mode. Since I haven't worked with Erlang in some time, I'm no longer updating this blog, but will keep it up for reference.
+		  </p>       
+		</li>
+		
+		<li id="syndicate"><h2 class="sidebar-title">Subscribe</h2>
+		  <p><a href="http://spawnlink.com/feeds.feedburner.com/spawn_link" rel="alternate" type="application/rss+xml"><img src="otp-introduction_files/feed-icon16x16.png" alt=""></a>&nbsp;
+			<a href="http://spawnlink.com/feeds.feedburner.com/spawn_link"><img src="otp-introduction_files/spawn_link.gif" style="border: 0pt none;" alt="" height="26" width="88"></a></p>
+		</li>
+
+		<li id="tags"><h2 class="sidebar-title">Popular Tags</h2>
+			<ul>
+			<a href="http://spawnlink.com/articles/tag/application/index.html" class="tag-link-22" title="2 topics" rel="tag" style="font-size: 9.27273pt;">application</a>
+<a href="http://spawnlink.com/articles/tag/bank-manager/index.html" class="tag-link-15" title="1 topic" rel="tag" style="font-size: 8pt;">bank manager</a>
+<a href="http://spawnlink.com/articles/tag/beginner/index.html" class="tag-link-6" title="7 topics" rel="tag" style="font-size: 15.6364pt;">beginner</a>
+<a href="http://spawnlink.com/articles/tag/best-practices/index.html" class="tag-link-9" title="1 topic" rel="tag" style="font-size: 8pt;">best practices</a>
+<a href="http://spawnlink.com/articles/tag/configuration/index.html" class="tag-link-32" title="1 topic" rel="tag" style="font-size: 8pt;">configuration</a>
+<a href="http://spawnlink.com/articles/tag/erlang/index.html" class="tag-link-5" title="12 topics" rel="tag" style="font-size: 22pt;">erlang</a>
+<a href="http://spawnlink.com/articles/tag/erlybank/index.html" class="tag-link-19" title="6 topics" rel="tag" style="font-size: 14.3636pt;">erlybank</a>
+<a href="http://spawnlink.com/articles/tag/eunit/index.html" class="tag-link-27" title="1 topic" rel="tag" style="font-size: 8pt;">eunit</a>
+<a href="http://spawnlink.com/articles/tag/gen_event/index.html" class="tag-link-20" title="1 topic" rel="tag" style="font-size: 8pt;">gen_event</a>
+<a href="http://spawnlink.com/articles/tag/gen_fsm/index.html" class="tag-link-18" title="1 topic" rel="tag" style="font-size: 8pt;">gen_fsm</a>
+<a href="http://spawnlink.com/articles/tag/gen_server/index.html" class="tag-link-16" title="1 topic" rel="tag" style="font-size: 8pt;">gen_server</a>
+<a href="http://spawnlink.com/articles/tag/guides/index.html" class="tag-link-4" title="3 topics" rel="tag" style="font-size: 10.5455pt;">guides</a>
+<a href="http://spawnlink.com/articles/tag/hot-code-swapping/index.html" class="tag-link-10" title="2 topics" rel="tag" style="font-size: 9.27273pt;">hot code swapping</a>
+<a href="http://spawnlink.com/articles/tag/otp/index.html" class="tag-link-8" title="4 topics" rel="tag" style="font-size: 11.8182pt;">otp</a>
+<a href="http://spawnlink.com/articles/tag/otp-guide/index.html" class="tag-link-25" title="1 topic" rel="tag" style="font-size: 8pt;">otp guide</a>
+<a href="http://spawnlink.com/articles/tag/otp-introduction/index.html" class="tag-link-17" title="7 topics" rel="tag" style="font-size: 15.6364pt;">otp introduction</a>
+<a href="http://spawnlink.com/articles/tag/otp-tutorial/index.html" class="tag-link-24" title="1 topic" rel="tag" style="font-size: 8pt;">otp tutorial</a>
+<a href="http://spawnlink.com/articles/tag/otp-upgrade/index.html" class="tag-link-26" title="1 topic" rel="tag" style="font-size: 8pt;">otp upgrade</a>
+<a href="http://spawnlink.com/articles/tag/releases/index.html" class="tag-link-23" title="1 topic" rel="tag" style="font-size: 8pt;">releases</a>
+<a href="http://spawnlink.com/articles/tag/resources/index.html" class="tag-link-7" title="1 topic" rel="tag" style="font-size: 8pt;">resources</a>
+<a href="http://spawnlink.com/articles/tag/russian/index.html" class="tag-link-31" title="1 topic" rel="tag" style="font-size: 8pt;">russian</a>
+<a href="http://spawnlink.com/articles/tag/supervisor/index.html" class="tag-link-21" title="1 topic" rel="tag" style="font-size: 8pt;">supervisor</a>
+<a href="http://spawnlink.com/articles/tag/translated/index.html" class="tag-link-30" title="1 topic" rel="tag" style="font-size: 8pt;">translated</a>
+<a href="http://spawnlink.com/articles/tag/unit-testing/index.html" class="tag-link-28" title="1 topic" rel="tag" style="font-size: 8pt;">unit testing</a>			</ul>
+		</li>
+
+		<li id="archives"><h2 class="sidebar-title">Archives</h2>
+			<ul>
+				<li><a href="http://spawnlink.com/articles/2009/07/index.html" title="July 2009">July 2009</a></li>
+	<li><a href="http://spawnlink.com/articles/2009/03/index.html" title="March 2009">March 2009</a></li>
+	<li><a href="http://spawnlink.com/articles/2008/09/index.html" title="September 2008">September 2008</a></li>
+	<li><a href="http://spawnlink.com/articles/2008/08/index.html" title="August 2008">August 2008</a></li>
+			</ul>
+		</li>
+
+				</ul>
+</div><!-- #sidebar -->
+
+
+		<br class="clear">
+	</div><!--// #page -->
+
+	<div id="footer">
+	<hr>
+	<p><a href="http://spawnlink.com/index.html">spawn_link</a></p>
+	<ul>
+		<li><a href="http://wordpress.org/" title="WordPress Engine">WordPress</a> | 
+			<span class="vcard">
+				<a class="url fn n" rel="follow designer" title="Simplish Style" href="http://labs.utopian.net/blogs/simplish/">
+					<span class="given-name">Simplish</span>
+					<span class="additional-name hidden"> from <span class="org">Utopian.net Labs</span></span>
+				</a>
+			</span>
+		</li>
+	</ul>
+	</div><!--// #footer -->
+</div><!--// #container -->
+
+<!--// Original theme design by Jeffrey Allen Hardy - http://quotedprintable.com/pages/scribbish -->
+<!--// Initial Typo to WordPress theme port by Kenny Pitt - http://pittcrew.net/geekblog/scribbishwp -->
+
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script><script src="otp-introduction_files/ga.js" type="text/javascript"></script>
+<script type="text/javascript">
+var pageTracker = _gat._getTracker("UA-97719-7");
+pageTracker._trackPageview();
+</script>
+<!-- Dynamic Page Served (once) in 0.184 seconds -->
+</body></html>

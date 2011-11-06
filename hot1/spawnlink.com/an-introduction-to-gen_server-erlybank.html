@@ -1,0 +1,789 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head profile="http://gmpg.org/xfn/11">
+
+
+
+	<title>An Introduction to gen_server: "ErlyBank" | spawn_link</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<link rel="stylesheet" href="an-introduction-to-gen_server-erlybank_files/style.css" type="text/css" media="all" title="Simplish">
+	<link rel="alternate" type="application/rss+xml" title="spawn_link RSS Feed" href="http://spawnlink.com/feeds.feedburner.com/spawn_link">
+	<link rel="alternate" type="application/rss+xml" title="spawn_link comments RSS Feed" href="http://spawnlink.com/comments/feed/index.html">
+	<link rel="alternate" type="application/atom+xml" title="spawn_link Atom Feed" href="http://spawnlink.com/feeds.feedburner.com/spawn_link">
+	<link rel="pingback" href="http://spawnlink.com/xmlrpc.php">
+	<link rel="archives" title="July 2009" href="http://spawnlink.com/articles/2009/07/index.html">
+	<link rel="archives" title="March 2009" href="http://spawnlink.com/articles/2009/03/index.html">
+	<link rel="archives" title="September 2008" href="http://spawnlink.com/articles/2008/09/index.html">
+	<link rel="archives" title="August 2008" href="http://spawnlink.com/articles/2008/08/index.html">
+
+<link rel="EditURI" type="application/rsd+xml" title="RSD" href="http://spawnlink.com/xmlrpc.php?rsd">
+<link rel="wlwmanifest" type="application/wlwmanifest+xml" href="http://spawnlink.com/wp-includes/wlwmanifest.xml"> 
+<meta name="generator" content="WordPress 2.6.1">
+
+
+<!-- all in one seo pack 1.4.6.13 [208,281] -->
+<meta name="description" content="Introduces Erlang/OTP gen_server to create a basic central server for a banking system.">
+<meta name="keywords" content="erlang, otp, gen_server, erlybank, beginner, tutorial, guide,bank manager,beginner,gen_server,otp introduction">
+<!-- /all in one seo pack -->
+
+</head><body>
+<div id="container">
+	<div id="header">
+		<h1><span><a href="http://spawnlink.com/index.html">spawn_link</a></span></h1>
+		<h2>Linking You to Erlang</h2>
+	</div>
+	<div id="page">
+<!-- goto ^(index page image archive ...).php:/^div#content -->
+
+		<div id="content">
+
+
+			<div class="hentry" id="article-27">
+				<h2 class="entry-title">An Introduction to gen_server: “ErlyBank”</h2>
+
+				<div class="posted">Posted by <span class="entry-author author vcard"><a class="url fn n" href="http://spawnlink.com/articles/author/admin/index.html" title="More posts by Mitchell">Mitchell</a></span>					<abbr class="published posted_date" title="2008-09-06T08:06:06-04:00">on September 06, 2008</abbr>
+				</div>
+				<br class="clear">	
+				<div class="entry-content">
+					<p>This is the first article in a series of articles introducing 
+all the concepts pertaining to Erlang/OTP. In order to find all these 
+articles later, they are tagged with a unique tag to the series: <a href="http://spawnlink.com/articles/tag/otp-introduction/index.html">otp introduction</a>. As promised in my <a href="http://spawnlink.com/articles/introduction-to-the-open-telecom-platform/index.html">initial introduction to OTP</a>,
+ we will be making a server to handle the fake bank accounts of people 
+at “ErlyBank” (Yes, I enjoy coming up with silly names). </p>
+<p><strong>The Scenario:</strong> ErlyBank is just starting and they 
+want to start off on the right foot by creating a scalable system for 
+managing the bank accounts of its important customer-base. Having heard 
+about the powers of Erlang, we have been hired to do that! But to test 
+us out, they first want a simple server to handle the creation and 
+destruction of accounts, depositing money, and withdrawing money. They 
+just want a prototype, not something they’ll actually be putting into 
+production. </p>
+<p><strong>The Result:</strong> We will create a simple server and client to do everything they asked using <a href="http://www.erlang.org/doc/man/gen_server.html">gen_server</a>.
+ Since its just a prototype, we’ll store the account information in 
+memory for now. The accounts will only be referenced by name, no other 
+information is necessary to create an account. And of course we’ll have 
+validation on withdrawals and deposits. </p>
+<p><strong>Note:</strong> Before beginning this series, I am assuming you have a basic knowledge of the Erlang syntax. If not, I recommend reading my <a href="http://spawnlink.com/articles/compendium-of-beginner-erlang-resources/index.html">compendium of beginner erlang resources</a> to find a place you can learn Erlang. </p>
+<p>If you’re ready, click read more below to get started! (Unless you’re viewing the whole article already <img src="an-introduction-to-gen_server-erlybank_files/icon_smile.gif" alt=":)" class="wp-smiley"> )</p>
+<p><span id="more-27"></span></p>
+<h2>What is gen_server?</h2>
+<p><a href="http://www.erlang.org/doc/man/gen_server.html">gen_server</a>
+ is a behavior module for implementing client-server relationships. By 
+using this OTP module, you’re given a lot of things “for free,” as I’ll 
+explain later. Also, later in the series, when I talk about supervisors 
+and error reporting, this module will fit right in without many changes.
+ </p>
+<p>Since gen_server is a behavior, you’re expected to adhere to a 
+certain number of callbacks. These callbacks, in no particular order, 
+are:</p>
+<ul>
+<li><strong>init/1</strong> - Initializes the server.</li>
+<li><strong>handle_call/3</strong> - Handles a call made to the server. The client who called the server is blocked until you return from this method.</li>
+<li><strong>handle_cast/2</strong> - Handles a cast made to the server. A
+ cast is similar to a call except that it is asynchronous; the client 
+continues while this cast is running.</li>
+<li><strong>handle_info/2</strong> - A sort of “catch all” method. If a 
+message is sent to the server process that isn’t a call or a cast, it 
+will come here. An example of such a message is an EXIT process message 
+if your server is linked to any other process.</li>
+<li><strong>terminate/2</strong> - Called while the server is stopping, so any cleanup can be done.</li>
+<li><strong>code_change/3</strong> - Called when the server is being 
+upgraded in real-time. This method will be covered in much greater 
+detail in future articles, but you must at least put the stub of the 
+method into your module to adhere to the behavior.</li>
+</ul>
+<h3>The Server Skeleton</h3>
+<p>To start off <em>every</em> gen_server file, I always use a common 
+skeleton. If you can, create a snippet or something with your text 
+editor to paste the skeleton. The skeleton can be <a href="http://spawnlink.com/otp-intro-1-gen_server-skeleton/index.html">viewed here</a>. Please take a quick look at it.</p>
+<p>Note: To save space, I won’t ever paste the entire file here in this 
+post, I will try to link to the whole thing when such a change occurs. 
+But for the most part, I will just be pasting in snippets.</p>
+<p>As you can see, the module is named <strong>eb_server</strong>, for “ErlyBank Server.” It implements all the callback methods I mentioned above and also adds one more: <span class="code inline">start_link/0</span>. This will be the method used to start the server. I’ve pasted this portion of the code below:</p>
+<div class="code">
+<pre><span style="color: rgb(240, 223, 175);">start_link</span>() -&gt;
+  gen_server:start_link({local, ?<span style="color: rgb(220, 163, 163); font-weight: bold;">SERVER</span>}, ?<span style="color: rgb(220, 163, 163); font-weight: bold;">MODULE</span>, [], []).</pre>
+</div>
+<p>&nbsp;<br>
+This calls the start_link/4 method of gen_server, which starts the 
+server and registers the process to the atom defined by the macro <span class="code inline">SERVER</span>,
+ which by default is just the module name. The remaining arguments are 
+the module of the gen_server, in this case itself, any arguments, and 
+finally any options. We leave the arguments blank because we don’t need 
+any and we don’t specify any options. For more information, an in-depth 
+description of the method is available on the <a href="http://www.erlang.org/doc/man/gen_server.html#start_link-4">gen_server manual page</a>.</p>
+<h2>Initializing The ErlyBank Server</h2>
+<p>Once the gen_server:start_link method is called, it calls the init 
+method of the actual server. It is in this method you should initialize 
+any state for the server. <strong>State</strong> can be anything you 
+want: An atom, a list of values, a fun, anything! This state is passed 
+around in every callback to the server. In this case, we’d like to 
+maintain a list of all accounts and their account balance. Additionally,
+ we’d like to look up these accounts by name. To do this, I’m going to 
+use the <a href="http://www.erlang.org/doc/man/dict.html">dict</a> module, which stores key-value pairs in memory.</p>
+<p><strong>Note to Object-Oriented Minds:</strong> If you come from an 
+OOP language, you can think of the server state as its instance 
+variables. In every gen_server callback, you’ll have these instance 
+variables available, and you can change them, too. </p>
+<p>So here is my final init method:</p>
+<div class="code">
+<pre><span style="color: rgb(240, 223, 175);">init</span>(_Args) -&gt;
+  {ok, dict:new()}.</pre>
+</div>
+<p>&nbsp;<br>
+Really, its that simple! One of the return values expected for init is <span class="code inline">{ok, State}</span>
+ so for the ErlyBank server, I’m just returning ok, and an empty 
+dictionary for the state. And we don’t use the arguments to init (which 
+is an empty list anyway, remember, from start_link), so I just prepend 
+the argument with an underscore to note that.</p>
+<h2>To Call or To Cast, That is the Question</h2>
+<p>Before we implement the bulk of the server, I want to quickly reiterate the difference between a call and a cast.</p>
+<p>A <strong>call</strong> to the gen_server is a <strong>blocking</strong>
+ method for the client. This means that when the client sends a message 
+to the server, it waits for a response before moving on. You use a call 
+when you need a response, such as if you’re asking what the balance of 
+an account is.</p>
+<p>A <strong>cast</strong> to the gen_server is a <strong>non-blocking</strong>
+ or asynchronous method. This means that when the client sends a message
+ to the server, it continues on, without receiving a response. Now, 
+Erlang guarantees that all messages sent to a process are received, so 
+unless you explicitly need a response value from the server, you should 
+cast, as it will keep your client executing. That is to say, you don’t 
+need to make a “call” to the server if you simply want a response to 
+make sure the server received the message, since Erlang guarantees this.</p>
+<h2>Bank Account Creation</h2>
+<p>First things first, ErlyBank needs a way to create new accounts. 
+Quickly, test yourself: If you were creating a bank account, would you <strong>cast or call</strong> to the server? Think hard… what value would you need returned? If you said <strong>call</strong>
+ you’re correct, normally anyways. You usually want to make sure the 
+account was created successfully without just assuming it was so. But in
+ this case, I’m going to implement it as a cast, since we won’t be error
+ checking for now.</p>
+<p>First, I’m going to create the API method, the method outside modules will call to create an account:</p>
+<div class="code">
+<pre><span style="color: rgb(112, 128, 112);">%%</span><span style="color: rgb(127, 159, 127);">--------------------------------------------------------------------
+</span><span style="color: rgb(112, 128, 112);">%% </span><span style="color: rgb(127, 159, 127);">Function: create_account(Name) -&gt; ok
+</span><span style="color: rgb(112, 128, 112);">%% </span><span style="color: rgb(127, 159, 127);">Description: Creates a bank account for the person with name Name
+</span><span style="color: rgb(112, 128, 112);">%%</span><span style="color: rgb(127, 159, 127);">--------------------------------------------------------------------
+</span><span style="color: rgb(240, 223, 175);">create_account</span>(<span style="color: rgb(240, 223, 175);">Name</span>) -&gt;
+  gen_server:cast(?<span style="color: rgb(220, 163, 163); font-weight: bold;">SERVER</span>, {create, <span style="color: rgb(240, 223, 175);">Name</span>}).</pre>
+</div>
+<p>&nbsp;</p>
+<p>This sends a cast to the server, which we registered as <span class="code inline">?SERVER</span> in start_link. The request is a tuple <span class="code inline">{create, Name}</span>. Since this is a cast, it returns immediately with “ok,” which is also returned from the function.</p>
+<p>Now, we need to write the part to handle this cast, which is a callback for the gen_server:</p>
+<div class="code">
+<pre><span style="color: rgb(240, 223, 175);">handle_cast</span>({create, <span style="color: rgb(240, 223, 175);">Name</span>}, <span style="color: rgb(240, 223, 175);">State</span>) -&gt;
+  {noreply, dict:store(<span style="color: rgb(240, 223, 175);">Name</span>, 0, <span style="color: rgb(240, 223, 175);">State</span>)};
+<span style="color: rgb(240, 223, 175);">handle_cast</span>(<span style="color: rgb(240, 223, 175);">_Msg</span>, <span style="color: rgb(240, 223, 175);">State</span>) -&gt;
+  {noreply, <span style="color: rgb(240, 223, 175);">State</span>}.</pre>
+</div>
+<p>&nbsp;</p>
+<p>As you can see, we just add another function definition for 
+handle_cast to capture our create request. We then store it in the 
+dictionary, with a value of 0, representing the current account balance.
+ The return value expected for a handle_cast is <span class="code inline">{noreply, State}</span> where State is the new state of the server. So this time, we return a new dictionary with the added account. </p>
+<p>Also, notice I added a catch-all function at the end. This is not 
+just good practice here, but for all functional programming in general. 
+You can use this method to just absorb the message silently, or you 
+could always raise an exception if you have to. In this case, I absorb 
+it silently.</p>
+<p>The entire <a href="http://spawnlink.com/otp-intro-1-gen-server-eb-server-create-account/index.html">eb_server.erl at this point can be viewed here.</a></p>
+<h2>Money Deposit</h2>
+<p>We promised our client, ErlyBank, that we’d add an API to deposit 
+money into a person’s account, and that we’d include basic validation. 
+So we need to write a deposit API method, and the server also needs to 
+verify that the account exists before depositing money, since ErlyBank 
+doesn’t want would-be customer’s money going into a black hole. Again, 
+test yourself: A <strong>cast or call</strong>? This one is easy: A call. We need to make sure the deposit was successful, and notify the user. </p>
+<p>Just like before, I’m going to first write the API method:</p>
+<div class="code">
+<pre><span style="color: rgb(112, 128, 112);">%%</span><span style="color: rgb(127, 159, 127);">--------------------------------------------------------------------
+</span><span style="color: rgb(112, 128, 112);">%% </span><span style="color: rgb(127, 159, 127);">Function: deposit(Name, Amount) -&gt; {ok, Balance} | {error, Reason}
+</span><span style="color: rgb(112, 128, 112);">%% </span><span style="color: rgb(127, 159, 127);">Description: Deposits Amount into Name's account. Returns the
+</span><span style="color: rgb(112, 128, 112);">%% </span><span style="color: rgb(127, 159, 127);">balance if successful, otherwise returns an error and reason.
+</span><span style="color: rgb(112, 128, 112);">%%</span><span style="color: rgb(127, 159, 127);">--------------------------------------------------------------------
+</span><span style="color: rgb(240, 223, 175);">deposit</span>(<span style="color: rgb(240, 223, 175);">Name</span>, <span style="color: rgb(240, 223, 175);">Amount</span>) -&gt;
+  gen_server:call(?<span style="color: rgb(220, 163, 163); font-weight: bold;">SERVER</span>, {deposit, <span style="color: rgb(240, 223, 175);">Name</span>, <span style="color: rgb(240, 223, 175);">Amount</span>}).</pre>
+</div>
+<p>&nbsp;</p>
+<p>Nothing exciting here. We just send along a message to the server. 
+The above should look familiar to you, as its the exact same as a cast 
+so far. But the difference is in the server code:</p>
+<div class="code">
+<pre><span style="color: rgb(240, 223, 175);">handle_call</span>({deposit, <span style="color: rgb(240, 223, 175);">Name</span>, <span style="color: rgb(240, 223, 175);">Amount</span>}, <span style="color: rgb(240, 223, 175);">_From</span>, <span style="color: rgb(240, 223, 175);">State</span>) -&gt;
+  <span style="color: rgb(240, 223, 175); font-weight: bold;">case</span> dict:find(<span style="color: rgb(240, 223, 175);">Name</span>, <span style="color: rgb(240, 223, 175);">State</span>) <span style="color: rgb(240, 223, 175); font-weight: bold;">of</span>
+    {ok, <span style="color: rgb(240, 223, 175);">Value</span>} -&gt;
+      <span style="color: rgb(240, 223, 175);">NewBalance</span> = <span style="color: rgb(240, 223, 175);">Value</span> + <span style="color: rgb(240, 223, 175);">Amount</span>,
+      <span style="color: rgb(240, 223, 175);">Response</span> = {ok, <span style="color: rgb(240, 223, 175);">NewBalance</span>},
+      <span style="color: rgb(240, 223, 175);">NewState</span> = dict:store(<span style="color: rgb(240, 223, 175);">Name</span>, <span style="color: rgb(240, 223, 175);">NewBalance</span>, <span style="color: rgb(240, 223, 175);">State</span>),
+      {reply, <span style="color: rgb(240, 223, 175);">Response</span>, <span style="color: rgb(240, 223, 175);">NewState</span>};
+    error -&gt;
+      {reply, {error, account_does_not_exist}, <span style="color: rgb(240, 223, 175);">State</span>}
+  <span style="color: rgb(240, 223, 175); font-weight: bold;">end</span>;
+<span style="color: rgb(240, 223, 175);">handle_call</span>(<span style="color: rgb(240, 223, 175);">_Request</span>, <span style="color: rgb(240, 223, 175);">_From</span>, <span style="color: rgb(240, 223, 175);">State</span>) -&gt;
+  <span style="color: rgb(240, 223, 175);">Reply</span> = ok,
+  {reply, <span style="color: rgb(240, 223, 175);">Reply</span>, <span style="color: rgb(240, 223, 175);">State</span>}.</pre>
+</div>
+<p>&nbsp;</p>
+<p>Whoa! Lots of new stuff! First, the method definition looks similar to handle_cast, except for the added <span class="code inline">From</span> argument, which we don’t use. This argument is the pid of the calling process, so we can send additional messages if needed. </p>
+<p>We promised ErlyBank we’d validate the existence of accounts, and the
+ first line is where we do it. We attempt to find a value from the state
+ dictionary for the person trying to deposit the account. The find 
+method of dict returns one of two values: Either <span class="code inline">{ok, Value}</span> or <span class="code inline">error</span>. </p>
+<p>In the case that the account exists, Value equals the current balance
+ in the account, so we add the deposited amount to that. We then store 
+the new balance for the account into the dictionary and set that to a 
+variable. I also store the response in a variable, which should look 
+just like the comment for the deposit API said it would: <span class="code inline">{ok, Balance}</span>. Then, by returning the tuple <span class="code inline">{reply, Reply, State}</span>, the server sends the Reply back to the calling process, and stores the new state. </p>
+<p>On the other hand, if the account doesn’t exist, we don’t change the state at all, but we reply with the tuple <span class="code inline">{error, account_does_not_exist}</span>, which again follows the spec in the comments of the deposit API.</p>
+<p>Again, here is the <a href="http://spawnlink.com/otp-intro-1-gen-server-eb-server-deposit-api/index.html">updated eb_server.erl source</a> after this addition. </p>
+<h2>Account Destruction and Money Withdrawals</h2>
+<p>I am actually going to leave it as an exercise to the reader to 
+complete the account destruction and withdrawal APIs for the module. You
+ have all the necessary knowledge to do these things. If you need any 
+help with the dict module, refer to the <a href="http://www.erlang.org/doc/man/dict.html">dict module API reference</a>.
+ For withdrawals, please validate both that the account exists and that 
+it has enough funds for the withdrawal. You do not have to handle the 
+case of withdrawing negative funds. </p>
+<p>Once you’ve finished, or if you’ve given up (I hope not!), you can view the <a href="http://spawnlink.com/otp-intro-1-gen-server-eb-server-withdrawal/index.html">answer here.</a></p>
+<h2>Final Notes</h2>
+<p>In this article, I showed you the basics of gen_server and how to 
+create a client-server relationship. I did not cover the full 
+capabilities of gen_server which include such things as timeouts for 
+message receiving and stopping the server, but I feel I’ve explained a 
+solid portion of the behavior module. </p>
+<p>If you wish to learn more about the callback methods, possible return values, and more advanced usages of gen_server, <a href="http://www.erlang.org/doc/man/gen_server.html">read the manual on gen_server</a>. Read all of it, really. </p>
+<p>Also, I know I did not touch and I barely mentioned the code_change/3
+ method, which for some reason causes the most excitement in people. 
+Don’t worry, I have an entire article (near the end of the series) 
+dedicated to deploying real-time upgrades to running systems, and this 
+is where this method will come into play.</p>
+<p>The next article, in a few days, will be on gen_fsm. So if this 
+article tickled your brain, feel free to jump in on that manual and get a
+ head start! Maybe you can guess what wacky continuation of ErlyBank 
+I’ll be adding with gen_fsm. <img src="an-introduction-to-gen_server-erlybank_files/icon_wink.gif" alt=";)" class="wp-smiley"></p>
+									</div>
+				<ul class="meta">
+					<li class="tags">Tags: <a href="http://spawnlink.com/articles/tag/bank-manager/index.html" rel="tag">bank manager</a>, <a href="http://spawnlink.com/articles/tag/beginner/index.html" rel="tag">beginner</a>, <a href="http://spawnlink.com/articles/tag/erlang/index.html" rel="tag">erlang</a>, <a href="http://spawnlink.com/articles/tag/gen_server/index.html" rel="tag">gen_server</a>, <a href="http://spawnlink.com/articles/tag/otp-introduction/index.html" rel="tag">otp introduction</a></li>
+					<li>Meta:
+						<a href="http://spawnlink.com/articles/an-introduction-to-gen_server-erlybank/index.html#comments">22 comments</a>,
+						<a href="http://spawnlink.com/articles/an-introduction-to-gen_server-erlybank/index.html" rel="bookmark">permalink</a>,
+						<a href="http://spawnlink.com/articles/an-introduction-to-gen_server-erlybank/feed/index.html">rss</a>					</li>
+				</ul>
+				<!-- <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+				xmlns:dc="http://purl.org/dc/elements/1.1/"
+				xmlns:trackback="http://madskills.com/public/xml/rss/module/trackback/">
+			<rdf:Description rdf:about="http://spawnlink.com/articles/an-introduction-to-gen_server-erlybank/"
+    dc:identifier="http://spawnlink.com/articles/an-introduction-to-gen_server-erlybank/"
+    dc:title="An Introduction to gen_server: &#8220;ErlyBank&#8221;"
+    trackback:ping="http://spawnlink.com/articles/an-introduction-to-gen_server-erlybank/trackback/" />
+</rdf:RDF> -->
+			</div>
+
+			<h5><a name="trackbacks">Trackbacks</a></h5>
+					<p>Use <a href="http://spawnlink.com/articles/an-introduction-to-gen_server-erlybank/index.html" rel="trackback">this link</a> to trackback from your own site.</p>
+		
+		
+	<h5><a name="comments">Comments</a></h5>
+						<p><a href="http://spawnlink.com/articles/an-introduction-to-gen_server-erlybank/index.html#commentform">Leave a response</a></p>
+				
+	
+			<div id="comments_div">
+			<ol id="comments" class="comments">
+
+							<li class="comment" id="comment-32">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-gen_server-erlybank_files/668de89be72c513b17c3ee6fc31ebc31.png" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n">J</span></span>
+						<abbr class="comment-published" title="2008-09-06T08:44:35-04:00">Sep 06, 2008 08:44</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>Nice tutorial!  I think this will help out a lot of beginners. 
+ This is one of the better resources I’ve seen explaining OTP.  Thanks.</p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-33">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-gen_server-erlybank_files/77ab755a765880fc8015bc7b5786c33e.png" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n">zamous</span></span>
+						<abbr class="comment-published" title="2008-09-06T09:06:02-04:00">Sep 06, 2008 09:06</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>Nice job.  Hoping to see a bunch more articles like this.</p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-34">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-gen_server-erlybank_files/ab95629af72aac06906a5f7aa159b8e4.png" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n"><a href="http://www.alieniloquent.com/" rel="external nofollow">Samuel Tesla</a></span></span>
+						<abbr class="comment-published" title="2008-09-06T09:10:23-04:00">Sep 06, 2008 09:10</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>Excellent article, and congrats on making it to the top of Hacker News.</p>
+<p>I have one factual correction, though. Erlang does not guarantee that
+ messages will be delivered. All it guarantees is that if they are 
+delivered, they will be delivered in order which they were sent.</p>
+<p>I’m starting a similar series on my blog, except I’m writing some blog software. Should be fun.</p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-35">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-gen_server-erlybank_files/2828f28fb012308a7786eee83b8293c5.jpeg" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n"><a href="http://mitchellhashimoto.com/" rel="external nofollow">Mitchell</a></span></span>
+						<abbr class="comment-published" title="2008-09-06T09:31:04-04:00">Sep 06, 2008 09:31</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>Thanks all.</p>
+<p>And Samuel,</p>
+<p>According to the Erlang FAQ on question 10.10, <a href="http://www.erlang.org/faq/academic.html#10.10" rel="nofollow">linked here</a>,
+ it guarantees the message will always be delivered “if nothing breaks.”
+ And if something does break, the client will be notified if they’re 
+linked. </p>
+<p>That is where I got my facts from. And with regards to the order, 
+they are guaranteed to be received in the same order to the same 
+process. If you send A to B then C to D, C might be received at D before
+ A is received at B, so order is not entirely guaranteed.</p>
+<p>But these sorts of things are tricky to deal with <img src="an-introduction-to-gen_server-erlybank_files/icon_smile.gif" alt=":)" class="wp-smiley"></p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-36">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-gen_server-erlybank_files/a0c394e31c9740376635c8878cf5889e.png" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n">Curious</span></span>
+						<abbr class="comment-published" title="2008-09-06T10:13:50-04:00">Sep 06, 2008 10:13</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>I haven’t done any programming in Erlang, so excuse me if this is a trival question.</p>
+<p>I see that the deposit handler first retrieves the balance, then modifies it before it is inserted back into the dictionary. </p>
+<p>What happens if two clients deposits money into the same account? 
+Does Erlang block access to the dictionary when you do “dict:find(Name, 
+State)”</p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-37">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-gen_server-erlybank_files/2828f28fb012308a7786eee83b8293c5.jpeg" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n"><a href="http://mitchellhashimoto.com/" rel="external nofollow">Mitchell</a></span></span>
+						<abbr class="comment-published" title="2008-09-06T11:07:11-04:00">Sep 06, 2008 11:07</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>Actually, the server is running on a single process, so when 
+you make a call to the server, it will block until the previous call is 
+complete. A gen_server by itself doesn’t handle multiple clients 
+concurrently. </p>
+<p>And although this feature would not be much harder to add, and I 
+thought about adding it, I figured it would be much easier to give a 
+basic gen_server example first, and I can always polish it out later <img src="an-introduction-to-gen_server-erlybank_files/icon_smile.gif" alt=":)" class="wp-smiley"></p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-41">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-gen_server-erlybank_files/ab95629af72aac06906a5f7aa159b8e4.png" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n"><a href="http://www.alieniloquent.com/" rel="external nofollow">Samuel Tesla</a></span></span>
+						<abbr class="comment-published" title="2008-09-07T07:30:58-04:00">Sep 07, 2008 07:30</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>Assuming you link or monitor the destination process, you will 
+be notified, yes. However, simply sending the message won’t do that.</p>
+<p>There’s a really common idiom in a lot of Erlang code which is to 
+send a message then immediately monitor the process it was sent to. Then
+ you wait for a response or the ‘DOWN’ message. I believe that’s what 
+gen_server:call does, actually.</p>
+<p>Once again, great post!</p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-42">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-gen_server-erlybank_files/2828f28fb012308a7786eee83b8293c5.jpeg" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n"><a href="http://mitchellhashimoto.com/" rel="external nofollow">Mitchell</a></span></span>
+						<abbr class="comment-published" title="2008-09-07T09:40:55-04:00">Sep 07, 2008 09:40</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>Right, assuming you’re linked. You’re right, Samuel. And if 
+this were a real-world application, with it being an ATM, I would 
+definitely wait for a success response <img src="an-introduction-to-gen_server-erlybank_files/icon_wink.gif" alt=";)" class="wp-smiley"> </p>
+<p>Thanks <img src="an-introduction-to-gen_server-erlybank_files/icon_smile.gif" alt=":)" class="wp-smiley"></p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-43">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-gen_server-erlybank_files/ad516503a11cd5ca435acc9bb6523536.png" class="photo avatar avatar-48 avatar-default" height="48" width="48"> <span class="fn n"><a href="http://spawnlink.com/articles/an-introduction-to-gen_fsm-erlybanks-atm/index.html" rel="external nofollow">An introduction to gen_fsm: ErlyBank’s ATM | spawn_link</a></span></span>
+						<abbr class="comment-published" title="2008-09-08T06:59:52-04:00">Sep 08, 2008 06:59</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>[...] the second article in my Erlang/OTP introduction series. 
+If you haven’t yet, I recommend you read the first article which talks 
+about gen_server and lays the foundation for our bank system before 
+moving onto this [...]</p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-48">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-gen_server-erlybank_files/ad516503a11cd5ca435acc9bb6523536.png" class="photo avatar avatar-48 avatar-default" height="48" width="48"> <span class="fn n"><a href="http://spawnlink.com/articles/an-introduction-to-gen_event-account-notifications/index.html" rel="external nofollow">An introduction to gen_event: Account Notifications | spawn_link</a></span></span>
+						<abbr class="comment-published" title="2008-09-10T07:03:49-04:00">Sep 10, 2008 07:03</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>[...] is the third article in the otp introduction series. If 
+you haven’t yet, I recommend you start with the first article which 
+talks about gen_server and lays the foundation for our bank system. 
+Again, if you’re a [...]</p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-56">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-gen_server-erlybank_files/21b65653f904b037f0eb4250b2a183de.jpeg" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n">Swaroop Belur</span></span>
+						<abbr class="comment-published" title="2008-09-10T22:42:43-04:00">Sep 10, 2008 22:42</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>Hi</p>
+<p>Just stumbled upon ur series.</p>
+<p>1. Excellent for a erlang novice<br>
+2. Very well written and crisp stuff</p>
+<p>Looking forward to read rest of series now.</p>
+<p>One question:<br>
+Nothing against erlang but have u looked at Disco by any chance any thoughts<br>
+on it? (Mainly from programming experience)</p>
+<p>Thanks for content<br>
+-swaroop</p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-57">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-gen_server-erlybank_files/2828f28fb012308a7786eee83b8293c5.jpeg" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n"><a href="http://mitchellhashimoto.com/" rel="external nofollow">Mitchell</a></span></span>
+						<abbr class="comment-published" title="2008-09-10T22:54:42-04:00">Sep 10, 2008 22:54</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>Hi Swaroop,</p>
+<p>First, thank you for the kind words. Next, to answer your question, I
+ have taken a very brief look at Disco but I haven’t had enough 
+experience using it in practice to come to a valuable conclusion about 
+it. </p>
+<p>Maybe I will, but at the moment I don’t have a need for disco <img src="an-introduction-to-gen_server-erlybank_files/icon_smile.gif" alt=":)" class="wp-smiley"></p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-61">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-gen_server-erlybank_files/ad516503a11cd5ca435acc9bb6523536.png" class="photo avatar avatar-48 avatar-default" height="48" width="48"> <span class="fn n"><a href="http://spawnlink.com/articles/using-supervisors-to-keep-erlybank-afloat/index.html" rel="external nofollow">Using Supervisors to Keep ErlyBank Afloat | spawn_link</a></span></span>
+						<abbr class="comment-published" title="2008-09-13T06:46:27-04:00">Sep 13, 2008 06:46</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>[...] is the fourth article in the otp introduction series. If 
+you haven’t yet, I recommend you start with the first article which 
+talks about gen_server and lays the foundation for our bank system. If 
+you are a quick [...]</p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-81">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-gen_server-erlybank_files/ad516503a11cd5ca435acc9bb6523536.png" class="photo avatar avatar-48 avatar-default" height="48" width="48"> <span class="fn n"><a href="http://spawnlink.com/articles/bundling-erlybank-as-an-application/index.html" rel="external nofollow">Bundling ErlyBank as an Application | spawn_link</a></span></span>
+						<abbr class="comment-published" title="2008-09-15T07:38:45-04:00">Sep 15, 2008 07:38</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>[...] is the fifth article in the otp introduction series. If 
+you haven’t yet, I recommend you start with the first article which 
+talks about gen_server and lays the foundation for our bank system. If 
+you’re a quick [...]</p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-90">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-gen_server-erlybank_files/ad516503a11cd5ca435acc9bb6523536.png" class="photo avatar avatar-48 avatar-default" height="48" width="48"> <span class="fn n"><a href="http://www.alvinashcraft.com/2008/09/17/dew-drop-september-17-2008/" rel="external nofollow">Dew Drop - September 17, 2008 | Alvin Ashcraft's Morning Dew</a></span></span>
+						<abbr class="comment-published" title="2008-09-17T05:37:37-04:00">Sep 17, 2008 05:37</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>[...] An Introduction to gen_server: "ErlyBank" [...]</p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-92">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-gen_server-erlybank_files/ad516503a11cd5ca435acc9bb6523536.png" class="photo avatar avatar-48 avatar-default" height="48" width="48"> <span class="fn n"><a href="http://spawnlink.com/articles/an-introduction-to-releases-with-erlybank/index.html" rel="external nofollow">An Introduction to Releases with Erlybank | spawn_link</a></span></span>
+						<abbr class="comment-published" title="2008-09-17T07:05:22-04:00">Sep 17, 2008 07:05</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>[...] is the sixth article in the otp introduction series. If 
+you haven’t yet, I recommend you start with the first article which 
+talks about gen_server and lays the foundation for our bank system. If 
+you’re a quick [...]</p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-110">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-gen_server-erlybank_files/ad516503a11cd5ca435acc9bb6523536.png" class="photo avatar avatar-48 avatar-default" height="48" width="48"> <span class="fn n"><a href="http://spawnlink.com/articles/performing-real-time-upgrades-to-an-otp-system/index.html" rel="external nofollow">Performing Real-time Upgrades to an OTP System | spawn_link</a></span></span>
+						<abbr class="comment-published" title="2008-09-24T09:19:19-04:00">Sep 24, 2008 09:19</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>[...] final article of the Erlang/OTP introduction series. If 
+you haven’t already, I recommend you read the first article which lays 
+the foundation for the application which we’ll be upgrading in addition 
+to [...]</p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-135">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-gen_server-erlybank_files/afa79197904eeb26d8691d68acfa1f3b.png" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n">David Weldon</span></span>
+						<abbr class="comment-published" title="2008-09-29T12:19:41-04:00">Sep 29, 2008 12:19</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>“A gen_server by itself doesn’t handle multiple clients 
+concurrently. And although this feature would not be much harder to 
+add…” Can you give some brief insight as to how one could accomplish 
+this?</p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-141">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-gen_server-erlybank_files/2828f28fb012308a7786eee83b8293c5.jpeg" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n"><a href="http://mitchellhashimoto.com/" rel="external nofollow">Mitchell</a></span></span>
+						<abbr class="comment-published" title="2008-09-29T15:19:45-04:00">Sep 29, 2008 15:19</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>David,</p>
+<p>Literally, I was correct in saying that a gen_server can’t handle multiple clients <em>concurrently</em>.
+ But normally this isn’t an issue since casting is so quick (since its a
+ one-way message). If you want a gen_server to begin processing a 
+message and be able to send back to the caller, I would spawn off the 
+long running process, store the <span class="code inline">From</span> parameter of <tt>gen_server:call</tt> and manually use <tt>gen_server:reply</tt> to reply via the spawned process.</p>
+<p>To put this into a clearer example (I hope), imagine having a math 
+server (based on gen_server) and there is a call which calculates all 
+the primes up to <tt>n</tt>. For certain large n, this process can take 
+quite awhile, so instead of doing all the calculations in the math 
+server process, I would do something like the following:</p>
+<div class="code">
+<pre>handle_call({primes, N}, From, State) -&gt;
+  spawn(?MODULE, calculate_primes, [From, N]),
+  {noreply, State}.
+
+calculate_primes(From, N) -&gt;
+  Primes = [],
+  % Use some method of calculating prime numbers...
+  gen_server:reply(From, {primes, Primes}).
+</pre>
+</div>
+<p>&nbsp;</p>
+<p>Hopefully the example above poses a fairly obvious solution. As you 
+can see in handle_call, since it spawns off the calculation work, it is 
+able to become ready to handle more calls/casts/etc. right away. Then, 
+when the calculate_primes method ends, it explicitly sends the respond 
+back to the caller.</p>
+<p>Mitchell</p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-145">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-gen_server-erlybank_files/afa79197904eeb26d8691d68acfa1f3b.png" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n">David Weldon</span></span>
+						<abbr class="comment-published" title="2008-09-29T18:29:13-04:00">Sep 29, 2008 18:29</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>That makes perfect sense. Thanks for the fast reply Mitchell. Your articles are fantastic!</p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-1049">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-gen_server-erlybank_files/20196c9dc97267632ce6e6b778361eae.png" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n"><a href="http://nickelcode.com/" rel="external nofollow">John Bender</a></span></span>
+						<abbr class="comment-published" title="2008-12-14T14:02:23-05:00">Dec 14, 2008 14:02</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>Awesome set of articles. They’ve been linked to on <a href="http://erlanguid.com/" rel="nofollow">http://erlanguid.com</a>, and I hope there are other avenues for people to find them. Great read, and thank you for taking the time to teach others!</p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-1421">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-gen_server-erlybank_files/83d77c5d54e391ab05234dff45ab01fb.png" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n">pavlov</span></span>
+						<abbr class="comment-published" title="2009-01-07T16:22:57-05:00">Jan 07, 2009 16:22</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>How would I create an HTTP interface to handle_call?</p>
+					</div>
+				</li>
+
+			
+			</ol>
+		</div><!-- #comments_div (id needs rename) -->
+
+	
+
+
+
+<form action="http://spawnlink.com/wp-comments-post.php" class="comments" id="commentform" method="post">
+
+<fieldset>
+  <legend>Comments</legend>
+  
+    <p>
+      <label>Name: <small>(required)</small><br>
+        <input name="author" id="author" size="30" tabindex="1" type="text">
+      </label>
+    </p>
+
+    <p>
+      <label>Email: <small>(required)</small><br>
+        <input name="email" id="email" size="30" tabindex="2" type="text">
+        <small>(will not be published)</small>
+      </label>
+    </p>
+
+    <p>
+      <label>Url:<br>
+        <input name="url" id="url" size="30" tabindex="3" type="text">
+      </label>
+    </p>
+
+  
+  <!--<p><small><strong>XHTML:</strong> You can use these tags: &lt;a href=&quot;&quot; title=&quot;&quot;&gt; &lt;abbr title=&quot;&quot;&gt; &lt;acronym title=&quot;&quot;&gt; &lt;b&gt; &lt;blockquote cite=&quot;&quot;&gt; &lt;cite&gt; &lt;code&gt; &lt;del datetime=&quot;&quot;&gt; &lt;em&gt; &lt;i&gt; &lt;q cite=&quot;&quot;&gt; &lt;strike&gt; &lt;strong&gt; </small></p>-->
+
+  <p>
+      Comments:<br>
+      <textarea name="comment" id="comment" cols="100%" rows="20" tabindex="4"></textarea></p>
+
+  <p>
+    <input name="submit" id="submit" tabindex="5" value="Submit" type="submit">
+    <input name="comment_post_ID" value="27" type="hidden">
+  </p>
+  </fieldset>
+</form>
+
+
+
+
+			<div class="navigation">
+				<div class="alignleft">« <a href="http://spawnlink.com/articles/introduction-to-the-open-telecom-platform/index.html">Introduction to the Open Telecom Platform</a></div>
+				<div class="alignright"><a href="http://spawnlink.com/articles/an-introduction-to-gen_fsm-erlybanks-atm/index.html">An introduction to gen_fsm: ErlyBank’s ATM</a> »</div>
+			</div>
+
+
+		</div><!-- #content -->
+
+<div id="sidebar">
+	<ul>
+			<li id="search" class="search">
+		<form id="searchform" method="get" action="../../index.html">
+	<div>
+		<input id="s" name="s" value="Search..." type="text">
+	</div>
+</form>
+		</li>
+		
+		<li><h2 class="sidebar-title">About</h2>
+		  <div>
+		    <img src="an-introduction-to-gen_server-erlybank_files/photo.gif">
+		  </div>
+		  <p>
+		  I'm <a href="http://mitchellhashimoto.com/">Mitchell Hashimoto</a>, and this is my <a href="http://erlang.org/">Erlang</a> blog, made with the goal of
+		  expanding the general knowledge of Erlang tools and best practices.
+		  </p>
+ 		  <p>
+		  This blog is now in <b>read-only</b> mode. Since I haven't worked with Erlang in some time, I'm no longer updating this blog, but will keep it up for reference.
+		  </p>       
+		</li>
+		
+		<li id="syndicate"><h2 class="sidebar-title">Subscribe</h2>
+		  <p><a href="http://spawnlink.com/feeds.feedburner.com/spawn_link" rel="alternate" type="application/rss+xml"><img src="an-introduction-to-gen_server-erlybank_files/feed-icon16x16.png" alt=""></a>&nbsp;
+			<a href="http://spawnlink.com/feeds.feedburner.com/spawn_link"><img src="an-introduction-to-gen_server-erlybank_files/spawn_link.gif" style="border: 0pt none;" alt="" height="26" width="88"></a></p>
+		</li>
+
+		<li id="tags"><h2 class="sidebar-title">Popular Tags</h2>
+			<ul>
+			<a href="http://spawnlink.com/articles/tag/application/index.html" class="tag-link-22" title="2 topics" rel="tag" style="font-size: 9.27273pt;">application</a>
+<a href="http://spawnlink.com/articles/tag/bank-manager/index.html" class="tag-link-15" title="1 topic" rel="tag" style="font-size: 8pt;">bank manager</a>
+<a href="http://spawnlink.com/articles/tag/beginner/index.html" class="tag-link-6" title="7 topics" rel="tag" style="font-size: 15.6364pt;">beginner</a>
+<a href="http://spawnlink.com/articles/tag/best-practices/index.html" class="tag-link-9" title="1 topic" rel="tag" style="font-size: 8pt;">best practices</a>
+<a href="http://spawnlink.com/articles/tag/configuration/index.html" class="tag-link-32" title="1 topic" rel="tag" style="font-size: 8pt;">configuration</a>
+<a href="http://spawnlink.com/articles/tag/erlang/index.html" class="tag-link-5" title="12 topics" rel="tag" style="font-size: 22pt;">erlang</a>
+<a href="http://spawnlink.com/articles/tag/erlybank/index.html" class="tag-link-19" title="6 topics" rel="tag" style="font-size: 14.3636pt;">erlybank</a>
+<a href="http://spawnlink.com/articles/tag/eunit/index.html" class="tag-link-27" title="1 topic" rel="tag" style="font-size: 8pt;">eunit</a>
+<a href="http://spawnlink.com/articles/tag/gen_event/index.html" class="tag-link-20" title="1 topic" rel="tag" style="font-size: 8pt;">gen_event</a>
+<a href="http://spawnlink.com/articles/tag/gen_fsm/index.html" class="tag-link-18" title="1 topic" rel="tag" style="font-size: 8pt;">gen_fsm</a>
+<a href="http://spawnlink.com/articles/tag/gen_server/index.html" class="tag-link-16" title="1 topic" rel="tag" style="font-size: 8pt;">gen_server</a>
+<a href="http://spawnlink.com/articles/tag/guides/index.html" class="tag-link-4" title="3 topics" rel="tag" style="font-size: 10.5455pt;">guides</a>
+<a href="http://spawnlink.com/articles/tag/hot-code-swapping/index.html" class="tag-link-10" title="2 topics" rel="tag" style="font-size: 9.27273pt;">hot code swapping</a>
+<a href="http://spawnlink.com/articles/tag/otp/index.html" class="tag-link-8" title="4 topics" rel="tag" style="font-size: 11.8182pt;">otp</a>
+<a href="http://spawnlink.com/articles/tag/otp-guide/index.html" class="tag-link-25" title="1 topic" rel="tag" style="font-size: 8pt;">otp guide</a>
+<a href="http://spawnlink.com/articles/tag/otp-introduction/index.html" class="tag-link-17" title="7 topics" rel="tag" style="font-size: 15.6364pt;">otp introduction</a>
+<a href="http://spawnlink.com/articles/tag/otp-tutorial/index.html" class="tag-link-24" title="1 topic" rel="tag" style="font-size: 8pt;">otp tutorial</a>
+<a href="http://spawnlink.com/articles/tag/otp-upgrade/index.html" class="tag-link-26" title="1 topic" rel="tag" style="font-size: 8pt;">otp upgrade</a>
+<a href="http://spawnlink.com/articles/tag/releases/index.html" class="tag-link-23" title="1 topic" rel="tag" style="font-size: 8pt;">releases</a>
+<a href="http://spawnlink.com/articles/tag/resources/index.html" class="tag-link-7" title="1 topic" rel="tag" style="font-size: 8pt;">resources</a>
+<a href="http://spawnlink.com/articles/tag/russian/index.html" class="tag-link-31" title="1 topic" rel="tag" style="font-size: 8pt;">russian</a>
+<a href="http://spawnlink.com/articles/tag/supervisor/index.html" class="tag-link-21" title="1 topic" rel="tag" style="font-size: 8pt;">supervisor</a>
+<a href="http://spawnlink.com/articles/tag/translated/index.html" class="tag-link-30" title="1 topic" rel="tag" style="font-size: 8pt;">translated</a>
+<a href="http://spawnlink.com/articles/tag/unit-testing/index.html" class="tag-link-28" title="1 topic" rel="tag" style="font-size: 8pt;">unit testing</a>			</ul>
+		</li>
+
+		<li id="archives"><h2 class="sidebar-title">Archives</h2>
+			<ul>
+				<li><a href="http://spawnlink.com/articles/2009/07/index.html" title="July 2009">July 2009</a></li>
+	<li><a href="http://spawnlink.com/articles/2009/03/index.html" title="March 2009">March 2009</a></li>
+	<li><a href="http://spawnlink.com/articles/2008/09/index.html" title="September 2008">September 2008</a></li>
+	<li><a href="http://spawnlink.com/articles/2008/08/index.html" title="August 2008">August 2008</a></li>
+			</ul>
+		</li>
+
+				</ul>
+</div><!-- #sidebar -->
+
+
+		<br class="clear">
+	</div><!--// #page -->
+
+	<div id="footer">
+	<hr>
+	<p><a href="http://spawnlink.com/index.html">spawn_link</a></p>
+	<ul>
+		<li><a href="http://wordpress.org/" title="WordPress Engine">WordPress</a> | 
+			<span class="vcard">
+				<a class="url fn n" rel="follow designer" title="Simplish Style" href="http://labs.utopian.net/blogs/simplish/">
+					<span class="given-name">Simplish</span>
+					<span class="additional-name hidden"> from <span class="org">Utopian.net Labs</span></span>
+				</a>
+			</span>
+		</li>
+	</ul>
+	</div><!--// #footer -->
+</div><!--// #container -->
+
+<!--// Original theme design by Jeffrey Allen Hardy - http://quotedprintable.com/pages/scribbish -->
+<!--// Initial Typo to WordPress theme port by Kenny Pitt - http://pittcrew.net/geekblog/scribbishwp -->
+
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script><script src="an-introduction-to-gen_server-erlybank_files/ga.js" type="text/javascript"></script>
+<script type="text/javascript">
+var pageTracker = _gat._getTracker("UA-97719-7");
+pageTracker._trackPageview();
+</script>
+<!-- Dynamic Page Served (once) in 0.252 seconds -->
+<!-- Cached page served by WP-Cache -->
+</body></html>

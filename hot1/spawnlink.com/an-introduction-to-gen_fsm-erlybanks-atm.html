@@ -1,0 +1,741 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head profile="http://gmpg.org/xfn/11">
+
+
+
+	<title>An introduction to gen_fsm: ErlyBank’s ATM | spawn_link</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<link rel="stylesheet" href="an-introduction-to-gen_fsm-erlybanks-atm_files/style.css" type="text/css" media="all" title="Simplish">
+	<link rel="alternate" type="application/rss+xml" title="spawn_link RSS Feed" href="http://spawnlink.com/feeds.feedburner.com/spawn_link">
+	<link rel="alternate" type="application/rss+xml" title="spawn_link comments RSS Feed" href="http://spawnlink.com/comments/feed/index.html">
+	<link rel="alternate" type="application/atom+xml" title="spawn_link Atom Feed" href="http://spawnlink.com/feeds.feedburner.com/spawn_link">
+	<link rel="pingback" href="http://spawnlink.com/xmlrpc.php">
+	<link rel="archives" title="July 2009" href="http://spawnlink.com/articles/2009/07/index.html">
+	<link rel="archives" title="March 2009" href="http://spawnlink.com/articles/2009/03/index.html">
+	<link rel="archives" title="September 2008" href="http://spawnlink.com/articles/2008/09/index.html">
+	<link rel="archives" title="August 2008" href="http://spawnlink.com/articles/2008/08/index.html">
+
+<link rel="EditURI" type="application/rsd+xml" title="RSD" href="http://spawnlink.com/xmlrpc.php?rsd">
+<link rel="wlwmanifest" type="application/wlwmanifest+xml" href="http://spawnlink.com/wp-includes/wlwmanifest.xml"> 
+<meta name="generator" content="WordPress 2.6.1">
+
+
+<!-- all in one seo pack 1.4.6.13 [208,276] -->
+<meta name="description" content="This is the second article in my Erlang/OTP introduction series. If you haven't yet, I recommend you read the first article which talks about gen_server and">
+<meta name="keywords" content="beginner,erlang,erlybank,gen_fsm,otp introduction">
+<!-- /all in one seo pack -->
+
+</head><body>
+<div id="container">
+	<div id="header">
+		<h1><span><a href="http://spawnlink.com/index.html">spawn_link</a></span></h1>
+		<h2>Linking You to Erlang</h2>
+	</div>
+	<div id="page">
+<!-- goto ^(index page image archive ...).php:/^div#content -->
+
+		<div id="content">
+
+
+			<div class="hentry" id="article-52">
+				<h2 class="entry-title">An introduction to gen_fsm: ErlyBank’s ATM</h2>
+
+				<div class="posted">Posted by <span class="entry-author author vcard"><a class="url fn n" href="http://spawnlink.com/articles/author/admin/index.html" title="More posts by Mitchell">Mitchell</a></span>					<abbr class="published posted_date" title="2008-09-08T06:59:50-04:00">on September 08, 2008</abbr>
+				</div>
+				<br class="clear">	
+				<div class="entry-content">
+					<p>This is the second article in my Erlang/OTP introduction series. If you haven’t yet, I recommend you <a href="http://spawnlink.com/articles/an-introduction-to-gen_server-erlybank/index.html">read the first article</a>
+ which talks about gen_server and lays the foundation for our bank 
+system before moving onto this article. That being said, if you’re a 
+quick learner, you can <a href="http://spawnlink.com/otp-intro-1-gen-server-eb-server-withdrawal/index.html">look at the completed server file</a> and continue from there.</p>
+<p><strong>The Scenario:</strong> We delivered ErlyBank’s server to them
+ and they were very pleased. But this is the 21st century so they also 
+need a secure and easy to use ATM system, so they’ve asked that we 
+extend the server and also create their ATM backend. User accounts are 
+to be protected with a four-digit PIN. From the ATM you should be able 
+to log in to a previously existing account, and deposit or withdraw 
+funds. There is no need to create a pretty user interface on top of the 
+ATM backend, they have another team doing that. </p>
+<p><strong>The Result:</strong> First, we’ll extend the server software 
+to hold a PIN for accounts, and add an authorization call to it. Then, 
+we’ll use gen_fsm to create the ATM backend. We’ll rely on the server to
+ do all the data validation. </p>
+<p>As always, click read more to get started, if you haven’t already…<br>
+<span id="more-52"></span></p>
+<h2>What is gen_fsm?</h2>
+<p><a href="http://www.erlang.org/doc/man/gen_fsm.html">gen_fsm</a> is another Erlang/OTP behavior module, and is used for implementing <a href="http://en.wikipedia.org/wiki/Finite_state_machine">finite state machines</a>.</p>
+<p>I apologize in advance, since in this article “state” will be used to reference two different things:</p>
+<ul>
+<li><strong>gen_fsm state</strong> - The state of a finite state 
+machine, this is the current “mode” its in. It has nothing to do with 
+the state you learned about with gen_server.</li>
+<li><strong>state data</strong> - The state data of the server, this is the same as the state you learned about with gen_server.</li>
+</ul>
+<p>A bit confusing, I know, but I will do my best to only refer to them with the above terms. </p>
+<p>A gen_fsm starts in a state, and any calls/casts made to it are 
+received by a special callback method which is the named the same as the
+ state the gen_fsm module is in. Based on an action, the module can 
+change states. A textbook example of a finite state machine is a locked 
+door. The door starts in the state of “locked.” It requires four digits 
+to be unlocked. After entering a single digit, the door stores it, but 
+it needs more digits, and waits, still “locked.” After entering four 
+digits, if they are correct, the door changes state to “unlocked” for a 
+period of time. If the digits are incorrect, it remains “locked” and 
+clears its memory. You’re probably getting an idea now of how we’re 
+going to implement an ATM using gen_fsm now <img src="an-introduction-to-gen_fsm-erlybanks-atm_files/icon_smile.gif" alt=":)" class="wp-smiley"> </p>
+<p>As I did with gen_server, here is the list of callbacks we need to 
+implement for gen_fsm. You’ll notice many of them are similar to 
+gen_server:</p>
+<ul>
+<li><strong>init/1</strong> - Initializers the server. Almost identical to gen_server.</li>
+<li><strong>StateName/2</strong> - In this case, StateName actually will
+ be replaced with a state name. This is called when a message is sent to
+ the server; an action occurs on the finite state machine. This is an <strong>asynchronous</strong> callback.</li>
+<li><strong>handle_event/3</strong> - Similar to StateName/2, except 
+that this is sent no matter what state you’re in, when the client calls 
+gen_fsm:send_all_state_event. Again, this is asynchronous.</li>
+<li><strong>StateName/3</strong> - Equivalent to StateName/2 except this is the <strong>synchronous</strong> version. The client waits for a response from the server before continuing.</li>
+<li><strong>handle_sync_event/4</strong> - Equivalent to handle_event/3 except this is the synchronous version.</li>
+<li><strong>handle_info/3</strong> - Equivalent to gen_server’s 
+handle_info. This receives all messages which weren’t sending using a 
+standard gen_fsm command. This can include timeout messages, process 
+exit messages, or any messages sent manually with the “!” symbol to the 
+server process.</li>
+<li><strong>terminate/3</strong> - Called when the server is terminating so you can clean up any resources.</li>
+<li><strong>code_change/4</strong> - Called when a real-time system 
+upgrade of the server is occuring. We won’t deal with this in this 
+article, but it will be used extensively in a future article.</li>
+</ul>
+<h2>The gen_fsm Skeleton</h2>
+<p>Just like with gen_server, I start off every finite state machine with a generic skeleton. The gen_fsm skeleton can be <a href="http://spawnlink.com/otp-intro-2-gen-fsm-skeleton/index.html">viewed here</a>. </p>
+<p>There should be nothing out of the ordinary there. The start_link method looks just like the gen_server one did. <img src="an-introduction-to-gen_fsm-erlybanks-atm_files/icon_smile.gif" alt=":)" class="wp-smiley"> Save that skeleton as <strong>eb_atm.erl</strong> Now we’re ready to start going!</p>
+<h2>Extending eb_server to do Account Authorization</h2>
+<p>This is again one of those tasks which I feel comfortable allowing 
+you to do on your own. The following are the changes we need to make:</p>
+<ol>
+<li>Account creation should require a PIN now, which will be stored with the account, unencrypted.</li>
+<li>Add an authorize/2 method, where the arguments are Name and PIN. The return values should be <span class="code inline">ok</span> or <span class="code inline">{error, Reason}</span>.</li>
+</ol>
+<p>Also, it would be a good idea to require the PIN, or some sort of 
+authorization token with every request to deposit or withdraw money, but
+ in order to save time, and since ErlyBank is fake (breaks my heart <img src="an-introduction-to-gen_fsm-erlybanks-atm_files/icon_sad.gif" alt=":(" class="wp-smiley"> hah!), we will not do this. </p>
+<p>To be honest, this isn’t <em>really</em> a quick-fix, but if you’re learning Erlang now on your own, you must be pretty smart <img src="an-introduction-to-gen_fsm-erlybanks-atm_files/icon_wink.gif" alt=";)" class="wp-smiley"> So I think you can do it! Be sure to test your changes before moving on, or at least compare them to the answer linked below.</p>
+<p>After implementing the above changes, your eb_server.erl should <a href="http://spawnlink.com/otp-intro-2-gen-fsm-eb-server-authorization/index.html">look like this</a>. Note that the messages you send to the server may be different, and that is <em>okay</em>. Programmers think differently. The important thing is that the API outputs the same data, correctly. </p>
+<h2>ATM Design Strategy</h2>
+<p>I’m going to quick a take coding break to explain the plan for this 
+ATM system. We’re going to implement it following the flow chart below:</p>
+<p><img src="an-introduction-to-gen_fsm-erlybanks-atm_files/atm_sequence.png" alt="Sequence Diagram for ATM"></p>
+<p>The three blue boxes represent the different states the server will 
+be in. The arrows represent what actions are necessary to switch to 
+those states.</p>
+<h2>Initializing gen_fsm</h2>
+<p>To start the ATM, we use the same start_link method as a gen_server. But initialization is a little bit different.</p>
+<div class="code">
+<pre><span style="color: rgb(240, 223, 175);">init</span>([]) -&gt;
+  {ok, unauthorized, nobody}.</pre>
+</div>
+<p>&nbsp;</p>
+<p>The init/1 method of a gen_fsm is expected to return <span class="code inline">{ok, StateName, StateData}</span>.
+ StateName is the initial state of the server, and state data is the 
+initial data of the server. In the case of ErlyBank’s ATM, we start out 
+in the unauthorized state, and the data is set to <span class="code inline">nobody</span>.
+ The state data will be the account name we’ll be dealing with, so 
+initially its nothing. Erlang has no null/nil/nothing data type, and a 
+descriptive atom is usually used instead, like this one.</p>
+<h2>Account Authorization</h2>
+<p>We now need to implement the authorization API for the ATM. First, the API definition:</p>
+<div class="code">
+<pre><span style="color: rgb(240, 223, 175);">authorize</span>(<span style="color: rgb(240, 223, 175);">Name</span>, <span style="color: rgb(240, 223, 175);">PIN</span>) -&gt;
+  gen_fsm:sync_send_event(?<span style="color: rgb(220, 163, 163); font-weight: bold;">SERVER</span>, {authorize, <span style="color: rgb(240, 223, 175);">Name</span>, <span style="color: rgb(240, 223, 175);">PIN</span>}).</pre>
+</div>
+<p>The sync_send_event method is equivalent to the call method of 
+gen_server. It sends the message, the second argument, to the current 
+state of the server represented with the first argument. So now we have 
+to write a handler for the message:</p>
+<div class="code">
+<pre><span style="color: rgb(240, 223, 175);">unauthorized</span>({authorize, <span style="color: rgb(240, 223, 175);">Name</span>, <span style="color: rgb(240, 223, 175);">Pin</span>}, <span style="color: rgb(240, 223, 175);">_From</span>, <span style="color: rgb(240, 223, 175);">State</span>) -&gt;
+  <span style="color: rgb(240, 223, 175); font-weight: bold;">case</span> eb_server:authorize(<span style="color: rgb(240, 223, 175);">Name</span>, <span style="color: rgb(240, 223, 175);">Pin</span>) <span style="color: rgb(240, 223, 175); font-weight: bold;">of</span>
+    ok -&gt;
+      {reply, ok, authorized, <span style="color: rgb(240, 223, 175);">Name</span>};
+    {error, <span style="color: rgb(240, 223, 175);">Reason</span>} -&gt;
+      {reply, {error, <span style="color: rgb(240, 223, 175);">Reason</span>}, unauthorized, <span style="color: rgb(240, 223, 175);">State</span>}
+  <span style="color: rgb(240, 223, 175); font-weight: bold;">end</span>;
+<span style="color: rgb(240, 223, 175);">unauthorized</span>(<span style="color: rgb(240, 223, 175);">_Event</span>, <span style="color: rgb(240, 223, 175);">_From</span>, <span style="color: rgb(240, 223, 175);">State</span>) -&gt;
+  <span style="color: rgb(240, 223, 175);">Reply</span> = {error, invalid_message},
+  {reply, <span style="color: rgb(240, 223, 175);">Reply</span>, unauthorized, <span style="color: rgb(240, 223, 175);">State</span>}.</pre>
+</div>
+<p>&nbsp;</p>
+<p>This should read pretty logically as well. The function is named <strong>unauthorized</strong> because that is the state we expect the message to be received at. We then write a matcher to match the tuple <span class="code inline">{authorize, Name, Pin}</span>. We then use the API methods exported by the server we wrote to authorize the user. </p>
+<p>If the account and PIN are valid, we send the response <span class="code inline">ok</span> back to the client. The format of the response is <span class="code inline">{reply, Response, NewStateName, NewStateData}</span>. Following that format, we’ve changed states to <strong>authorized</strong> and for the data we store the account name.</p>
+<p>If the account information was invalid, we respond with the error and
+ reason and stay in the same state with the same state data.</p>
+<p>Finally, we implement another catch-all function at the end. You 
+should do this throughout functional programming environments but it is <em>especially important</em>
+ here, since different states might be receiving actions meant for other
+ states. For example, what if, for some reason, someone attempts to 
+deposit while we’re still unauthenticated? We need a catch all to send 
+back an invalid message error. This is what we do here.</p>
+<h2>Deposits</h2>
+<p>Once we’re authorized, a user is going to either deposit or withdraw 
+from his or her bank account. We’re going to implement deposits using an
+ <strong>asynchronous</strong> call to the server. Again, this is a bit 
+insecure, since we’re not verifying the deposit was actually successful,
+ but since this is a fake bank, and an ATM prototype at best, I am 
+letting this slip. <img src="an-introduction-to-gen_fsm-erlybanks-atm_files/icon_wink.gif" alt=";)" class="wp-smiley"> </p>
+<p>First, the API! </p>
+<div class="code">
+<pre><span style="color: rgb(112, 128, 112);">%%</span><span style="color: rgb(127, 159, 127);">--------------------------------------------------------------------
+</span><span style="color: rgb(112, 128, 112);">%% </span><span style="color: rgb(127, 159, 127);">Function: deposit(Amount) -&gt; ok
+</span><span style="color: rgb(112, 128, 112);">%% </span><span style="color: rgb(127, 159, 127);">Description: Deposits a certain amount in the currently authorized
+</span><span style="color: rgb(112, 128, 112);">%% </span><span style="color: rgb(127, 159, 127);">account.
+</span><span style="color: rgb(112, 128, 112);">%%</span><span style="color: rgb(127, 159, 127);">--------------------------------------------------------------------
+</span><span style="color: rgb(240, 223, 175);">deposit</span>(<span style="color: rgb(240, 223, 175);">Amount</span>) -&gt;
+  gen_fsm:send_event(?<span style="color: rgb(220, 163, 163); font-weight: bold;">SERVER</span>, {deposit, <span style="color: rgb(240, 223, 175);">Amount</span>}).</pre>
+</div>
+<p>&nbsp;</p>
+<p>Simple, and this time we use the <span class="code inline">send_event/2</span> method instead of sync_send_event. This sends an asynchronous call to the server. Now the handling part…</p>
+<div class="code">
+<pre><span style="color: rgb(240, 223, 175);">authorized</span>({deposit, <span style="color: rgb(240, 223, 175);">Amount</span>}, <span style="color: rgb(240, 223, 175);">State</span>) -&gt;
+  eb_server:deposit(<span style="color: rgb(240, 223, 175);">State</span>, <span style="color: rgb(240, 223, 175);">Amount</span>),
+  {next_state, thank_you, <span style="color: rgb(240, 223, 175);">State</span>, 5000};
+<span style="color: rgb(240, 223, 175);">authorized</span>(<span style="color: rgb(240, 223, 175);">_Event</span>, <span style="color: rgb(240, 223, 175);">State</span>) -&gt;
+  {next_state, authorized, <span style="color: rgb(240, 223, 175);">State</span>}.</pre>
+</div>
+<p>&nbsp;</p>
+<p>Again, very simple. The method actual just forwards the information 
+to the eb_server deposit API we wrote, which will do all the validation.
+ But there is something strange in the return value of the deposit 
+method! Not only does the state change to thank_you, but there is this 
+odd “5000″ at the end there. That is actually a <em>timeout</em>. If no message is received in 5000 milliseconds (or 5 seconds), then a <span class="code inline">timeout</span> message is sent to the current state. Which leads us to our next topic…</p>
+<h2>The Short “Thank You!” State</h2>
+<p>Anyone (everyone?) who has gone to an ATM knows that after you’re 
+done banking, there is a short “Thank You” screen that shows up for a 
+little while. And although this really shouldn’t be implemented in the 
+back end, I wanted to show off the timeout feature of gen_fsm. After 
+5000 milliseconds, or if any other message is received, I swap the state
+ back over to “unauthorized” so the ATM can start over again for the 
+next customer. Here is the code:</p>
+<div class="code">
+<pre><span style="color: rgb(240, 223, 175);">thank_you</span>(timeout, <span style="color: rgb(240, 223, 175);">_State</span>) -&gt;
+  {next_state, unauthorized, nobody};
+<span style="color: rgb(240, 223, 175);">thank_you</span>(<span style="color: rgb(240, 223, 175);">_Event</span>, <span style="color: rgb(240, 223, 175);">_State</span>) -&gt;
+  {next_state, unauthorized, nobody}.</pre>
+</div>
+<p>&nbsp;</p>
+<p><strong>Note:</strong> The trained eye will note that both methods 
+are equal, and its unnecessary to have the first matcher. This is true, 
+and I just included the first matcher to be explicit about catching the 
+timeout.</p>
+<p>Here is the <a href="http://spawnlink.com/otp-intro-2-gen-fsm-eb-atm-deposits/index.html">complete eb_atm.erl up to this point</a>.</p>
+<h2>Withdrawals</h2>
+<p>Again, I will be leaving withdrawals as an exercise to the reader. 
+You can implement it any way you’d like! Just make sure it actually does
+ withdraw from the account <img src="an-introduction-to-gen_fsm-erlybanks-atm_files/icon_wink.gif" alt=";)" class="wp-smiley"> </p>
+<p>Here is <a href="http://spawnlink.com/otp-intro-2-gen-fsm-withdrawals/index.html">my eb_atm.erl</a> after implementing withdrawals. Note that successful withdrawals transition to the thank_you state with the timeout in place. </p>
+<h2>A Cancel-No-Matter-What Button</h2>
+<p>One of my biggest gripes of many machines is that there isn’t a big 
+“Cancel” button that cancels everything you have been doing. And though 
+I’ve found that killing the power to a machine does this cancel 
+functionality quite nicely, this isn’t an option for people at an ATM. 
+So let’s implement a giant cancel method which cancels the transaction, 
+no matter what state it is in. </p>
+<p>How would you do this? Well, using only the knowledge of this 
+article, I would guess that you’d put a cancel API method which sends a <span class="code inline">cancel</span> message to the event. Then in each event you can handle this and go back to the <span class="code inline">unauthorized</span> state.</p>
+<p>Witty, but not correct, by no fault of your own! I didn’t mention (or
+ I did extremely briefly, you probably missed it) that there is a method
+ <span class="code inline">gen_fsm:send_all_state_event/2</span> which sends a message, regardless of what state the server is in. We will use this, to keep our code <a href="http://en.wikipedia.org/wiki/index.html?curid=4092793">DRY</a>.</p>
+<p>Our API:</p>
+<div class="code">
+<pre><span style="color: rgb(112, 128, 112);">%%</span><span style="color: rgb(127, 159, 127);">--------------------------------------------------------------------
+</span><span style="color: rgb(112, 128, 112);">%% </span><span style="color: rgb(127, 159, 127);">Function: cancel/0
+</span><span style="color: rgb(112, 128, 112);">%% </span><span style="color: rgb(127, 159, 127);">Description: Cancels the ATM transaction no matter what state.
+</span><span style="color: rgb(112, 128, 112);">%%</span><span style="color: rgb(127, 159, 127);">--------------------------------------------------------------------
+</span><span style="color: rgb(240, 223, 175);">cancel</span>() -&gt;
+  gen_fsm:send_all_state_event(?<span style="color: rgb(220, 163, 163); font-weight: bold;">SERVER</span>, cancel).</pre>
+</div>
+<p>&nbsp;</p>
+<p>This event is sent to the <span class="code inline">handle_event/3</span> method, which we extend below:</p>
+<div class="code">
+<pre><span style="color: rgb(240, 223, 175);">handle_event</span>(cancel, <span style="color: rgb(240, 223, 175);">_StateName</span>, <span style="color: rgb(240, 223, 175);">_State</span>) -&gt;
+  {next_state, unauthorized, nobody};
+<span style="color: rgb(240, 223, 175);">handle_event</span>(<span style="color: rgb(240, 223, 175);">_Event</span>, <span style="color: rgb(240, 223, 175);">StateName</span>, <span style="color: rgb(240, 223, 175);">State</span>) -&gt;
+  {next_state, <span style="color: rgb(240, 223, 175);">StateName</span>, <span style="color: rgb(240, 223, 175);">State</span>}.</pre>
+</div>
+<p>&nbsp;</p>
+<p>If we receive the cancel message, the server resets the state to unauthorized and the state data to nobody: a fresh ATM!</p>
+<p>As always, the current complete state of eb_atm.erl <a href="http://spawnlink.com/otp-intro-2-gen-fsm-eb-atm-cancel/index.html">can be viewed here</a>.</p>
+<h2>Final Notes</h2>
+<p>In this article, I showed you how to create a basic ATM system using <a href="http://www.erlang.org/doc/man/gen_fsm.html">gen_fsm</a>.
+ I showed you how to handle messages in a given state, change states, 
+change states with timeouts, and send-to-all messages, among other 
+things.</p>
+<p>There are some warts in the system though, and I leave it to you to 
+fix them. Here are two exercises for you to do, if you wish. Trust me, 
+you have the ability:</p>
+<ol>
+<li>Add error checking to deposits. Make it return <span class="code inline">{error, Reason}</span> and <span class="code inline">{ok, Balance}</span> instead of just “ok” all the time.</li>
+<li>Add a “check my balance” function to the ATM. This should only be available while authorized, and should <em>not</em>
+ end the transaction. This means that it should not send the user to the
+ thank_you state. This is so that after seeing their balance, the user 
+can withdraw/deposit if necessary.</li>
+</ol>
+<p>These two features of the exercise won’t be used in future articles, 
+and as such I won’t post the answers here. You can test them yourself to
+ make sure they work! <img src="an-introduction-to-gen_fsm-erlybanks-atm_files/icon_smile.gif" alt=":)" class="wp-smiley"> </p>
+<p>Part two of this Erlang/OTP series is over. The third article is 
+already in the pipeline and will be published in another few days. It 
+will cover <a href="http://www.erlang.org/doc/man/gen_event.html">gen_event</a>. For fun, you can think what I’ll be adding to ErlyBank using this! <img src="an-introduction-to-gen_fsm-erlybanks-atm_files/icon_biggrin.gif" alt=":D" class="wp-smiley"> </p>
+<p>I hope you have been enjoying these introductions to Erlang/OTP as 
+much as I’ve enjoyed writing them. Thanks for all the support, and good 
+luck!</p>
+									</div>
+				<ul class="meta">
+					<li class="tags">Tags: <a href="http://spawnlink.com/articles/tag/beginner/index.html" rel="tag">beginner</a>, <a href="http://spawnlink.com/articles/tag/erlang/index.html" rel="tag">erlang</a>, <a href="http://spawnlink.com/articles/tag/erlybank/index.html" rel="tag">erlybank</a>, <a href="http://spawnlink.com/articles/tag/gen_fsm/index.html" rel="tag">gen_fsm</a>, <a href="http://spawnlink.com/articles/tag/otp-introduction/index.html" rel="tag">otp introduction</a></li>
+					<li>Meta:
+						<a href="http://spawnlink.com/articles/an-introduction-to-gen_fsm-erlybanks-atm/index.html#comments">14 comments</a>,
+						<a href="http://spawnlink.com/articles/an-introduction-to-gen_fsm-erlybanks-atm/index.html" rel="bookmark">permalink</a>,
+						<a href="http://spawnlink.com/articles/an-introduction-to-gen_fsm-erlybanks-atm/feed/index.html">rss</a>					</li>
+				</ul>
+				<!-- <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+				xmlns:dc="http://purl.org/dc/elements/1.1/"
+				xmlns:trackback="http://madskills.com/public/xml/rss/module/trackback/">
+			<rdf:Description rdf:about="http://spawnlink.com/articles/an-introduction-to-gen_fsm-erlybanks-atm/"
+    dc:identifier="http://spawnlink.com/articles/an-introduction-to-gen_fsm-erlybanks-atm/"
+    dc:title="An introduction to gen_fsm: ErlyBank&#8217;s ATM"
+    trackback:ping="http://spawnlink.com/articles/an-introduction-to-gen_fsm-erlybanks-atm/trackback/" />
+</rdf:RDF> -->
+			</div>
+
+			<h5><a name="trackbacks">Trackbacks</a></h5>
+					<p>Use <a href="http://spawnlink.com/articles/an-introduction-to-gen_fsm-erlybanks-atm/index.html" rel="trackback">this link</a> to trackback from your own site.</p>
+		
+		
+	<h5><a name="comments">Comments</a></h5>
+						<p><a href="http://spawnlink.com/articles/an-introduction-to-gen_fsm-erlybanks-atm/index.html#commentform">Leave a response</a></p>
+				
+	
+			<div id="comments_div">
+			<ol id="comments" class="comments">
+
+							<li class="comment" id="comment-44">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-gen_fsm-erlybanks-atm_files/c48fff96ea2bf539a7939ca6d94f2443.jpeg" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n"><a href="http://jicksta.com/" rel="external nofollow">Jay Phillips</a></span></span>
+						<abbr class="comment-published" title="2008-09-08T10:39:38-04:00">Sep 08, 2008 10:39</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>Wow, you keep putting out great blog posts! gen_fsm is 
+definitely something that’s not documented well anywhere. Keep up the 
+great work!</p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-45">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-gen_fsm-erlybanks-atm_files/ea56ccf76f99b961b2d66a0b4b8359a7.png" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n"><a href="http://www.locknet.ro/" rel="external nofollow">aurelian</a></span></span>
+						<abbr class="comment-published" title="2008-09-08T11:30:46-04:00">Sep 08, 2008 11:30</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>Mitchell, you’re doing an excellent work, really!</p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-46">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-gen_fsm-erlybanks-atm_files/ad516503a11cd5ca435acc9bb6523536.png" class="photo avatar avatar-48 avatar-default" height="48" width="48"> <span class="fn n"><a href="http://erl.nfshost.com/2008/09/08/intro-to-gen_fsm-and-gen_server/" rel="external nofollow">Halfbaked Ideas</a></span></span>
+						<abbr class="comment-published" title="2008-09-08T18:23:42-04:00">Sep 08, 2008 18:23</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p><strong>Intro to gen_fsm and gen_server…</strong></p>
+<p>Emacs…</p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-60">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-gen_fsm-erlybanks-atm_files/f448703af7f5b5c129982b0facaa9f57.png" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n"><a href="http://storymash.com/" rel="external nofollow">njharman</a></span></span>
+						<abbr class="comment-published" title="2008-09-13T06:33:36-04:00">Sep 13, 2008 06:33</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>These are nice intro’s.  A bit of a review for me but your 
+writing style is enjoyable to read and you hit the sweetspot between 
+“too simplistic” and “overwhelming detail”.</p>
+<p>The skeletons are nice too.</p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-72">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-gen_fsm-erlybanks-atm_files/b6e09e1fbd4b46319dc29711d4de8d8a.png" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n">David Cabana</span></span>
+						<abbr class="comment-published" title="2008-09-14T08:08:19-04:00">Sep 14, 2008 08:08</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>Mitchell, </p>
+<p>My compliments on an outstanding series of posts. Let me ask a 
+question concerning the relationship between this post’s authorization 
+mechanism and the previous post’s bank account mechanism. I’m trying to 
+understand the big picture here.</p>
+<p>Imagine a potential bad guy is trying to make an unauthorized 
+withdrawal. The security mechanism as illustrated works if the bad guy 
+uses eb_atm:authorize/2 and eb_atm:authorize/1 API.  On the other hand, 
+the bad guy could just call eb_server:withdraw/2 and make off with the 
+goods.  </p>
+<p>I understand the system as written is a prototype for didactic 
+purposes. What I am wondering is how one would go about locking it down 
+(I have not read ahead in the series, maybe you address this later).  My
+ guess is that one would not register the name of eb_server, and instead
+ allow access to it only by its PID, and then take care that only eb_atm
+ and other authorized processes had access to that PID.  Is this the 
+correct approach?</p>
+<p>David</p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-73">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-gen_fsm-erlybanks-atm_files/b6e09e1fbd4b46319dc29711d4de8d8a.png" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n">David Cabana</span></span>
+						<abbr class="comment-published" title="2008-09-14T09:04:48-04:00">Sep 14, 2008 09:04</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>Mitchell,</p>
+<p>I hope you won’t mind another question.  I’m trying to understand the
+ concurrency aspects of your example, and also trying to understand the 
+role of the State parameter.</p>
+<p>As you pointed out, there is an unfortunate overloading of the 
+concept of state in gen_fsm.  A finite state automaton has a set of 
+transition states (T-states).  In your example these are the states 
+{unauthorized, authorized, thank_you}.  In gen_fsm there is another 
+concept of state, a piece of data which I’ll call a D-state.  The 
+starting state of eb_atm is the pair of  {T-state, D-state} == 
+{unauthorized, nobody}.</p>
+<p>Suppose a user called “Joe” authenticates.  The machine state goes 
+from {unauthorized, nobody} to {authorized, “Joe”}.  Joe is standing at 
+the ATM trying to make up his mind about how much money to withdraw, 
+maybe calling his wife to ask her.  What is happening to incoming 
+authentication messages from other users?  </p>
+<p>It looks to me like every clause which handles messages while eb_atm 
+is in the  “authorized” T-state requires the message to provide a 
+D-state parameter matching “Joe”.  Presumably that match does not occur,
+ or authentication is broken. Does this mean the messages are piling up 
+in the process mailbox?  If so, isn’t the whole authentication mechanism
+ in effect blocking while Joe goes about his business?</p>
+<p>Thanks,<br>
+David</p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-74">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-gen_fsm-erlybanks-atm_files/2828f28fb012308a7786eee83b8293c5.jpeg" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n"><a href="http://mitchellhashimoto.com/" rel="external nofollow">Mitchell</a></span></span>
+						<abbr class="comment-published" title="2008-09-14T11:38:04-04:00">Sep 14, 2008 11:38</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>Hi David,</p>
+<p>Great questions! Really great! I’ll answer them one at a time… So to 
+answer your first question: I don’t quite remember (and it’s far too 
+early for my lazy self to look <img src="an-introduction-to-gen_fsm-erlybanks-atm_files/icon_wink.gif" alt=";)" class="wp-smiley">
+ ) if I mentioned it in this article or the last, but I did mention this
+ security issue. There are a number of ways to solve it. Your idea about
+ not registering the server is one option, but then assuming the 
+malicious user has access to the system, there are always easy ways to 
+look up the PID of a running process. <img src="an-introduction-to-gen_fsm-erlybanks-atm_files/icon_sad.gif" alt=":(" class="wp-smiley">
+ The solution I would use would be to return a session hash after 
+calling eb_server:authorize. The server would maintain a hashmap to map a
+ hash to a given account. In subsequent withdrawal/deposit methods, 
+eb_server would require the hash be sent in instead of the account name.
+ Additionally, hashes should expire after a set amount of time. This is 
+pretty basic security, not at all meant for a true to life bank 
+application. I don’t want anyone to think that I’ve ever actually meant 
+for this to be a very secure application, as its just meant to show off 
+the features of OTP. <img src="an-introduction-to-gen_fsm-erlybanks-atm_files/icon_smile.gif" alt=":)" class="wp-smiley"> </p>
+<p>To answer your second question: I’m only thinking of one ATM terminal
+ in this example, but I do fail to mention that. If there are multiple 
+ATM terminals then the gen_fsm would have to exist in multiple running 
+processes: one for each terminal. I would do this by creating an “ATM 
+server” for lack of better words. When each ATM terminal boots up, it’d 
+register itself with the server, and the server would spawn off a 
+process of eb_atm (not registered), and return the PID to the calling 
+ATM terminal. Then, the terminal can send all requests to this PID. 
+Using this method, it is very easy to add and remove multiple ATM 
+terminals without changes to the code.</p>
+<p>Hopefully my answers were straightforward enough… the two issues you 
+brought up are very insightful but also not truly meant for the 
+beginner-scope of this series. But I enjoy discussing them, so feel free
+ to ask any more <img src="an-introduction-to-gen_fsm-erlybanks-atm_files/icon_smile.gif" alt=":)" class="wp-smiley"> </p>
+<p>Mitchell</p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-75">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-gen_fsm-erlybanks-atm_files/b6e09e1fbd4b46319dc29711d4de8d8a.png" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n"><a href="http://erl.nfshost.com/" rel="external nofollow">David Cabana</a></span></span>
+						<abbr class="comment-published" title="2008-09-14T13:03:53-04:00">Sep 14, 2008 13:03</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>Thank, Mitchell, I will keep asking questions!  I am not a 
+total beginner at Erlang, but I have never gotten to use it 
+professionally, only some late night dabbling when the kids are asleep. 
+ I want to get my head around OTP, and have found there is a severe lack
+ of approachable, simple examples out there, especially of parts other 
+than gen_server.  Your gen_fsm example was most appreciated. I look 
+forward to the rest of your series. </p>
+<p>I had in mind one bank, one ATM server, and many ATM terminals.  Your
+ suggestion of one ATM per ATM terminal makes perfect sense.</p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-76">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-gen_fsm-erlybanks-atm_files/9367d0448b8fc3e6d7f6cd421940ac62.jpeg" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n"><a href="http://concise-software.blogspot.com/" rel="external nofollow">Alain O'Dea</a></span></span>
+						<abbr class="comment-published" title="2008-09-14T17:22:15-04:00">Sep 14, 2008 17:22</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>I have not had a chance to comment up until now, but now that I do…</p>
+<p>This is a brilliant series. It is really helping me dig in on OTP. I 
+think I have had a pretty solid grasp of Erlang the language for, but my
+ grasp of Erlang/OTP as a platform was much less solid. Through articles
+ provide a really good launch point for getting “over the hump” between 
+knowing Erlang and knowing Erlang/OTP. Thanks <img src="an-introduction-to-gen_fsm-erlybanks-atm_files/icon_smile.gif" alt=":)" class="wp-smiley"></p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-134">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-gen_fsm-erlybanks-atm_files/afa79197904eeb26d8691d68acfa1f3b.png" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n">David Weldon</span></span>
+						<abbr class="comment-published" title="2008-09-29T11:02:55-04:00">Sep 29, 2008 11:02</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>Going back to the multiple FSMs idea from David C: lets say I 
+have a system where I have thousands of live transactions and each one 
+only lives for a few seconds. The nature of each transaction is an FSM, 
+so using gen_fsm makes sense. Like the ATMs, each transaction has its 
+own state so I’d need thousands of little servers. Does it make sense 
+that I spawn a new gen_fsm server for each transaction, or should I use 
+some kind of static pool of available servers?</p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-140">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-gen_fsm-erlybanks-atm_files/2828f28fb012308a7786eee83b8293c5.jpeg" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n"><a href="http://mitchellhashimoto.com/" rel="external nofollow">Mitchell</a></span></span>
+						<abbr class="comment-published" title="2008-09-29T15:09:56-04:00">Sep 29, 2008 15:09</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>David,</p>
+<p>From what I’ve found, when in doubt, just spawn a new process <img src="an-introduction-to-gen_fsm-erlybanks-atm_files/icon_razz.gif" alt=":P" class="wp-smiley">
+ Erlang processes are extremely lightweight and spawn extremely fast. 
+But under extremely heavy traffic, OTP can get a bit heavy. From what 
+I’ve experienced, however, its better to just stick to the standards 
+rather than grow-your-own solution. After hitting the OTP “limit” I 
+would scale horizontally by distributed your Erlang application rather 
+than worry about rewriting the whole thing w/o OTP.</p>
+<p>Mitchell</p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-801">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-gen_fsm-erlybanks-atm_files/26a7f0387f1e7f61543bd9003cc8c053.png" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n">Denis Laprise</span></span>
+						<abbr class="comment-published" title="2008-11-20T11:05:26-05:00">Nov 20, 2008 11:05</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>Hello,</p>
+<p>Unusual question, but what did you use to draw your sequence diagram? <img src="an-introduction-to-gen_fsm-erlybanks-atm_files/icon_smile.gif" alt=":)" class="wp-smiley"><br>
+Thanks!</p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-1069">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-gen_fsm-erlybanks-atm_files/20196c9dc97267632ce6e6b778361eae.png" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n"><a href="http://nickelcode.com/" rel="external nofollow">John Bender</a></span></span>
+						<abbr class="comment-published" title="2008-12-16T10:20:15-05:00">Dec 16, 2008 10:20</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>Mitchell,</p>
+<p>What are you using for your syntax highlighting?</p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-3065">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="an-introduction-to-gen_fsm-erlybanks-atm_files/5fc8cea1601c20d815b2e616bb103636.png" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n">Matt</span></span>
+						<abbr class="comment-published" title="2009-03-05T08:06:21-05:00">Mar 05, 2009 08:06</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>Simple, concise easy to understand article.</p>
+<p>Thank you</p>
+					</div>
+				</li>
+
+			
+			</ol>
+		</div><!-- #comments_div (id needs rename) -->
+
+	
+
+
+
+<form action="http://spawnlink.com/wp-comments-post.php" class="comments" id="commentform" method="post">
+
+<fieldset>
+  <legend>Comments</legend>
+  
+    <p>
+      <label>Name: <small>(required)</small><br>
+        <input name="author" id="author" size="30" tabindex="1" type="text">
+      </label>
+    </p>
+
+    <p>
+      <label>Email: <small>(required)</small><br>
+        <input name="email" id="email" size="30" tabindex="2" type="text">
+        <small>(will not be published)</small>
+      </label>
+    </p>
+
+    <p>
+      <label>Url:<br>
+        <input name="url" id="url" size="30" tabindex="3" type="text">
+      </label>
+    </p>
+
+  
+  <!--<p><small><strong>XHTML:</strong> You can use these tags: &lt;a href=&quot;&quot; title=&quot;&quot;&gt; &lt;abbr title=&quot;&quot;&gt; &lt;acronym title=&quot;&quot;&gt; &lt;b&gt; &lt;blockquote cite=&quot;&quot;&gt; &lt;cite&gt; &lt;code&gt; &lt;del datetime=&quot;&quot;&gt; &lt;em&gt; &lt;i&gt; &lt;q cite=&quot;&quot;&gt; &lt;strike&gt; &lt;strong&gt; </small></p>-->
+
+  <p>
+      Comments:<br>
+      <textarea name="comment" id="comment" cols="100%" rows="20" tabindex="4"></textarea></p>
+
+  <p>
+    <input name="submit" id="submit" tabindex="5" value="Submit" type="submit">
+    <input name="comment_post_ID" value="52" type="hidden">
+  </p>
+  </fieldset>
+</form>
+
+
+
+
+			<div class="navigation">
+				<div class="alignleft">« <a href="http://spawnlink.com/articles/an-introduction-to-gen_server-erlybank/index.html">An Introduction to gen_server: “ErlyBank”</a></div>
+				<div class="alignright"><a href="http://spawnlink.com/articles/an-introduction-to-gen_event-account-notifications/index.html">An introduction to gen_event: Account Notifications</a> »</div>
+			</div>
+
+
+		</div><!-- #content -->
+
+<div id="sidebar">
+	<ul>
+			<li id="search" class="search">
+		<form id="searchform" method="get" action="../../index.html">
+	<div>
+		<input id="s" name="s" value="Search..." type="text">
+	</div>
+</form>
+		</li>
+		
+		<li><h2 class="sidebar-title">About</h2>
+		  <div>
+		    <img src="an-introduction-to-gen_fsm-erlybanks-atm_files/photo.gif">
+		  </div>
+		  <p>
+		  I'm <a href="http://mitchellhashimoto.com/">Mitchell Hashimoto</a>, and this is my <a href="http://erlang.org/">Erlang</a> blog, made with the goal of
+		  expanding the general knowledge of Erlang tools and best practices.
+		  </p>
+ 		  <p>
+		  This blog is now in <b>read-only</b> mode. Since I haven't worked with Erlang in some time, I'm no longer updating this blog, but will keep it up for reference.
+		  </p>       
+		</li>
+		
+		<li id="syndicate"><h2 class="sidebar-title">Subscribe</h2>
+		  <p><a href="http://spawnlink.com/feeds.feedburner.com/spawn_link" rel="alternate" type="application/rss+xml"><img src="an-introduction-to-gen_fsm-erlybanks-atm_files/feed-icon16x16.png" alt=""></a>&nbsp;
+			<a href="http://spawnlink.com/feeds.feedburner.com/spawn_link"><img src="an-introduction-to-gen_fsm-erlybanks-atm_files/spawn_link.gif" style="border: 0pt none;" alt="" height="26" width="88"></a></p>
+		</li>
+
+		<li id="tags"><h2 class="sidebar-title">Popular Tags</h2>
+			<ul>
+			<a href="http://spawnlink.com/articles/tag/application/index.html" class="tag-link-22" title="2 topics" rel="tag" style="font-size: 9.27273pt;">application</a>
+<a href="http://spawnlink.com/articles/tag/bank-manager/index.html" class="tag-link-15" title="1 topic" rel="tag" style="font-size: 8pt;">bank manager</a>
+<a href="http://spawnlink.com/articles/tag/beginner/index.html" class="tag-link-6" title="7 topics" rel="tag" style="font-size: 15.6364pt;">beginner</a>
+<a href="http://spawnlink.com/articles/tag/best-practices/index.html" class="tag-link-9" title="1 topic" rel="tag" style="font-size: 8pt;">best practices</a>
+<a href="http://spawnlink.com/articles/tag/configuration/index.html" class="tag-link-32" title="1 topic" rel="tag" style="font-size: 8pt;">configuration</a>
+<a href="http://spawnlink.com/articles/tag/erlang/index.html" class="tag-link-5" title="12 topics" rel="tag" style="font-size: 22pt;">erlang</a>
+<a href="http://spawnlink.com/articles/tag/erlybank/index.html" class="tag-link-19" title="6 topics" rel="tag" style="font-size: 14.3636pt;">erlybank</a>
+<a href="http://spawnlink.com/articles/tag/eunit/index.html" class="tag-link-27" title="1 topic" rel="tag" style="font-size: 8pt;">eunit</a>
+<a href="http://spawnlink.com/articles/tag/gen_event/index.html" class="tag-link-20" title="1 topic" rel="tag" style="font-size: 8pt;">gen_event</a>
+<a href="http://spawnlink.com/articles/tag/gen_fsm/index.html" class="tag-link-18" title="1 topic" rel="tag" style="font-size: 8pt;">gen_fsm</a>
+<a href="http://spawnlink.com/articles/tag/gen_server/index.html" class="tag-link-16" title="1 topic" rel="tag" style="font-size: 8pt;">gen_server</a>
+<a href="http://spawnlink.com/articles/tag/guides/index.html" class="tag-link-4" title="3 topics" rel="tag" style="font-size: 10.5455pt;">guides</a>
+<a href="http://spawnlink.com/articles/tag/hot-code-swapping/index.html" class="tag-link-10" title="2 topics" rel="tag" style="font-size: 9.27273pt;">hot code swapping</a>
+<a href="http://spawnlink.com/articles/tag/otp/index.html" class="tag-link-8" title="4 topics" rel="tag" style="font-size: 11.8182pt;">otp</a>
+<a href="http://spawnlink.com/articles/tag/otp-guide/index.html" class="tag-link-25" title="1 topic" rel="tag" style="font-size: 8pt;">otp guide</a>
+<a href="http://spawnlink.com/articles/tag/otp-introduction/index.html" class="tag-link-17" title="7 topics" rel="tag" style="font-size: 15.6364pt;">otp introduction</a>
+<a href="http://spawnlink.com/articles/tag/otp-tutorial/index.html" class="tag-link-24" title="1 topic" rel="tag" style="font-size: 8pt;">otp tutorial</a>
+<a href="http://spawnlink.com/articles/tag/otp-upgrade/index.html" class="tag-link-26" title="1 topic" rel="tag" style="font-size: 8pt;">otp upgrade</a>
+<a href="http://spawnlink.com/articles/tag/releases/index.html" class="tag-link-23" title="1 topic" rel="tag" style="font-size: 8pt;">releases</a>
+<a href="http://spawnlink.com/articles/tag/resources/index.html" class="tag-link-7" title="1 topic" rel="tag" style="font-size: 8pt;">resources</a>
+<a href="http://spawnlink.com/articles/tag/russian/index.html" class="tag-link-31" title="1 topic" rel="tag" style="font-size: 8pt;">russian</a>
+<a href="http://spawnlink.com/articles/tag/supervisor/index.html" class="tag-link-21" title="1 topic" rel="tag" style="font-size: 8pt;">supervisor</a>
+<a href="http://spawnlink.com/articles/tag/translated/index.html" class="tag-link-30" title="1 topic" rel="tag" style="font-size: 8pt;">translated</a>
+<a href="http://spawnlink.com/articles/tag/unit-testing/index.html" class="tag-link-28" title="1 topic" rel="tag" style="font-size: 8pt;">unit testing</a>			</ul>
+		</li>
+
+		<li id="archives"><h2 class="sidebar-title">Archives</h2>
+			<ul>
+				<li><a href="http://spawnlink.com/articles/2009/07/index.html" title="July 2009">July 2009</a></li>
+	<li><a href="http://spawnlink.com/articles/2009/03/index.html" title="March 2009">March 2009</a></li>
+	<li><a href="http://spawnlink.com/articles/2008/09/index.html" title="September 2008">September 2008</a></li>
+	<li><a href="http://spawnlink.com/articles/2008/08/index.html" title="August 2008">August 2008</a></li>
+			</ul>
+		</li>
+
+				</ul>
+</div><!-- #sidebar -->
+
+
+		<br class="clear">
+	</div><!--// #page -->
+
+	<div id="footer">
+	<hr>
+	<p><a href="http://spawnlink.com/index.html">spawn_link</a></p>
+	<ul>
+		<li><a href="http://wordpress.org/" title="WordPress Engine">WordPress</a> | 
+			<span class="vcard">
+				<a class="url fn n" rel="follow designer" title="Simplish Style" href="http://labs.utopian.net/blogs/simplish/">
+					<span class="given-name">Simplish</span>
+					<span class="additional-name hidden"> from <span class="org">Utopian.net Labs</span></span>
+				</a>
+			</span>
+		</li>
+	</ul>
+	</div><!--// #footer -->
+</div><!--// #container -->
+
+<!--// Original theme design by Jeffrey Allen Hardy - http://quotedprintable.com/pages/scribbish -->
+<!--// Initial Typo to WordPress theme port by Kenny Pitt - http://pittcrew.net/geekblog/scribbishwp -->
+
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script><script src="an-introduction-to-gen_fsm-erlybanks-atm_files/ga.js" type="text/javascript"></script>
+<script type="text/javascript">
+var pageTracker = _gat._getTracker("UA-97719-7");
+pageTracker._trackPageview();
+</script>
+<!-- Dynamic Page Served (once) in 0.317 seconds -->
+<!-- Cached page served by WP-Cache -->
+</body></html>

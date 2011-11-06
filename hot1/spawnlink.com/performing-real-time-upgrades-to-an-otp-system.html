@@ -1,0 +1,557 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head profile="http://gmpg.org/xfn/11">
+
+
+
+	<title>Performing Real-time Upgrades to an OTP System | spawn_link</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<link rel="stylesheet" href="performing-real-time-upgrades-to-an-otp-system_files/style.css" type="text/css" media="all" title="Simplish">
+	<link rel="alternate" type="application/rss+xml" title="spawn_link RSS Feed" href="http://spawnlink.com/feeds.feedburner.com/spawn_link">
+	<link rel="alternate" type="application/rss+xml" title="spawn_link comments RSS Feed" href="http://spawnlink.com/comments/feed/index.html">
+	<link rel="alternate" type="application/atom+xml" title="spawn_link Atom Feed" href="http://spawnlink.com/feeds.feedburner.com/spawn_link">
+	<link rel="pingback" href="http://spawnlink.com/xmlrpc.php">
+	<link rel="archives" title="July 2009" href="http://spawnlink.com/articles/2009/07/index.html">
+	<link rel="archives" title="March 2009" href="http://spawnlink.com/articles/2009/03/index.html">
+	<link rel="archives" title="September 2008" href="http://spawnlink.com/articles/2008/09/index.html">
+	<link rel="archives" title="August 2008" href="http://spawnlink.com/articles/2008/08/index.html">
+
+<link rel="EditURI" type="application/rsd+xml" title="RSD" href="http://spawnlink.com/xmlrpc.php?rsd">
+<link rel="wlwmanifest" type="application/wlwmanifest+xml" href="http://spawnlink.com/wp-includes/wlwmanifest.xml"> 
+<meta name="generator" content="WordPress 2.6.1">
+
+
+<!-- all in one seo pack 1.4.6.13 [208,274] -->
+<meta name="description" content="This is the seventh and final article of the Erlang/OTP introduction series. If you haven't already, I recommend you read the first article which lays the">
+<meta name="keywords" content="erlang,erlybank,hot code swapping,otp introduction,otp upgrade">
+<!-- /all in one seo pack -->
+
+</head><body>
+<div id="container">
+	<div id="header">
+		<h1><span><a href="http://spawnlink.com/index.html">spawn_link</a></span></h1>
+		<h2>Linking You to Erlang</h2>
+	</div>
+	<div id="page">
+<!-- goto ^(index page image archive ...).php:/^div#content -->
+
+		<div id="content">
+
+
+			<div class="hentry" id="article-144">
+				<h2 class="entry-title">Performing Real-time Upgrades to an OTP System</h2>
+
+				<div class="posted">Posted by <span class="entry-author author vcard"><a class="url fn n" href="http://spawnlink.com/articles/author/admin/index.html" title="More posts by Mitchell">Mitchell</a></span>					<abbr class="published posted_date" title="2008-09-24T09:19:17-04:00">on September 24, 2008</abbr>
+				</div>
+				<br class="clear">	
+				<div class="entry-content">
+					<p>This is the seventh and final article of the Erlang/OTP introduction series. If you haven’t already, I recommend you <a href="http://spawnlink.com/articles/an-introduction-to-gen_server-erlybank/index.html">read the first article</a>
+ which lays the foundation for the application which we’ll be upgrading 
+in addition to teaching you the basics of Erlang/OTP before jumping into
+ the topic of this article. If you’re a quick learner or you wish to 
+jump straight into this article, you may <a href="http://spawnlink.com/wp-content/uploads/2008/09/otp_part_6.zip">click here to download a ZIP</a> of all the files up to this point. </p>
+<p><strong>The Scenario:</strong> ErlyBank has been running strong for a
+ few months now and based on customer feedback, the bank wants to 
+implement some additional features. First, they want us to implement a 
+credit-based account. This is similar to a normal account except that 
+withdrawals may be made to go into the negative, meaning that money is 
+owed on the credit account. They also want us to change the ATM so that 
+people can only use the ATM to pay bills with a credit account. And to 
+top this all off, they want us to do these upgrades without significant 
+downtime.</p>
+<p><strong>The Result:</strong> We’ll create a credit server to easily 
+add a credit account system and following that we’ll change the ATM. 
+Luckily for us, once we make these changes, there is a straightforward 
+way of upgrading the system in real-time so that ErlyBank won’t 
+experience much, if any, downtime.</p>
+<p><span id="more-144"></span></p>
+<h2>Credit Based Account</h2>
+<p>First things first, we need to implement the credit based account. 
+ErlyBank wants a completely different server to handle this feature so I
+ created eb_credit.erl as another gen_server to handle the creation and 
+logic behind credit accounts. If you wish to challenge yourself I 
+recommend trying to write this yourself first. The only features 
+necessary are creating an account, withdrawing, and depositing (paying 
+bills) since that is all we will use in this article. For fun you can 
+also implement other features such as deleting accounts, sending events 
+to the event manager, etc. </p>
+<p>Since this article is about real-time upgrades and not more about gen_server, I’ve created the eb_credit.erl file already, <a href="http://spawnlink.com/otp-intro-7-upgrades-eb-credit/index.html">which you can view here</a>.</p>
+<h2>Changes to ATM</h2>
+<p>ErlyBank also wanted changes to the ATM so that if a person logs in 
+with a credit account, they are only allowed to deposit money to pay off
+ a negative balance or gain a positive balance. For this, I am going to 
+change the authorize method of eb_server to actually check the credit 
+server too. And eb_server:authorize will return ok and tell the caller 
+what kind of account it is. These are a lot of changes so I’ll walk you 
+through the basics of what I did. <strong>Note:</strong> There are some 
+very obvious problems with this approach, since it is possible that a 
+credit account and debit account have the same name and PIN, in which 
+case the authorize may return the wrong account. The reason I’m making 
+these “mistakes” is to demonstrate different methods of release 
+upgrades. After this article, if you wish, you can try and fix up the 
+server to be a bit more realistic. </p>
+<div class="code">
+<pre><span style="color: rgb(240, 223, 175);">authorize</span>(<span style="color: rgb(240, 223, 175);">Name</span>, <span style="color: rgb(240, 223, 175);">PIN</span>) -&gt;
+  <span style="color: rgb(240, 223, 175); font-weight: bold;">case</span> gen_server:call(?<span style="color: rgb(220, 163, 163); font-weight: bold;">SERVER</span>, {authorize, <span style="color: rgb(240, 223, 175);">Name</span>, <span style="color: rgb(240, 223, 175);">PIN</span>}) <span style="color: rgb(240, 223, 175); font-weight: bold;">of</span>
+    ok -&gt;
+      {ok, debit};
+    {error, <span style="color: rgb(240, 223, 175);">_Reason</span>} -&gt;
+      <span style="color: rgb(240, 223, 175); font-weight: bold;">case</span> eb_credit:authorize(<span style="color: rgb(240, 223, 175);">Name</span>, <span style="color: rgb(240, 223, 175);">PIN</span>) <span style="color: rgb(240, 223, 175); font-weight: bold;">of</span>
+        ok -&gt;
+          {ok, credit};
+        {error, <span style="color: rgb(240, 223, 175);">Reason</span>} -&gt;
+          {error, <span style="color: rgb(240, 223, 175);">Reason</span>}
+      <span style="color: rgb(240, 223, 175); font-weight: bold;">end</span>
+  <span style="color: rgb(240, 223, 175); font-weight: bold;">end</span>.</pre>
+</div>
+<p>&nbsp;</p>
+<p>This method should seem pretty straightforward by now. It first 
+checks to see if there is a debit account with the name and pin, and if 
+so, returns <span class="code inline">{ok, debit}</span>, otherwise it checks for a credit account. </p>
+<p>After changing the authorize method for the server, we need to change
+ the authorization method for the ATM to note the credit account. 
+Remember that ErlyBank wants credit accounts to be able to deposit, but <em>not withdraw</em> money. Using Erlang’s pattern matching, implementing this change is trivial.</p>
+<div class="code">
+<pre><span style="color: rgb(240, 223, 175);">unauthorized</span>({authorize, <span style="color: rgb(240, 223, 175);">Name</span>, <span style="color: rgb(240, 223, 175);">Pin</span>}, <span style="color: rgb(240, 223, 175);">_From</span>, <span style="color: rgb(240, 223, 175);">State</span>) -&gt;
+  <span style="color: rgb(240, 223, 175); font-weight: bold;">case</span> eb_server:authorize(<span style="color: rgb(240, 223, 175);">Name</span>, <span style="color: rgb(240, 223, 175);">Pin</span>) <span style="color: rgb(240, 223, 175); font-weight: bold;">of</span>
+    {ok, debit} -&gt;
+      {reply, ok, authorized, <span style="color: rgb(240, 223, 175);">Name</span>};
+    {ok, credit} -&gt;
+      {reply, ok, authorized, {credit, <span style="color: rgb(240, 223, 175);">Name</span>}};
+    {error, <span style="color: rgb(240, 223, 175);">Reason</span>} -&gt;
+      {reply, {error, <span style="color: rgb(240, 223, 175);">Reason</span>}, unauthorized, <span style="color: rgb(240, 223, 175);">State</span>}
+  <span style="color: rgb(240, 223, 175); font-weight: bold;">end</span>;</pre>
+</div>
+<p>&nbsp;</p>
+<p>First is to change the authorization request for the ATM. Its a 
+simple change to test whether the response is either credit or debit. If
+ the response is debit, we make no changes and the same code as the 
+previous eb_atm is used. If it is a credit account, the internal state 
+data of the ATM is set to <span class="code inline">{credit, Name}</span>. </p>
+<p>Now to restrict withdrawing to only debit accounts, we can just check
+ to make sure the state is a list (a “string” in Erlang) in the deposit 
+method, as you can see here:</p>
+<div class="code">
+<pre><span style="color: rgb(240, 223, 175);">authorized</span>({withdraw, <span style="color: rgb(240, 223, 175);">Amount</span>}, <span style="color: rgb(240, 223, 175);">_From</span>, <span style="color: rgb(240, 223, 175);">State</span>) <span style="color: rgb(240, 223, 175); font-weight: bold;">when</span> <span style="color: rgb(220, 163, 163); font-weight: bold;">is_list</span>(<span style="color: rgb(240, 223, 175);">State</span>) -&gt;</pre>
+</div>
+<p>&nbsp;</p>
+<p>Now when a credit account attempts to withdraw, it will just give an 
+invalid error message since it’ll skip down to the catch-all function. 
+For the authorization methods, this is now done:</p>
+<div class="code">
+<pre><span style="color: rgb(240, 223, 175);">authorized</span>({deposit, <span style="color: rgb(240, 223, 175);">Amount</span>}, {credit, <span style="color: rgb(240, 223, 175);">Account</span>}=<span style="color: rgb(240, 223, 175);">State</span>) -&gt;
+  eb_credit:deposit(<span style="color: rgb(240, 223, 175);">Account</span>, <span style="color: rgb(240, 223, 175);">Amount</span>),
+  {next_state, thank_you, <span style="color: rgb(240, 223, 175);">State</span>, 5000};
+<span style="color: rgb(240, 223, 175);">authorized</span>({deposit, <span style="color: rgb(240, 223, 175);">Amount</span>}, <span style="color: rgb(240, 223, 175);">State</span>) -&gt;
+  eb_server:deposit(<span style="color: rgb(240, 223, 175);">State</span>, <span style="color: rgb(240, 223, 175);">Amount</span>),
+  {next_state, thank_you, <span style="color: rgb(240, 223, 175);">State</span>, 5000};
+<span style="color: rgb(240, 223, 175);">authorized</span>(<span style="color: rgb(240, 223, 175);">_Event</span>, <span style="color: rgb(240, 223, 175);">State</span>) -&gt;
+  {next_state, authorized, <span style="color: rgb(240, 223, 175);">State</span>}.</pre>
+</div>
+<p>&nbsp;</p>
+<p>The first function catches credit accounts and deposits its to them, 
+the second will catch debit accounts, and the final catches invalid 
+messages.</p>
+<p>That should do it for the changes to the ATM!</p>
+<h2>Release Handling Instructions</h2>
+<p>Finally, to the interesting part. In Erlang/OTP an upgrade is given a
+ set of instructions on how to transition from one version to the next. 
+Each instruction is a tuple that is part of a list, where each 
+instruction is executed in order of the list. There are a few 
+instructions described as <em>high-level upgrade instructions</em>, and then there are <em>low-level upgrade instructions</em>. A brief list is given below:</p>
+<ul>
+<li><span class="code inline">{load_module, Module}</span> - Simply 
+reloads a new version of the module Module. If no internal state of a 
+module is changed and simply new code is added or changed, this command 
+is sufficient. An example is if you have a math library and simply fix a
+ bug and add a new method.</li>
+<li><span class="code inline">{update, Module, {advanced, Extra}}</span>
+ - If internal state is changed of a module, simply reloading a new 
+version will not work as it will corrupt the current state for running 
+processes. The update command calls the callback <tt>code_change</tt> passing the current state and <tt>Extra</tt>.
+ Following this call, the module is updated to the latest version. The 
+code_change callback function should be used to update the state to the 
+newest format.</li>
+<li><span class="code inline">{add_module/delete_module, Module}</span> -
+ If a new module is introduced, add_module simply loads it into the 
+address space. If a module is removed, delete_module deletes it. Any 
+running processes from delete_module are killed.</li>
+<li><span class="code inline">{apply, {M, F, A}}</span> - A low level instruction which applies the function onto the running system.</li>
+</ul>
+<p>There are many more but the above are the most common that I’ve used. You can view <a href="http://www.erlang.org/doc/man/appup.html">the rest here</a>.</p>
+<h2>ErlyBank Upgrade Instructions</h2>
+<p>Now, thinking back on the changes we made, what upgrade instructions 
+do we need, and in what order? The following are the changes:</p>
+<ul>
+<li>New module, eb_credit.erl</li>
+<li>Changed internal state of eb_server</li>
+<li>Changed code of eb_atm</li>
+<li>Added eb_credit to the supervisor</li>
+</ul>
+<p>For a fun challenge, you can try to think of the instructions needed 
+to upgrade erlybank now. The following is the order and instructions I 
+will use, accompanied with reasons:</p>
+<ol>
+<li><span class="code inline">{add_module, eb_credit}</span> - Adding 
+the module won’t do much except load it into the memory space. But the 
+other instructions are dependent on this so I do this first.</li>
+<li><span class="code inline">{update, eb_sup, supervisor}</span> - Next, updating the supervisor so that eb_credit will be started.</li>
+<li><span class="code inline">{load_module, eb_server}</span> - eb_server depends on eb_credit running, and now that it is we can load that up!</li>
+<li><span class="code inline">{update, eb_atm, {advanced, []}}</span> - 
+Finally we update the ATM with an advanced update since the internal 
+state changed. We do this last since it depends on eb_server.</li>
+</ol>
+<p>The above instructions must go into an application upgrade file (an “appup” file), which has the following general format:</p>
+<div class="code">
+<pre>{NewVsn,
+  [{OldVsn1, [Instructions]}],
+  [{OldVsn1, [Instructions]}]
+}.</pre>
+</div>
+<p>&nbsp;</p>
+<p>The first value is the new version, followed by a list of tuples. 
+Each tuple represents an upgrade path for a specific version, with a 
+list of instructions to upgrade from that version. The next list is the 
+same format as the first list but contains instructions for downgrading 
+to that version. Following this format, the application upgrade file for
+ ErlyBank looks like this:</p>
+<div class="code">
+<pre>{"2.0",
+ [{"1.0", [{add_module, eb_credit},
+           {update, eb_sup, supervisor},
+           {load_module, eb_server},
+           {update, eb_atm, {advanced, []}},
+            ]}],
+  [{"1.0", [{update, eb_atm, {advanced, []}},
+           {load_module, eb_server},
+           {update, eb_sup, supervisor},
+           {delete_module, eb_credit}]}
+ ]
+}.</pre>
+</div>
+<p>&nbsp;</p>
+<p>As you can see, the instructions are the same except in the opposite 
+order for the upgrade/downgrade paths. And we only need to be able to 
+upgrade/downgrade from version 1 since that is the only other version! 
+This file should be saved as <strong>erlybank.appup</strong> and should be placed in the <tt>ebin/</tt> directory with the app file.</p>
+<p>Also, at this point, you should update the rel file to have the new version “2″ and rename it to eb_rel-2.rel. </p>
+<h2>Release Upgrade File</h2>
+<p>There also needs to be a release upgrade file, or relup file, to 
+describe how the entire release should be upgraded. Luckily for us, this
+ doesn’t need to be manually created. Start an erlang shell in the root 
+directory of ErlyBank and append <tt>ebin/</tt> to the code path, along 
+with the prior version’s ebin path and path to the location of the prior
+ version’s rel file, which you should know how to do by now. If not, the
+ complete command for me is: <tt>erl -pz ebin/ -pz ../old/ -pz ../old/ebin</tt>. Then invoke the following command:</p>
+<div class="code">
+<pre>systools:make_relup("eb_rel-2", ["eb_rel-1"], ["eb_rel-1"]).</pre>
+</div>
+<p>&nbsp;</p>
+<p>If it was able to find all the files, it should return with an <span class="code inline">ok</span>.
+ If not, there should be a descriptive error of what happened. This 
+command should create a “relup” file in the working directory.</p>
+<h2>Packaging and Installing ErlyBank 2.0</h2>
+<p>You should also know how to package the release now, it is the same as in the last article. If you’re unsure, <a href="http://spawnlink.com/articles/an-introduction-to-releases-with-erlybank/index.html">go back and reference the previous article</a>.
+ The first steps to installing the release are also the same as the last
+ article, so unpack the release in the releases directory.</p>
+<p>After unpacking the release, since we already have a prior release running in memory, we need to <strong>install</strong> this new release. Installing a release will run the relup file commands. To do this, invoke:</p>
+<div class="code inline">
+<pre>release_handler:install_release("2").</pre>
+</div>
+<p>&nbsp;</p>
+<p>Now, although the new release is installed, the “current” code is 
+still version 1. To make version 2 the new default, you must mark it as 
+permanent by using the following command:</p>
+<div class="code inline">
+<pre>release_handler:make_permanent("2").</pre>
+</div>
+<p>&amp;nsbp;</p>
+<p>And that’s it! ErlyBank has been seamlessly upgraded.</p>
+<h2>Final Notes</h2>
+<p>In this article, I introduced real-time upgrades to an OTP system. I 
+covered the most used release instructions and guided you through 
+upgrading the old system. There were some upgrade instructions I forced 
+into this article, however. For example, although the internal state of 
+eb_atm changed, it wasn’t necessary to do the advanced update of the 
+code since we didn’t change the structure of the old state information, 
+just added new state information. If you’d like to learn more about 
+application and release upgrades, I recommend reading the <a href="http://erlang.org/doc/design_principles/appup_cookbook.html">appup cookbook</a>. </p>
+<p>With the conclusion of this article, the series is also concluded, 
+almost as soon as it started. I have more posts coming up next week, but
+ hopefully this series has helped more people become more familiar with 
+OTP and its true power. </p>
+<p>Ah, one final thing, if you want to download all the final files for this project, you can <a href="http://spawnlink.com/wp-content/uploads/2008/09/finalotp.zip">download the ZIP here.</a></p>
+									</div>
+				<ul class="meta">
+					<li class="tags">Tags: <a href="http://spawnlink.com/articles/tag/erlang/index.html" rel="tag">erlang</a>, <a href="http://spawnlink.com/articles/tag/erlybank/index.html" rel="tag">erlybank</a>, <a href="http://spawnlink.com/articles/tag/hot-code-swapping/index.html" rel="tag">hot code swapping</a>, <a href="http://spawnlink.com/articles/tag/otp-introduction/index.html" rel="tag">otp introduction</a>, <a href="http://spawnlink.com/articles/tag/otp-upgrade/index.html" rel="tag">otp upgrade</a></li>
+					<li>Meta:
+						<a href="http://spawnlink.com/articles/performing-real-time-upgrades-to-an-otp-system/index.html#comments">6 comments</a>,
+						<a href="http://spawnlink.com/articles/performing-real-time-upgrades-to-an-otp-system/index.html" rel="bookmark">permalink</a>,
+						<a href="http://spawnlink.com/articles/performing-real-time-upgrades-to-an-otp-system/feed/index.html">rss</a>					</li>
+				</ul>
+				<!-- <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+				xmlns:dc="http://purl.org/dc/elements/1.1/"
+				xmlns:trackback="http://madskills.com/public/xml/rss/module/trackback/">
+			<rdf:Description rdf:about="http://spawnlink.com/articles/performing-real-time-upgrades-to-an-otp-system/"
+    dc:identifier="http://spawnlink.com/articles/performing-real-time-upgrades-to-an-otp-system/"
+    dc:title="Performing Real-time Upgrades to an OTP System"
+    trackback:ping="http://spawnlink.com/articles/performing-real-time-upgrades-to-an-otp-system/trackback/" />
+</rdf:RDF> -->
+			</div>
+
+			<h5><a name="trackbacks">Trackbacks</a></h5>
+					<p>Use <a href="http://spawnlink.com/articles/performing-real-time-upgrades-to-an-otp-system/index.html" rel="trackback">this link</a> to trackback from your own site.</p>
+		
+		
+	<h5><a name="comments">Comments</a></h5>
+						<p><a href="http://spawnlink.com/articles/performing-real-time-upgrades-to-an-otp-system/index.html#commentform">Leave a response</a></p>
+				
+	
+			<div id="comments_div">
+			<ol id="comments" class="comments">
+
+							<li class="comment" id="comment-111">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="performing-real-time-upgrades-to-an-otp-system_files/ad516503a11cd5ca435acc9bb6523536.png" class="photo avatar avatar-48 avatar-default" height="48" width="48"> <span class="fn n"><a href="http://zhesto.wordpress.com/2008/09/26/links-for-2008-09-25/" rel="external nofollow">links for 2008-09-25 « Bloggitation</a></span></span>
+						<abbr class="comment-published" title="2008-09-25T13:23:32-04:00">Sep 25, 2008 13:23</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>[...] Performing Real-time Upgrades to an OTP System (tags: erlang programming spawnlink) [...]</p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-156">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="performing-real-time-upgrades-to-an-otp-system_files/208f44461495c7cb94792652eaa8996e.png" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n">Ricardo</span></span>
+						<abbr class="comment-published" title="2008-09-30T11:24:39-04:00">Sep 30, 2008 11:24</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>I managed to unpack and release the version 2, but get the following error when trying to install the new release:<br>
+4&gt; release_handler:which_releases().<br>
+[{"eb_rel","2",<br>
+  ["kernel-2.12","stdlib-1.15","sasl-2.1.5.2","erlybank-2.0"],<br>
+  unpacked},<br>
+ {”eb_rel”,”1″,<br>
+  ["kernel-2.12","stdlib-1.15","sasl-2.1.5.2","erlybank-1.0"],<br>
+  unpacked},<br>
+ {”OTP  APN 181 01″,”R12B”,<br>
+  ["kernel-2.12","stdlib-1.15","sasl-2.1.5.2"],<br>
+  permanent}]<br>
+5&gt; release_handler:install_release(”2″).<br>
+{error,{enoent,”/opt/local/lib/erlang/releases/R12B/relup”}}</p>
+<p>Why is the system trying to find the relup file in the R12B directory and not in the 2 directory where it really is?</p>
+<p>Thanks.</p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-165">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="performing-real-time-upgrades-to-an-otp-system_files/29fb0ff711f531ebbc28a155622e7855.jpeg" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n">Tim</span></span>
+						<abbr class="comment-published" title="2008-10-01T09:52:28-04:00">Oct 01, 2008 09:52</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>I had this same problem.  I even tried moving the relup file 
+where it would be found, but then it just complained that the relup file
+ was bad.</p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-523">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="performing-real-time-upgrades-to-an-otp-system_files/701c64ecab07765a4dfc3debe0fa4c0b.png" class="photo avatar avatar-48" height="48" width="48"> <span class="fn n">David</span></span>
+						<abbr class="comment-published" title="2008-10-30T08:00:20-04:00">Oct 30, 2008 08:00</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>I got the same problem too.  any1 knows why?</p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-1062">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="performing-real-time-upgrades-to-an-otp-system_files/ad516503a11cd5ca435acc9bb6523536.png" class="photo avatar avatar-48 avatar-default" height="48" width="48"> <span class="fn n"><a href="http://nickelcode.com/2008/12/15/erlang-and-cloud-computing-a-fine-pair-indeed/" rel="external nofollow">nickelcode » Erlang and Cloud Computing: A Fine Pair Indeed</a></span></span>
+						<abbr class="comment-published" title="2008-12-15T20:52:20-05:00">Dec 15, 2008 20:52</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>[...] bug fixes or features. Before jumping at the “with a 
+little forethought”, take a read here and see how easy it really is. And
+ it is easy, but even if it was hard when was the last time you [...]</p>
+					</div>
+				</li>
+
+							<li class="comment" id="comment-9376">
+					<div class="comment-head">
+						<span class="comment-author vcard"><img alt="" src="performing-real-time-upgrades-to-an-otp-system_files/ad516503a11cd5ca435acc9bb6523536.png" class="photo avatar avatar-48 avatar-default" height="48" width="48"> <span class="fn n"><a href="http://streamhacker.com/2009/07/02/how-to-create-an-erlang-first-target-system/" rel="external nofollow">How to Create an Erlang First Target System « streamhacker.com</a></span></span>
+						<abbr class="comment-published" title="2009-07-02T07:20:38-04:00">Jul 02, 2009 07:20</abbr>
+												<small></small>
+					</div>
+					<div class="content">
+						<p>[...] of the neatest aspects of erlang is the OTP release 
+system, which allows you to do real-time upgrades of your application 
+code. But before you can take advantage of it, you need to create a 
+embedded [...]</p>
+					</div>
+				</li>
+
+			
+			</ol>
+		</div><!-- #comments_div (id needs rename) -->
+
+	
+
+
+
+<form action="http://spawnlink.com/wp-comments-post.php" class="comments" id="commentform" method="post">
+
+<fieldset>
+  <legend>Comments</legend>
+  
+    <p>
+      <label>Name: <small>(required)</small><br>
+        <input name="author" id="author" size="30" tabindex="1" type="text">
+      </label>
+    </p>
+
+    <p>
+      <label>Email: <small>(required)</small><br>
+        <input name="email" id="email" size="30" tabindex="2" type="text">
+        <small>(will not be published)</small>
+      </label>
+    </p>
+
+    <p>
+      <label>Url:<br>
+        <input name="url" id="url" size="30" tabindex="3" type="text">
+      </label>
+    </p>
+
+  
+  <!--<p><small><strong>XHTML:</strong> You can use these tags: &lt;a href=&quot;&quot; title=&quot;&quot;&gt; &lt;abbr title=&quot;&quot;&gt; &lt;acronym title=&quot;&quot;&gt; &lt;b&gt; &lt;blockquote cite=&quot;&quot;&gt; &lt;cite&gt; &lt;code&gt; &lt;del datetime=&quot;&quot;&gt; &lt;em&gt; &lt;i&gt; &lt;q cite=&quot;&quot;&gt; &lt;strike&gt; &lt;strong&gt; </small></p>-->
+
+  <p>
+      Comments:<br>
+      <textarea name="comment" id="comment" cols="100%" rows="20" tabindex="4"></textarea></p>
+
+  <p>
+    <input name="submit" id="submit" tabindex="5" value="Submit" type="submit">
+    <input name="comment_post_ID" value="144" type="hidden">
+  </p>
+  </fieldset>
+</form>
+
+
+
+
+			<div class="navigation">
+				<div class="alignleft">« <a href="http://spawnlink.com/articles/where-did-the-articles-go/index.html">Where did the articles go?</a></div>
+				<div class="alignright"><a href="http://spawnlink.com/articles/getting-started-with-eunit/index.html">Getting Started With EUnit</a> »</div>
+			</div>
+
+
+		</div><!-- #content -->
+
+<div id="sidebar">
+	<ul>
+			<li id="search" class="search">
+		<form id="searchform" method="get" action="../../index.html">
+	<div>
+		<input id="s" name="s" value="Search..." type="text">
+	</div>
+</form>
+		</li>
+		
+		<li><h2 class="sidebar-title">About</h2>
+		  <div>
+		    <img src="performing-real-time-upgrades-to-an-otp-system_files/photo.gif">
+		  </div>
+		  <p>
+		  I'm <a href="http://mitchellhashimoto.com/">Mitchell Hashimoto</a>, and this is my <a href="http://erlang.org/">Erlang</a> blog, made with the goal of
+		  expanding the general knowledge of Erlang tools and best practices.
+		  </p>
+ 		  <p>
+		  This blog is now in <b>read-only</b> mode. Since I haven't worked with Erlang in some time, I'm no longer updating this blog, but will keep it up for reference.
+		  </p>       
+		</li>
+		
+		<li id="syndicate"><h2 class="sidebar-title">Subscribe</h2>
+		  <p><a href="http://spawnlink.com/feeds.feedburner.com/spawn_link" rel="alternate" type="application/rss+xml"><img src="performing-real-time-upgrades-to-an-otp-system_files/feed-icon16x16.png" alt=""></a>&nbsp;
+			<a href="http://spawnlink.com/feeds.feedburner.com/spawn_link"><img src="performing-real-time-upgrades-to-an-otp-system_files/spawn_link.gif" style="border: 0pt none;" alt="" height="26" width="88"></a></p>
+		</li>
+
+		<li id="tags"><h2 class="sidebar-title">Popular Tags</h2>
+			<ul>
+			<a href="http://spawnlink.com/articles/tag/application/index.html" class="tag-link-22" title="2 topics" rel="tag" style="font-size: 9.27273pt;">application</a>
+<a href="http://spawnlink.com/articles/tag/bank-manager/index.html" class="tag-link-15" title="1 topic" rel="tag" style="font-size: 8pt;">bank manager</a>
+<a href="http://spawnlink.com/articles/tag/beginner/index.html" class="tag-link-6" title="7 topics" rel="tag" style="font-size: 15.6364pt;">beginner</a>
+<a href="http://spawnlink.com/articles/tag/best-practices/index.html" class="tag-link-9" title="1 topic" rel="tag" style="font-size: 8pt;">best practices</a>
+<a href="http://spawnlink.com/articles/tag/configuration/index.html" class="tag-link-32" title="1 topic" rel="tag" style="font-size: 8pt;">configuration</a>
+<a href="http://spawnlink.com/articles/tag/erlang/index.html" class="tag-link-5" title="12 topics" rel="tag" style="font-size: 22pt;">erlang</a>
+<a href="http://spawnlink.com/articles/tag/erlybank/index.html" class="tag-link-19" title="6 topics" rel="tag" style="font-size: 14.3636pt;">erlybank</a>
+<a href="http://spawnlink.com/articles/tag/eunit/index.html" class="tag-link-27" title="1 topic" rel="tag" style="font-size: 8pt;">eunit</a>
+<a href="http://spawnlink.com/articles/tag/gen_event/index.html" class="tag-link-20" title="1 topic" rel="tag" style="font-size: 8pt;">gen_event</a>
+<a href="http://spawnlink.com/articles/tag/gen_fsm/index.html" class="tag-link-18" title="1 topic" rel="tag" style="font-size: 8pt;">gen_fsm</a>
+<a href="http://spawnlink.com/articles/tag/gen_server/index.html" class="tag-link-16" title="1 topic" rel="tag" style="font-size: 8pt;">gen_server</a>
+<a href="http://spawnlink.com/articles/tag/guides/index.html" class="tag-link-4" title="3 topics" rel="tag" style="font-size: 10.5455pt;">guides</a>
+<a href="http://spawnlink.com/articles/tag/hot-code-swapping/index.html" class="tag-link-10" title="2 topics" rel="tag" style="font-size: 9.27273pt;">hot code swapping</a>
+<a href="http://spawnlink.com/articles/tag/otp/index.html" class="tag-link-8" title="4 topics" rel="tag" style="font-size: 11.8182pt;">otp</a>
+<a href="http://spawnlink.com/articles/tag/otp-guide/index.html" class="tag-link-25" title="1 topic" rel="tag" style="font-size: 8pt;">otp guide</a>
+<a href="http://spawnlink.com/articles/tag/otp-introduction/index.html" class="tag-link-17" title="7 topics" rel="tag" style="font-size: 15.6364pt;">otp introduction</a>
+<a href="http://spawnlink.com/articles/tag/otp-tutorial/index.html" class="tag-link-24" title="1 topic" rel="tag" style="font-size: 8pt;">otp tutorial</a>
+<a href="http://spawnlink.com/articles/tag/otp-upgrade/index.html" class="tag-link-26" title="1 topic" rel="tag" style="font-size: 8pt;">otp upgrade</a>
+<a href="http://spawnlink.com/articles/tag/releases/index.html" class="tag-link-23" title="1 topic" rel="tag" style="font-size: 8pt;">releases</a>
+<a href="http://spawnlink.com/articles/tag/resources/index.html" class="tag-link-7" title="1 topic" rel="tag" style="font-size: 8pt;">resources</a>
+<a href="http://spawnlink.com/articles/tag/russian/index.html" class="tag-link-31" title="1 topic" rel="tag" style="font-size: 8pt;">russian</a>
+<a href="http://spawnlink.com/articles/tag/supervisor/index.html" class="tag-link-21" title="1 topic" rel="tag" style="font-size: 8pt;">supervisor</a>
+<a href="http://spawnlink.com/articles/tag/translated/index.html" class="tag-link-30" title="1 topic" rel="tag" style="font-size: 8pt;">translated</a>
+<a href="http://spawnlink.com/articles/tag/unit-testing/index.html" class="tag-link-28" title="1 topic" rel="tag" style="font-size: 8pt;">unit testing</a>			</ul>
+		</li>
+
+		<li id="archives"><h2 class="sidebar-title">Archives</h2>
+			<ul>
+				<li><a href="http://spawnlink.com/articles/2009/07/index.html" title="July 2009">July 2009</a></li>
+	<li><a href="http://spawnlink.com/articles/2009/03/index.html" title="March 2009">March 2009</a></li>
+	<li><a href="http://spawnlink.com/articles/2008/09/index.html" title="September 2008">September 2008</a></li>
+	<li><a href="http://spawnlink.com/articles/2008/08/index.html" title="August 2008">August 2008</a></li>
+			</ul>
+		</li>
+
+				</ul>
+</div><!-- #sidebar -->
+
+
+		<br class="clear">
+	</div><!--// #page -->
+
+	<div id="footer">
+	<hr>
+	<p><a href="http://spawnlink.com/index.html">spawn_link</a></p>
+	<ul>
+		<li><a href="http://wordpress.org/" title="WordPress Engine">WordPress</a> | 
+			<span class="vcard">
+				<a class="url fn n" rel="follow designer" title="Simplish Style" href="http://labs.utopian.net/blogs/simplish/">
+					<span class="given-name">Simplish</span>
+					<span class="additional-name hidden"> from <span class="org">Utopian.net Labs</span></span>
+				</a>
+			</span>
+		</li>
+	</ul>
+	</div><!--// #footer -->
+</div><!--// #container -->
+
+<!--// Original theme design by Jeffrey Allen Hardy - http://quotedprintable.com/pages/scribbish -->
+<!--// Initial Typo to WordPress theme port by Kenny Pitt - http://pittcrew.net/geekblog/scribbishwp -->
+
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script><script src="performing-real-time-upgrades-to-an-otp-system_files/ga.js" type="text/javascript"></script>
+<script type="text/javascript">
+var pageTracker = _gat._getTracker("UA-97719-7");
+pageTracker._trackPageview();
+</script>
+<!-- Dynamic Page Served (once) in 0.212 seconds -->
+<!-- Cached page served by WP-Cache -->
+</body></html>

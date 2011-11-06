@@ -1,0 +1,12 @@
+# erl shell
+c(eb_server).
+eb_server:start_link().
+eb_server:create_account("alex").
+eb_server:deposit("alex", 100).
+eb_server:withdraw("alex", 10).
+eb_server:withdraw("alex", 100).
+eb_server:deposit("alex", 20).
+eb_server:delete_account("alex").
+eb_server:deposit("alex", 20).
+flush().
+init:stop().
