@@ -9,9 +9,6 @@
 
 -behaviour(gen_fsm).
 
--define(debug_log_macros, true).
--include("log.hrl").
-
 %% API
 -export([start_link/0,
 	 authorize/2]).
@@ -121,10 +118,8 @@ thank_you(_Event, _State) ->
 %% name as the current state name StateName is called to handle the event.
 %%--------------------------------------------------------------------
 unauthorized({authorize, Name, Pin}, _From, State) ->
-  ?log_msg1("unauthorized {authorize, Name=~p, Pin=~p}", [Name, Pin]),
   case eb_server:authorize(Name, Pin) of
     ok ->
-      ?log_msg1("eb_server:authorize(Name=~p, Pin=~p) ok", [Name, Pin]),
       {reply, ok, authorized, Name};
     {error, Reason} ->
       {reply, {error, Reason}, unauthorized, State}
@@ -144,8 +139,7 @@ authorized(_Msg, _From, State) ->
   {reply, {error, invalid_message}, authorized, State}.
 
 thank_you(_Msg, _From, State) ->
-  %{reply, {error, invalid_message}, unauthorized, State}.
-  {reply, thank_you, unauthorized, State}.
+  {reply, {error, invalid_message}, unauthorized, State}.
 
 %%--------------------------------------------------------------------
 %% Function:

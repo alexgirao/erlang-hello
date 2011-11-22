@@ -8,4 +8,5 @@
 
 main() ->
     ?log_msg0("alpha"),
-    ?log_msg1("~p~n", [bravo]).
+    ?log_msg1("~p~n", [bravo]),
+    ?log_msg1("~p/~p~n", [charlie, delta]).

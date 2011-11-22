@@ -9,9 +9,6 @@
 
 -behaviour(gen_server).
 
--define(debug_log_macros, true).
--include("log.hrl").
-
 %% API
 -export([start_link/0,
         create_account/2,
@@ -136,7 +133,6 @@ handle_call(_Request, _From, State) ->
 %% Description: Handling cast messages
 %%--------------------------------------------------------------------
 handle_cast({create, Name, PIN}, State) ->
-  ?log_msg1("handle_cast {create, Name=~p, PIN=~p}", [Name, PIN]),
   {noreply, dict:store(Name, {PIN, 0}, State)};
 handle_cast({destroy, Name}, State) ->
   {noreply, dict:erase(Name, State)};

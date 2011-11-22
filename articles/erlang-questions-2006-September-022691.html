@@ -1,0 +1,76 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+   <title> [erlang-questions] scope of variables
+   </title>
+   <link rel="Index" href="http://erlang.org/pipermail/erlang-questions/2006-September/index.html">
+   <link rel="made" href="mailto:erlang-questions%40erlang.org?Subject=Re%3A%20%5Berlang-questions%5D%20scope%20of%20variables&amp;In-Reply-To=%3C44FC32C9.50804%40it.uu.se%3E">
+   <meta name="robots" content="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <link rel="Previous" href="http://erlang.org/pipermail/erlang-questions/2006-September/022690.html">
+   <link rel="Next" href="http://erlang.org/pipermail/erlang-questions/2006-September/022679.html">
+ </head>
+ <body bgcolor="#ffffff">
+   <h1>[erlang-questions] scope of variables</h1>
+    <b>Richard Carlsson</b> 
+    <a href="mailto:erlang-questions%40erlang.org?Subject=Re%3A%20%5Berlang-questions%5D%20scope%20of%20variables&amp;In-Reply-To=%3C44FC32C9.50804%40it.uu.se%3E" title="[erlang-questions] scope of variables">&lt;<img src="erlang-questions-2006-September-022691_files/ema-540.png" border="0">&gt;
+       </a><br>
+    <i>Mon Sep  4 16:06:01 CEST 2006</i>
+    <p></p><ul>
+        <li>Previous message: <a href="http://erlang.org/pipermail/erlang-questions/2006-September/022690.html">[erlang-questions] scope of variables
+</a></li>
+        <li>Next message: <a href="http://erlang.org/pipermail/erlang-questions/2006-September/022679.html">Mnesia dB size limits 
+</a></li>
+         <li> <b>Messages sorted by:</b> 
+              <a href="http://erlang.org/pipermail/erlang-questions/2006-September/date.html#22691">[ date ]</a>
+              <a href="http://erlang.org/pipermail/erlang-questions/2006-September/thread.html#22691">[ thread ]</a>
+              <a href="http://erlang.org/pipermail/erlang-questions/2006-September/subject.html#22691">[ subject ]</a>
+              <a href="http://erlang.org/pipermail/erlang-questions/2006-September/author.html#22691">[ author ]</a>
+         </li>
+       </ul>
+    <hr>  
+<!--beginarticle-->
+<pre>Erik Reitsma (RY/ETM) wrote:
+&gt;<i> Changing it to 
+</i>&gt;<i> 
+</i>&gt;<i> -define(foo(X), case X of [<img src="erlang-questions-2006-September-022691_files/ema-2859.png" border="0"><img src="erlang-questions-2006-September-022691_files/ema-2862.png" border="0">] -&gt; <img src="erlang-questions-2006-September-022691_files/ema-2861.png" border="0">@a end).
+</i>&gt;<i> 
+</i>&gt;<i> gives only warnings, but you cannot use this macro twice in the same
+</i>&gt;<i> scope:
+</i>
+True. You actually need to wrap the body in a fun-application to
+prevent it from exporting its bindings:
+
+-define(wrap(Body), ((fun ()-&gt; (Body) end)())).
+-define(foo(X), ?wrap( case X of [<img src="erlang-questions-2006-September-022691_files/ema-2859.png" border="0"><img src="erlang-questions-2006-September-022691_files/ema-2862.png" border="0">] -&gt; <img src="erlang-questions-2006-September-022691_files/ema-2861.png" border="0">@a end )).
+
+	/Richard
+
+
+</pre>
+
+<!--endarticle-->
+    <hr>
+    <p></p><ul>
+        <!--threads-->
+	<li>Previous message: <a href="http://erlang.org/pipermail/erlang-questions/2006-September/022690.html">[erlang-questions] scope of variables
+</a></li>
+	<li>Next message: <a href="http://erlang.org/pipermail/erlang-questions/2006-September/022679.html">Mnesia dB size limits 
+</a></li>
+         <li> <b>Messages sorted by:</b> 
+              <a href="http://erlang.org/pipermail/erlang-questions/2006-September/date.html#22691">[ date ]</a>
+              <a href="http://erlang.org/pipermail/erlang-questions/2006-September/thread.html#22691">[ thread ]</a>
+              <a href="http://erlang.org/pipermail/erlang-questions/2006-September/subject.html#22691">[ subject ]</a>
+              <a href="http://erlang.org/pipermail/erlang-questions/2006-September/author.html#22691">[ author ]</a>
+         </li>
+       </ul>
+
+<hr>
+<a href="http://erlang.org/mailman/listinfo/erlang-questions">More information about the erlang-questions
+mailing list</a><br>
+
+</body></html>

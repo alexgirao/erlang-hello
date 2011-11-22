@@ -1,0 +1,35 @@
+-file("./macro.erl", 1).
+
+-module(macro).
+
+-export([main/0]).
+
+-file("./macro.hrl", 1).
+
+-file("./macro.erl", 8).
+
+main() ->
+    fun() ->
+           true = is_list("alpha"),
+           error_logger:info_msg("~p:~p ~p: ~s",
+                                 [macro,10,self(),"alpha"])
+    end(),
+    fun() ->
+           F = "~p~n",
+           A = [bravo],
+           true = is_list(F),
+           true = is_list(A),
+           error_logger:info_msg("~p:~p ~p: ~s",
+                                 [macro,11,self(),io_lib:format(F, A)])
+    end(),
+    fun() ->
+           F = "~p/~p~n",
+           A = [charlie,delta],
+           true = is_list(F),
+           true = is_list(A),
+           error_logger:info_msg("~p:~p ~p: ~s",
+                                 [macro,12,self(),io_lib:format(F, A)])
+    end().
+
+
+

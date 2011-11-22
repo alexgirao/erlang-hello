@@ -15,4 +15,3 @@ main(_) ->
     Unsigned = tc32(tc32(Unsigned)),
     -3961800466 = tc32(tc32(tc32(Unsigned))),
     ok.
-

@@ -153,12 +153,15 @@ sa.erl / sa1.erl
 
     - self-application/fixed-point combinator/closures
 
-macro.erl / macro.hrl
+macro.erl / macro.hrl / macro.escript
 
     - defines
     - macro definition
     - library inclusion
     - error_logger module usage
+    - 'P': parsed code after preprocessing and parse transforms
+    - 'E': code after all source code transformations have been performed
+    - use of anonymous functions (fun) to protect variable names
 
 base36.escript
 
@@ -215,3 +218,7 @@ gb_trees0.erl
 loop-state.erl
 
     - how to manage state in processes
+
+twoscomplement.escript
+
+    - two's-complement system or two's-complement arithmetic

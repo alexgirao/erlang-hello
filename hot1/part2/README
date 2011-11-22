@@ -1,13 +1,23 @@
 c(eb_server).
-eb_server:start_link().
-eb_server:create_account("alex", 1234).
 c(eb_atm).   
+
+eb_server:start_link().
 eb_atm:start_link().
+
+eb_server:create_account("alex", 1234).
+
 eb_atm:authorize("alex", 1234).
 eb_atm:deposit(100).           
+
+eb_atm:authorize("alex", 1234).
 eb_atm:withdraw(30).
+
+eb_atm:authorize("alex", 1234).
 eb_atm:cancel().    
 eb_atm:deposit(100).           
+
 eb_atm:withdraw(30).
+
 flush(). 
+
 init:stop().
