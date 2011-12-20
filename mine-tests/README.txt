@@ -222,3 +222,8 @@ loop-state.erl
 twoscomplement.escript
 
     - two's-complement system or two's-complement arithmetic
+
+rand.escript
+
+    - random number generator
+    - list shuffle
