@@ -33,6 +33,6 @@ main(_Args) ->
 
     L0 = lists:sort(lists:sublist(shuffle(lists:seq(1, 60)), 6)),
 
-    io:format("~p~n", [L0]),
+    io:format("~w~n", [L0]),
 
     ok.
