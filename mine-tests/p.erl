@@ -68,7 +68,7 @@ main() ->
     Pong = spawn(fun pong/0),
 
     % serializing with a timer, because exit/2 acts immediately as
-    % oposed to the process message box
+    % opposed to the process message box
 
     erlang:start_timer(10, self(), ping), % pong 0
     erlang:start_timer(20, self(), {exit, normal}),

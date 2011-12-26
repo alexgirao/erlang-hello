@@ -11,23 +11,29 @@ main() ->
            error_logger:info_msg("~p:~p ~p: ~s",
                                  [macro,10,self(),"alpha"])
     end(),
-    % fun-info: {1,119830451,'-main/0-fun-1-'}
+    % fun-info: {1,50681794,'-main/0-fun-1-'}
     fun() ->
-           F = "~p~n",
-           A = [bravo],
-           true = is_list(F),
-           true = is_list(A),
+           F_log = "~p~n",
+           A_log = [bravo],
+           true = is_list(F_log),
+           true = is_list(A_log),
            error_logger:info_msg("~p:~p ~p: ~s",
-                                 [macro,11,self(),io_lib:format(F, A)])
+                                 [macro,
+                                  11,
+                                  self(),
+                                  io_lib:format(F_log, A_log)])
     end(),
-    % fun-info: {2,114511903,'-main/0-fun-2-'}
+    % fun-info: {2,119721388,'-main/0-fun-2-'}
     fun() ->
-           F = "~p/~p~n",
-           A = [charlie,delta],
-           true = is_list(F),
-           true = is_list(A),
+           F_log = "~p/~p~n",
+           A_log = [charlie,delta],
+           true = is_list(F_log),
+           true = is_list(A_log),
            error_logger:info_msg("~p:~p ~p: ~s",
-                                 [macro,12,self(),io_lib:format(F, A)])
+                                 [macro,
+                                  12,
+                                  self(),
+                                  io_lib:format(F_log, A_log)])
     end().
 
 module_info() ->

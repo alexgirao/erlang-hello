@@ -14,7 +14,7 @@
 
 -define(log_err0(M_log_err), ?log0(error_msg, M_log_err)).
 -define(log_err1(F_log_err, A_log_err), ?log1(error_msg, F_log_err, A_log_err)).
--define(log_msg0(M_log_err), ?log0(info_msg, M_log_err)).
--define(log_msg1(F_log_err, A_log_err), ?log1(info_msg, F_log_err, A_log_err)).
--define(log_wrn0(M_log_err), ?log0(warning_msg, M_log_err)).
--define(log_wrn1(F_log_err, A_log_err), ?log1(warning_msg, F_log_err, A_log_err)).
+-define(log_msg0(M_log_msg), ?log0(info_msg, M_log_msg)).
+-define(log_msg1(F_log_msg, A_log_msg), ?log1(info_msg, F_log_msg, A_log_msg)).
+-define(log_wrn0(M_log_wrn), ?log0(warning_msg, M_log_wrn)).
+-define(log_wrn1(F_log_wrn, A_log_wrn), ?log1(warning_msg, F_log_wrn, A_log_wrn)).

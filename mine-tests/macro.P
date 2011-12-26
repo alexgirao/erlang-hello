@@ -15,20 +15,26 @@ main() ->
                                  [macro,10,self(),"alpha"])
     end(),
     fun() ->
-           F = "~p~n",
-           A = [bravo],
-           true = is_list(F),
-           true = is_list(A),
+           F_log = "~p~n",
+           A_log = [bravo],
+           true = is_list(F_log),
+           true = is_list(A_log),
            error_logger:info_msg("~p:~p ~p: ~s",
-                                 [macro,11,self(),io_lib:format(F, A)])
+                                 [macro,
+                                  11,
+                                  self(),
+                                  io_lib:format(F_log, A_log)])
     end(),
     fun() ->
-           F = "~p/~p~n",
-           A = [charlie,delta],
-           true = is_list(F),
-           true = is_list(A),
+           F_log = "~p/~p~n",
+           A_log = [charlie,delta],
+           true = is_list(F_log),
+           true = is_list(A_log),
            error_logger:info_msg("~p:~p ~p: ~s",
-                                 [macro,12,self(),io_lib:format(F, A)])
+                                 [macro,
+                                  12,
+                                  self(),
+                                  io_lib:format(F_log, A_log)])
     end().
 
 

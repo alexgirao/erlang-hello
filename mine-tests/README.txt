@@ -227,3 +227,7 @@ rand.escript
 
     - random number generator
     - list shuffle
+
+timeout.escript
+
+    - how to timeout with the 'receiver' statement

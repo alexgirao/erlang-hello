@@ -95,12 +95,14 @@ unauthorized(_Event, State) ->
   {next_state, unauthorized, State}.
 
 authorized({deposit, Amount}, State) ->
-  eb_server:deposit(State, Amount),
+  {ok, _NewBalance} = eb_server:deposit(State, Amount),
+  %?log_msg1("deposit successful for ~p, new balance is ~p, new state is ~p", [State, NewBalance, thank_you]),
   {next_state, thank_you, State, 5000};
 authorized(_Event, State) ->
   {next_state, authorized, State}.
 
 thank_you(timeout, _State) ->
+  ?log_msg0("thank_you state timeout, going to unauthorized state"),
   {next_state, unauthorized, nobody};
 thank_you(_Event, _State) ->
   {next_state, unauthorized, nobody}.
@@ -121,16 +123,16 @@ thank_you(_Event, _State) ->
 %% name as the current state name StateName is called to handle the event.
 %%--------------------------------------------------------------------
 unauthorized({authorize, Name, Pin}, _From, State) ->
-  ?log_msg1("unauthorized {authorize, Name=~p, Pin=~p}", [Name, Pin]),
+  %?log_msg1("unauthorized {authorize, Name=~p, Pin=~p}", [Name, Pin]),
   case eb_server:authorize(Name, Pin) of
     ok ->
-      ?log_msg1("eb_server:authorize(Name=~p, Pin=~p) ok", [Name, Pin]),
+      %?log_msg1("eb_server:authorize(Name=~p, Pin=~p) ok", [Name, Pin]),
       {reply, ok, authorized, Name};
     {error, Reason} ->
       {reply, {error, Reason}, unauthorized, State}
   end;
 unauthorized(_Event, _From, State) ->
-  Reply = {error, invalid_message},
+  Reply = {error, invalid_message, {from, unauthorized}},
   {reply, Reply, unauthorized, State}.
 
 authorized({withdraw, Amount}, _From, State) ->
@@ -158,7 +160,8 @@ thank_you(_Msg, _From, State) ->
 %% gen_fsm:send_all_state_event/2, this function is called to handle
 %% the event.
 %%--------------------------------------------------------------------
-handle_event(cancel, _StateName, _State) ->
+handle_event(cancel, StateName, _State) ->
+  ?log_msg1("cancel from ~p state", [StateName]),
   {next_state, unauthorized, nobody};
 handle_event(_Event, StateName, State) ->
   {next_state, StateName, State}.
