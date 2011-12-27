@@ -23,6 +23,9 @@
 
 -define(SERVER, ?MODULE).
 
+-define(debug_log_macros, true).
+-include("$PWD/log.hrl").
+
 %%====================================================================
 %% API
 %%====================================================================
@@ -81,6 +84,8 @@ authorize(Name, PIN) ->
 %% Description: Initiates the server
 %%--------------------------------------------------------------------
 init([]) ->
+  eb_event_manager:start_link(),
+  eb_event_manager:add_handler(eb_withdrawal_handler),
   {ok, dict:new()}.
 
 %%--------------------------------------------------------------------
@@ -118,6 +123,9 @@ handle_call({withdraw, Name, Amount}, _From, State) ->
     {ok, {PIN, Value}} ->
       NewBalance = Value - Amount,
       NewState = dict:store(Name, {PIN, NewBalance}, State),
+      % Send notification
+      %?log_msg1("~p", [{withdraw, Name, Amount, NewBalance}]),
+      eb_event_manager:notify({withdraw, Name, Amount, NewBalance}),
       {reply, {ok, NewBalance}, NewState};
     error ->
       {reply, {error, account_does_not_exist}, State}
