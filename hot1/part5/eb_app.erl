@@ -25,13 +25,14 @@
 %% OTP design principles as a supervision tree, this means starting the
 %% top supervisor of the tree.
 %%--------------------------------------------------------------------
-start(_Type, StartArgs) ->
-  case eb_sup:start_link() of
-    {ok, Pid} -> 
-      {ok, Pid};
-    Error ->
-      Error
-  end.
+start(_Type, _StartArgs) ->
+  %% case eb_sup:start_link() of
+  %%   {ok, Pid} -> 
+  %%     {ok, Pid};
+  %%   Error ->
+  %%     Error
+  %% end.
+  eb_sup:start_link().         % same as above, see article comments
 
 %%--------------------------------------------------------------------
 %% Function: stop(State) -> void()
@@ -40,7 +41,8 @@ start(_Type, StartArgs) ->
 %% should do any necessary cleaning up. The return value is ignored.
 %%--------------------------------------------------------------------
 stop(_State) ->
-  exit(whereis(eb_sup), shutdown).
+  %% exit(whereis(eb_sup), shutdown).   % see article comments
+  ok.
 
 %%====================================================================
 %% Internal functions

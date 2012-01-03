@@ -46,7 +46,10 @@ main(_Args) ->
 
     ok = application:stop(erlybank),
 
+    undefined = whereis(eb_sup),
     undefined = whereis(eb_atm),
+    undefined = whereis(eb_server),
+    undefined = whereis(eb_event_manager),
 
     flush_unk(),
 
