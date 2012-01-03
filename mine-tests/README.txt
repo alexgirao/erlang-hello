@@ -236,3 +236,7 @@ erl_libs.escript
 
     - how to add directories to the include path in runtime (ERL_LIBS
       equivalent)
+
+proplists0.escript
+
+    - how to user proplists

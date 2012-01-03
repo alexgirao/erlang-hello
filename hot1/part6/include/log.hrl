@@ -1,0 +1,1 @@
+../../../mine-tests/macro.hrl
