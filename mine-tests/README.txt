@@ -231,3 +231,8 @@ rand.escript
 timeout.escript
 
     - how to timeout with the 'receiver' statement
+
+erl_libs.escript
+
+    - how to add directories to the include path in runtime (ERL_LIBS
+      equivalent)
