@@ -30,11 +30,7 @@
 
     - asynchronous accept server example
 
-- server5
+- server5 / server5_rmq271
 
     - tcp_listener and tcp_acceptor usage (from LShift's RabbitMQ)
-
-- server6
-
-    - low latency networking
-    - implement instructions at articles/latency.html
+    - use supervisor
