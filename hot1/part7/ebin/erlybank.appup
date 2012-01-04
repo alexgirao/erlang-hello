@@ -1,0 +1,14 @@
+%% -*- erlang -*-
+
+{"2.0",
+ [{"1.0", [{add_module, eb_credit},
+           {load_module, eb_server},
+           {update, eb_atm, {advanced, []}},
+	   {update, eb_sup, supervisor}
+	  ]}],
+ [{"1.0", [{update, eb_sup, supervisor},
+	   {update, eb_atm, {advanced, []}},
+           {load_module, eb_server},
+           {delete_module, eb_credit}]}
+ ]
+}.

@@ -1,0 +1,6 @@
+eb_rel-?.boot
+eb_rel-?.rel
+eb_rel-?.script
+eb_rel-?.tar.gz
+erl_crash.dump
+relup

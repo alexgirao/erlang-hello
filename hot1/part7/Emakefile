@@ -1,0 +1,16 @@
+%% -*- erlang -*-
+
+{[
+  'src/eb_app',
+  'src/eb_atm',
+  'src/eb_event_manager',
+  'src/eb_server',
+  'src/eb_sup',
+  'src/eb_withdrawal_handler',
+  'src/eb_credit'
+ ],
+ [
+  debug_info, verbose, report_errors, report_warnings,
+  {i, "../include"},
+  {outdir, "ebin"}
+ ]}.
