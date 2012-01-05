@@ -51,7 +51,6 @@ upgrade({release, _, Vsn, EVsn, Apps, _} = PermanentRelease) ->
 
     % create new eb_rel-1.tar.gz that includes relup
 
-    true = code:add_path("ebin"),
     ok = systools:make_tar("eb_rel-1"),
 
     % unpack release
@@ -64,6 +63,8 @@ upgrade({release, _, Vsn, EVsn, Apps, _} = PermanentRelease) ->
     ok.
 
 main(_Args) ->
+    true = code:add_patha("ebin"),
+
     % start sasl and wait just a second for error_logger message flush
 
     ok = application:start(sasl),

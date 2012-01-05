@@ -16,7 +16,7 @@ flush_unk() ->
     end.
 
 main(_Args) ->
-    true = code:add_path("ebin"),
+    true = code:add_patha("ebin"),
     ok = systools:make_script("eb_rel-1", [local]),
 
     %

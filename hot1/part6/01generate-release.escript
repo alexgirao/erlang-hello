@@ -20,7 +20,7 @@ get_app_key(App, Key) ->
     proplists:get_value(Key, D).
 
 main(_Args) ->
-    code:add_path("ebin"),
+    true = code:add_patha("ebin"),
 
     ok = application:load(erlybank),
 
