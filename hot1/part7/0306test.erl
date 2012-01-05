@@ -1,4 +1,4 @@
--module('03test').
+-module('0306test').
 -export([main/0]).
 
 -define(debug_log_macros, true).
@@ -16,6 +16,13 @@ flush_unk() ->
     end.
 
 main() ->
+    ok = case whereis(eb_credit) of
+	undefined ->
+	    throw({error, not_running, eb_credit});
+	M ->
+	    ok
+    end,
+
     PID_eb_atm = whereis(eb_atm),
 
     ok = eb_server:create_account("alex", 1234),
@@ -38,8 +45,6 @@ main() ->
     ok = eb_atm:deposit(100), % can't handle error, deposit uses asynchronous messages
 
     {error, invalid_message} = eb_atm:withdraw(30),
-
-    io:format("eb_credit=~p~n", [whereis(eb_credit)]),
 
     ok = application:stop(erlybank),
 

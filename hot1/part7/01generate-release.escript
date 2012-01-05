@@ -36,19 +36,12 @@ main(_Args) ->
 
     %
 
-    Rel1 = {release,
-	   {"eb_rel", "1"},
-	   {erts, erlang:system_info(version)},
-	   Provides
-	  },
-
     Rel2 = {release,
 	   {"eb_rel", "2"},
 	   {erts, erlang:system_info(version)},
 	   Provides
 	  },
 
-    ok = file:write_file("eb_rel-1.rel", io_lib:format("~p.~n", [Rel1])),
     ok = file:write_file("eb_rel-2.rel", io_lib:format("~p.~n", [Rel2])),
 
     %

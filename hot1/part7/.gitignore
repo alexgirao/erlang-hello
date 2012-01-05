@@ -4,3 +4,4 @@ eb_rel-?.script
 eb_rel-?.tar.gz
 erl_crash.dump
 relup
+from.rel

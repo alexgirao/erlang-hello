@@ -1,0 +1,11 @@
+note: a release is a per-instance definition that specifies an
+application set
+
+. "${BER211_HOME}/profile"
+export PATH="${OTP_BIN}:${PATH}"
+
+application:which_applications().
+
+lists:foreach(fun (I) -> io:format("~n~p", [I]) end, code:get_path()).
+
+erl -noshell -boot "$(erl -noshell -eval 'io:format("~s~n", [code:root_dir()])' -s init stop)/releases/2/start" -eval 'lists:foreach(fun (I) -> io:format("~p~n", [I]) end, code:get_path())' -s init stop

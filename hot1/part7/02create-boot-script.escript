@@ -16,9 +16,7 @@ flush_unk() ->
     end.
 
 main(_Args) ->
-    true = code:add_patha("ebin"),  % prepend 'ebin' dir, so we load this application before the one already deployed
-    ok = systools:make_relup("eb_rel-2", ["eb_rel-1"], ["eb_rel-1"]),
-
+    true = code:add_patha("ebin"),
     ok = systools:make_script("eb_rel-2", [local]),
 
     %

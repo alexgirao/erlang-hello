@@ -16,6 +16,13 @@ flush_unk() ->
     end.
 
 main(_Args) ->
+    % start sasl and wait just a second for error_logger message flush
+
+    ok = application:start(sasl),
+    0 = receive wont_match -> 1 after 1000 -> 0 end,
+
+    %
+
     ReleaseName = "eb_rel",
     ReleaseVsn = "2",
     Release = (ReleaseName ++ "-") ++ ReleaseVsn,
@@ -28,21 +35,7 @@ main(_Args) ->
     ?log_msg1("copying ~p to ~p", [S, D]),
 
     {ok, _BytesCopied} = file:copy(S, D),
-    ok = application:start(sasl),
-
-    ?log_msg0("release_handler:unpack_release/1"),
     {ok, ReleaseVsn} = release_handler:unpack_release(Release),
-
-    %
-
-    % release_handler:install_release/1 seems unnecessary,
-    % release_handler:unpack_release/1 already does this.. to be
-    % confirmed
-
-    ?log_msg0("release_handler:install_release/1"),
-
-    M = release_handler:install_release("2"),
-    ?log_msg1("~p~n", [M]),
 
     %
 

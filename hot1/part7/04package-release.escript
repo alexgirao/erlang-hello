@@ -16,7 +16,7 @@ flush_unk() ->
     end.
 
 main(_Args) ->
-    true = code:add_patha("ebin"),  % prepend 'ebin' dir, so we load this application before the one already deployed
+    true = code:add_patha("ebin"),
     ok = systools:make_tar("eb_rel-2"),
 
     %
