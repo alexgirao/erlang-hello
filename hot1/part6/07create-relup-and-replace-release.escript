@@ -29,7 +29,7 @@ unpack(ReleaseName, ReleaseVsn) ->
     {ok, ReleaseVsn} = release_handler:unpack_release(Release),
     ok.
 
-upgrade({release, _, Vsn, EVsn, Apps, _} = PermanentRelease) ->
+upgrade({release, _, Vsn, EVsn, Apps, _} = _PermanentRelease) ->
     % create from.rel
 
     Rel0 = {release,
@@ -77,8 +77,8 @@ main(_Args) ->
     % get permanent (official) release
 
     F = fun
-	    ({release, Desc, Vsn, EVsn, Apps, permanent}) -> true;
-	    (I) -> false
+	    ({release, _Desc, _Vsn, _EVsn, _Apps, permanent}) -> true;
+	    (_I) -> false
 	end,
 
     [{release, _, PermanentReleaseVsn, _, _, _} = PermanentRelease] = lists:filter(F, RELEASES),

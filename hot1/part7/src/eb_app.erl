@@ -26,12 +26,7 @@
 %% top supervisor of the tree.
 %%--------------------------------------------------------------------
 start(_Type, _StartArgs) ->
-  case eb_sup:start_link() of
-    {ok, Pid} -> 
-      {ok, Pid};
-    Error ->
-      Error
-  end.
+  eb_sup:start_link().
 
 %%--------------------------------------------------------------------
 %% Function: stop(State) -> void()
@@ -40,7 +35,7 @@ start(_Type, _StartArgs) ->
 %% should do any necessary cleaning up. The return value is ignored. 
 %%--------------------------------------------------------------------
 stop(_State) ->
-  exit(whereis(eb_sup), shutdown).
+  ok.
 
 %%====================================================================
 %% Internal functions

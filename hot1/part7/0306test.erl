@@ -19,7 +19,7 @@ main() ->
     ok = case whereis(eb_credit) of
 	undefined ->
 	    throw({error, not_running, eb_credit});
-	M ->
+	_ ->
 	    ok
     end,
 
