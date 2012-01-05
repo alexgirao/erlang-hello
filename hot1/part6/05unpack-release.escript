@@ -16,6 +16,13 @@ flush_unk() ->
     end.
 
 main(_Args) ->
+    % start sasl and wait just a second for error_logger message flush
+
+    ok = application:start(sasl),
+    0 = receive wont_match -> 1 after 1000 -> 0 end,
+
+    %
+
     ReleaseName = "eb_rel",
     ReleaseVsn = "1",
     Release = (ReleaseName ++ "-") ++ ReleaseVsn,
@@ -28,7 +35,6 @@ main(_Args) ->
     ?log_msg1("copying ~p to ~p", [S, D]),
 
     {ok, _BytesCopied} = file:copy(S, D),
-    ok = application:start(sasl),
     {ok, ReleaseVsn} = release_handler:unpack_release(Release),
 
     %

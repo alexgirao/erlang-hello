@@ -1,0 +1,7 @@
+note: a release is a per-instance definition that specifies an
+application set
+
+. "${BER211_HOME}/profile"
+export PATH="${OTP_BIN}:${PATH}"
+
+application:which_applications().

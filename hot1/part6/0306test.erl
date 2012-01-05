@@ -1,4 +1,4 @@
--module('06test').
+-module('0306test').
 -export([main/0]).
 
 -define(debug_log_macros, true).

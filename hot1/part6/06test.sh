@@ -1,10 +1,11 @@
 #!/bin/sh
 
+set -u
 set -e
 set -x
-set -u
+
+erlc 0306test.erl
 
 ROOT="$(erl -noshell -eval 'io:format("~s~n", [code:root_dir()])' -s init stop)"
 
-erlc 06test.erl
-erl -noshell -boot "${ROOT}/releases/1/start" -s 06test main -s init stop
+erl -noshell -boot "${ROOT}/releases/1/start" -s 0306test main -s init stop
