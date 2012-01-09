@@ -240,3 +240,8 @@ erl_libs.escript
 proplists0.escript
 
     - how to user proplists
+
+fname.escript
+
+    - os:getenv/1 how to get environment variables
+    - filename:join/1 how to join filename components
