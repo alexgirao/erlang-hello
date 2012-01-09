@@ -23,11 +23,21 @@ class portsync {
 
 	    hexdump.dump(buffer, 0, System.err, 0, n);
 
+	    byte result = 0;
+
+	    if (buffer[4] == 1) {
+		result = (byte)(buffer[5] + 1);
+	    } else if (buffer[4] == 2) {
+		result = (byte)(buffer[5] * 2);
+	    } else {
+		throw new RuntimeException("exhaustion");
+	    }
+
 	    System.out.write(0);
 	    System.out.write(0);
 	    System.out.write(0);
 	    System.out.write(1);
-	    System.out.write(123);
+	    System.out.write(result);
 	    System.out.flush();      // don't use buffered streams, flush immediately
 	}
     }
