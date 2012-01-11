@@ -245,3 +245,19 @@ fname.escript
 
     - os:getenv/1 how to get environment variables
     - filename:join/1 how to join filename components
+
+config.escript
+
+    - configuration files
+    - file:consult/1
+
+parse.escript
+
+    - how to parse expressions into terms
+    - erl_scan:string/1 usage
+    - erl_parse:parse_term/1 usage
+    - erl_parse:parse_exprs/1 usage
+    - erl_eval:exprs/2 usage
+    - erl_eval:expr/2 usage
+    - todo: file:consult/1 functionality
+    - todo: how to parse without the need of the final dot
