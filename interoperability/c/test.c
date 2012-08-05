@@ -12,20 +12,39 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#include <higherc/higherc.h>
-#include <higherc/byte.h>
-#include <higherc/bytewise.h>
-#include <higherc/str.h>
-#include <higherc/s.h>
-
 #include "erl_interface.h"
 #include "ei.h"
 
+#include "str.h"
+#include "item.h"
+
 #include "eterm.h"
+
+#if 0
+static int read_exact(int fd, void *buf, int len)
+{
+	int i, got=0;
+	do {
+		if ((i = read(fd, buf + got, len - got)) <= 0) return i;
+		got += i;
+	} while (got < len);
+	return len;
+}
+#endif
+
+static int write_exact(int fd, void *buf, int len)
+{
+	int i, wrote = 0;
+	do {
+		if ((i = write(fd, buf + wrote, len - wrote)) <= 0) return i;
+		wrote += i;
+	} while (wrote < len);
+	return len;
+}
 
 int main(int argc, char **argv)
 {
-	HC_DEF_S(buf);
+	DEFINE_STR(buf);
 
 	ei_sanity_check();
 
@@ -40,9 +59,9 @@ int main(int argc, char **argv)
 
 	fprintf(stderr, "------------------------------ %i\n", buf->len);
 
-	hcns(write_exact)(1, buf->s, buf->len); /* beware, non-ascii output, intended to be used with hexdump -C */
+	write_exact(1, buf->s, buf->len); /* beware, non-ascii output, intended to be used with hexdump -C */
 
-	hcns(s_free)(buf);
+	str_free(buf);
 
 	return 0;
 }

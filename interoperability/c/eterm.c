@@ -7,31 +7,86 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-
-#include <higherc/higherc.h>
-#include <higherc/byte.h>
-#include <higherc/bytewise.h>
-#include <higherc/str.h>
-#include <higherc/s.h>
-#include <higherc/alloc.h>
+#include <ctype.h>
+#include <stdint.h>
+#include <stdarg.h>
 
 #include "erl_interface.h"
 
+#include "str.h"
+#include "item.h"
+
 #include "eterm.h"
 
-HC_DECL_PUBLIC_I(eterm);
+DEFINE_ITEM_IMPLEMENTATION(eterm);
+
+#define HEX_DIGIT(v) ((v) >= 0 && (v) < 16 ? "0123456789abcdef"[v] : '?')
+
+#if defined (__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
+# define DIE(...)	    _p_fatal(__FILE__, __LINE__, __VA_ARGS__)
+#elif defined (__GNUC__)
+# define DIE(fmt...)   _p_fatal(__FILE__, __LINE__, fmt)
+#endif
+
+static void _p_fatal(char *file, int line, char *fmt, ...)
+{
+	va_list args;
+	va_start(args, fmt);
+	fprintf(stderr, "fatal-error: %s: %i: ", file, (int)line);
+	vfprintf(stderr, fmt, args);
+	fprintf(stderr, "\n");
+	fflush(stderr);
+	va_end(args);
+	exit(1);
+}
+
+static void s_reprn(struct str *s_repr, void *s, int n)
+{
+	unsigned char *x = s;
+	int c;
+	while (n--) {
+		c = *x++;
+		if (isprint(c)) {
+			if (c == '\t') {
+				str_alloc(s_repr, s_repr->len + 2); /* \t */
+				s_repr->s[s_repr->len++] = '\\';
+				s_repr->s[s_repr->len++] = 't';
+			} else {
+				str_catc(s_repr, c);
+			}
+		} else {
+			str_alloc(s_repr, s_repr->len + 4); /* \xNN */
+			s_repr->s[s_repr->len++] = '\\';
+			s_repr->s[s_repr->len++] = 'x';
+			s_repr->s[s_repr->len++] = HEX_DIGIT((c >> 4) & 0xf);
+			s_repr->s[s_repr->len++] = HEX_DIGIT(c & 0xf);
+		}
+	}
+}
+
+#if 0
+static void s_repr(struct str *s_repr, struct str *s)
+{
+	s_reprn(s_repr, s->s, s->len);
+}
+
+static void s_reprz(struct str *s_repr, char *s)
+{
+	s_reprn(s_repr, s, strlen(s));
+}
+#endif
 
 static void print_s_reprn(char *prefix, char *s, int len, char *suffix)
 {
-	HC_DEF_S(r);
-	hcns(s_reprn)(r, s, len);
+	DEFINE_STR(r);
+	s_reprn(r, s, len);
 	if (prefix) printf("%s", prefix);
 	fwrite(r->s, r->len, 1, stdout);
 	if (suffix) printf("%s", suffix);
-	hcns(s_free)(r);
+	str_free(r);
 }
 
-static void print_s_repr(char *prefix, HC_ST_S *s, char *suffix)
+static void print_s_repr(char *prefix, struct str *s, char *suffix)
 {
 	print_s_reprn(prefix, s->s, s->len, suffix);
 }
@@ -52,37 +107,37 @@ void ei_sanity_check()
 	fprintf(stderr, "all ei sanity checks passed\n");
 }
 
-void encode_version(HC_ST_S *x)
+void encode_version(struct str *x)
 {
 	if (x->a == 0) {
-		hcns(s_alloc)(x, 100);
+		str_alloc(x, 100);
 	} else {
-		hcns(s_alloc)(x, x->len + 1);
+		str_alloc(x, x->len + 1);
 	}
 	assert(ei_encode_version(x->s, &x->len) == 0);
 }
 
-void encode_char(HC_ST_S *x, char p)
+void encode_char(struct str *x, char p)
 {
 	int i = x->len;
 	ei_encode_char(NULL, &i, p);
-	hcns(s_alloc)(x, i);
+	str_alloc(x, i);
 	ei_encode_char(x->s, &x->len, p);
 }
 
-void encode_boolean(HC_ST_S *x, int p)
+void encode_boolean(struct str *x, int p)
 {
 	int i = x->len;
 	ei_encode_boolean(NULL, &i, p);
-	hcns(s_alloc)(x, i);
+	str_alloc(x, i);
 	ei_encode_boolean(x->s, &x->len, p);
 }
 
-void encode_double(HC_ST_S *x, double dbl)
+void encode_double(struct str *x, double dbl)
 {
 	int i = x->len;
 	ei_encode_double(NULL, &i, dbl);
-	hcns(s_alloc)(x, i);
+	str_alloc(x, i);
 	ei_encode_double(x->s, &x->len, dbl);
 }
 
@@ -90,101 +145,100 @@ static void _encode_double_type70(char *buf, int *index, double p)
 {
 	char *s = buf + *index;
 	char *s0 = s;
-	hcns(u4) *q = (hcns(u4)*) &p;
-	int endiancheck = 0xdeadbeef;
-
-	assert(*((unsigned char*)&endiancheck) == 0xef);  /* little endian only so far, FIXME: automate this with preprocessor */
+	uint32_t *q = (uint32_t*) &p;
 
 	if (!buf) s++;
 	else {
+		/* assume little-endian double
+		 */
 		*s++ = 70;
-		HC_PUT_BE4(s + 4, *q);
-		HC_PUT_BE4(s, *(q + 1));
+		*(uint32_t*)(s + 4) = htonl(*q);
+		*(uint32_t*)s = htonl(*(q + 1));
 	}
 	s += sizeof(double);
 
 	*index += s - s0;
 }
 
-void encode_double_type70(HC_ST_S *x, double dbl)
+void encode_double_type70(struct str *x, double dbl)
 {
 	int i = x->len;
 	_encode_double_type70(NULL, &i, dbl);
-	hcns(s_alloc)(x, i);
+	str_alloc(x, i);
 	_encode_double_type70(x->s, &x->len, dbl);
 }
 
-void encode_long(HC_ST_S *x, long n)
+void encode_long(struct str *x, long n)
 {
 	int i = x->len;
 	ei_encode_long(NULL, &i, n);
-	hcns(s_alloc)(x, i);
+	str_alloc(x, i);
 	ei_encode_long(x->s, &x->len, n);
 }
 
-void encode_ulong(HC_ST_S *x, unsigned long n)
+void encode_ulong(struct str *x, unsigned long n)
 {
 	int i = x->len;
 	ei_encode_ulong(NULL, &i, n);
-	hcns(s_alloc)(x, i);
+	str_alloc(x, i);
 	ei_encode_ulong(x->s, &x->len, n);
 }
 
-void encode_atomn(HC_ST_S *x, const char* s, int len)
+void encode_atomn(struct str *x, const char* s, int len)
 {
 	int i = x->len;
 	ei_encode_atom_len(NULL, &i, s, len);
-	hcns(s_alloc)(x, i);
+	str_alloc(x, i);
 	assert(ei_encode_atom_len(x->s, &x->len, s, len) == 0);
 }
 
-void encode_atomz(HC_ST_S *x, const char* s)
+void encode_atomz(struct str *x, const char* s)
 {
-	encode_atomn(x, s, hcns(slen)(s));
+	encode_atomn(x, s, strlen(s));
 }
 
-void encode_stringn(HC_ST_S *x, const char* s, int len)
+void encode_stringn(struct str *x, const char* s, int len)
 {
 	int i = x->len;
 	ei_encode_string_len(NULL, &i, s, len);
-	hcns(s_alloc)(x, i);
+	str_alloc(x, i);
 	ei_encode_string_len(x->s, &x->len, s, len);
 }
 
-void encode_stringz(HC_ST_S *x, const char* s)
+void encode_stringz(struct str *x, const char* s)
 {
-	encode_stringn(x, s, hcns(slen)(s));
+	encode_stringn(x, s, strlen(s));
 }
 
-void encode_binary(HC_ST_S *x, void *s, int len)
+void encode_binary(struct str *x, void *s, int len)
 {
 	int i = x->len;
 	ei_encode_binary(NULL, &i, s, len);
-	hcns(s_alloc)(x, i);
+	str_alloc(x, i);
 	ei_encode_binary(x->s, &x->len, s, len);
 }
 
-void encode_tuple_header(HC_ST_S *x, long n)
+void encode_tuple_header(struct str *x, long n)
 {
 	int i = x->len;
 	ei_encode_tuple_header(NULL, &i, n);
-	hcns(s_alloc)(x, i);
+	str_alloc(x, i);
 	ei_encode_tuple_header(x->s, &x->len, n);
 }
 
-void encode_list_header(HC_ST_S *x, int n)
+void encode_list_header(struct str *x, int n)
 {
 	int i = x->len;
 	ei_encode_list_header(NULL, &i, n);
-	hcns(s_alloc)(x, i);
+	str_alloc(x, i);
 	assert(ei_encode_list_header(x->s, &x->len, n) == 0);
 }
 
-void encode_empty_list(HC_ST_S *x)
+void encode_empty_list(struct str *x)
 {
 	int i = x->len;
 	ei_encode_empty_list(NULL, &i);
-	hcns(s_alloc)(x, i);
+	str_alloc(x, i);
 	ei_encode_empty_list(x->s, &x->len);
 }
 
@@ -192,15 +246,14 @@ int decode_double_type70(const char *buf, int *index, double *p)
 {
 	const char *s = buf + *index;
 	const char *s0 = s;
-	int endiancheck = 0xdeadbeef;
-	hcns(u4) u4u4[2];
+	uint32_t u4u4[2];
 
 	if (*s++ != 70) return -1;
 
-	assert(*((unsigned char*)&endiancheck) == 0xef);  /* little endian only so far */
-	
-	u4u4[1] = HC_GET_BE4(s);
-	u4u4[0] = HC_GET_BE4(s + 4);
+	/* assume little-endian double
+	 */
+	u4u4[1] = ntohl(*(uint32_t*)s);
+	u4u4[0] = ntohl(*(uint32_t*)(s + 4));
 	
 	s += sizeof(double);
 	if (p) *p = *((double*)u4u4);
@@ -289,7 +342,7 @@ int skip_term(const char* buf, int *index)
 
 void eterm_free(struct eterm *h)
 {
-	struct eterm_iter i[1];
+	struct eterm_iterator i[1];
 	struct eterm *t;
 
 	eterm_backward(i, h);
@@ -307,7 +360,7 @@ void eterm_free(struct eterm *h)
 		case ERL_ATOM_EXT:
 		case ERL_STRING_EXT:
 		case ERL_BINARY_EXT:
-			hcns(s_free)(t->value.str);
+			str_free(t->value.str);
 			break;
 		}
 	}
@@ -318,7 +371,7 @@ void eterm_free(struct eterm *h)
 
 void eterm_show(int level, struct eterm *h)
 {
-	struct eterm_iter i[1];
+	struct eterm_iterator i[1];
 	int count = 1, n;
 
 	eterm_forward(i, h);
@@ -383,7 +436,7 @@ static void decode1term(const char *buf, int *index, struct eterm *h)
 			h->type = ERL_TINY_ATOM_EXT;
 			assert(ei_decode_atom(buf, index, h->value.tinystr) == 0);
 		} else {
-			hcns(s_alloc)(h->value.str, h->len + 1);  /* need extra byte for '\0', as manual says */
+			str_alloc(h->value.str, h->len + 1);  /* need extra byte for '\0', as manual says */
 			assert(ei_decode_atom(buf, index, h->value.str->s) == 0);
 			h->value.str->len = h->len;
 		}
@@ -393,7 +446,7 @@ static void decode1term(const char *buf, int *index, struct eterm *h)
 			h->type = ERL_TINY_STRING_EXT;
 			assert(ei_decode_string(buf, index, h->value.tinystr) == 0);
 		} else {
-			hcns(s_alloc)(h->value.str, h->len + 1);  /* need extra byte for '\0', as manual says */
+			str_alloc(h->value.str, h->len + 1);  /* need extra byte for '\0', as manual says */
 			assert(ei_decode_string(buf, index, h->value.str->s) == 0);
 			h->value.str->len = h->len;
 		}
@@ -403,7 +456,7 @@ static void decode1term(const char *buf, int *index, struct eterm *h)
 			h->type = ERL_TINY_BINARY_EXT;
 			assert(ei_decode_binary(buf, index, h->value.tinystr, NULL) == 0);
 		} else {
-			hcns(s_alloc)(h->value.str, h->len);
+			str_alloc(h->value.str, h->len);
 			assert(ei_decode_binary(buf, index, h->value.str->s, NULL) == 0);
 			h->value.str->len = h->len;
 		}
@@ -425,9 +478,9 @@ static void decode1term(const char *buf, int *index, struct eterm *h)
 	case ERL_LARGE_TUPLE_EXT:
 	case ERL_LIST_EXT:
 	case ERL_NIL_EXT:
-		HC_FATAL("invalid data, nil not expected %i (%c)", h->type, h->type);
+		DIE("invalid data, nil not expected %i (%c)", h->type, h->type);
 	default:
-		HC_FATAL("unknown type: i=%i, t=%i (%c), l=%i\n",
+		DIE("unknown type: i=%i, t=%i (%c), l=%i\n",
 			 *index, h->type, h->type, h->len);
 	}
 }
@@ -462,7 +515,7 @@ static struct eterm *eterm_decode0(const char *buf, int len, int *index, int dep
 		/* list terms expects a tail item (any other term)
 		 */
 		struct eterm tmp[1];
-		unsigned char *str;
+		unsigned char *str = NULL;
 
 		assert(ei_get_type(buf, index, &tmp->type, &tmp->len) == 0);
 
@@ -473,7 +526,9 @@ static struct eterm *eterm_decode0(const char *buf, int len, int *index, int dep
 			parent->len += tmp->len; /* ``tmp'' gets updated in inner calls */
 			break;
 		case ERL_STRING_EXT:
-			HC_ALLOC(str, tmp->len + 1); /* need extra byte for '\0', as manual says */
+			//HC_ALLOC(str, tmp->len + 1); /* need extra byte for '\0', as manual says */
+			str = malloc(tmp->len + 1); /* need extra byte for '\0', as manual says */
+			assert(str);
 
 			assert(ei_decode_string(buf, index, (char *)str) == 0);
 
@@ -488,7 +543,8 @@ static struct eterm *eterm_decode0(const char *buf, int len, int *index, int dep
 
 			parent->len += tmp->len;
 
-			HC_FREE(str);
+			free(str);
+			str = NULL;
 			break;
 		case ERL_NIL_EXT:
 			/* proper list, ends with NIL

@@ -10,5 +10,7 @@ testing
 	./t2b > t2b.c.bin
 	escript t2b.escript
 
+	sha1sum t2b.c.bin t2b.escript.1.bin
+
 	./b2t
 	escript b2t.escript

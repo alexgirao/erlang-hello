@@ -1,22 +1,31 @@
 - http://localhost/erlang/doc/doc/tutorial/c_port.html#4
 
-test
+########## test port
 
-    1> Port = open_port({spawn, begin {ok, Dir} = file:get_cwd(), Dir ++ "/test" end}, [{packet, 4}, binary]).
-    #Port<0.424>
-    2> port_command(Port, term_to_binary([1,2,3])).
-    true
-    3> receive {Port, {data, B0}} -> binary_to_term(B0) after 0 -> empty end.
-    [1,2,3]
-    4> L = [
-         1, 1.618034, a_atom, "a string", true, false,
-         {a_tuple, 1, 1.618034, "another string"},
-         [a_improper_list, [c, d, [e | f]]],
-         [a_list, 0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377]
-        ].
-    5> port_command(Port, term_to_binary(L)).
-    true
-    6> receive {Port, {data, B1}} -> binary_to_term(B1) after 0 -> empty end.
-    7> port_command(Port, term_to_binary(L, [{minor_version, 1}])).
-    true
-    8> receive {Port, {data, B2}} -> binary_to_term(B2) after 0 -> empty end.
+1> Port = open_port({spawn, begin {ok, Dir} = file:get_cwd(), Dir ++ "/test" end}, [{packet, 4}, binary]).
+#Port<0.424>
+2> port_command(Port, term_to_binary([1,2,3])).
+true
+3> receive {Port, {data, B0}} -> binary_to_term(B0) after 0 -> empty end.
+[1,2,3]
+4> L = [
+     1, 1.618034, a_atom, "a string", true, false,
+     {a_tuple, 1, 1.618034, "another string"},
+     [a_improper_list, [c, d, [e | f]]],
+     [a_list, 0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377]
+    ].
+5> port_command(Port, term_to_binary(L)).
+true
+6> receive {Port, {data, B1}} -> binary_to_term(B1) after 0 -> empty end.
+7> port_command(Port, term_to_binary(L, [{minor_version, 1}])).
+true
+8> receive {Port, {data, B2}} -> binary_to_term(B2) after 0 -> empty end.
+
+
+########## decode test.bin (see test.c)
+
+1> {ok, Packet} = file:read_file("test.bin").
+{ok,<<0,0,0,7,131,107,0,3,1,2,3>>}
+2> binary_to_term(element(2, split_binary(Packet, 4))).
+[1,2,3]
+3> 
