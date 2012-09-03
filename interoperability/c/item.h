@@ -1,5 +1,5 @@
-#ifndef _ITEM_H_
-#define _ITEM_H_
+#ifndef npnta96oo91bqikdb8 /* item-h */
+#define npnta96oo91bqikdb8 /* item-h */
 
 #ifdef __cplusplus
 extern "C" { /* assume C declarations for C++ */
@@ -154,20 +154,19 @@ extern "C" { /* assume C declarations for C++ */
 /* queue
  */
 
-#define DEFINE_QUEUE_HEADER(name, item)         \
-	typedef struct _st_##struct name name;	\
-	struct _st_##struct name {		\
-		item *enqueue;			\
-		item *dequeue;			\
-	};					\
-	struct name *name##_new0();		\
-	void name##_free0(struct name *x);	\
-	int name##_len(struct name *x);		\
-	item *name##_dequeue(struct name *q)
+#define DEFINE_QUEUE_HEADER(name, item)			\
+	struct name {					\
+		struct item *enqueue;			\
+		struct item *dequeue;			\
+	};						\
+	struct name *name##_new0();			\
+	void name##_free0(struct name *x);		\
+	int name##_len(struct name *x);			\
+	struct item *name##_dequeue(struct name *q)
 
 #define DEFINE_QUEUE_IMPLEMENTATION(name, item)				\
 	struct name *name##_new0() {					\
-		return (name*)calloc(1, sizeof(name));			\
+		return (struct name*)calloc(1, sizeof(struct name));	\
 	}								\
 	void name##_free0(struct name *x) {				\
 		if (x) {						\
@@ -181,8 +180,8 @@ extern "C" { /* assume C declarations for C++ */
 			item##_len(x->enqueue) +			\
 			item##_len(x->dequeue) : 0;			\
 	}								\
-	item *name##_dequeue(struct name *q) {				\
-		item *r;						\
+	struct item *name##_dequeue(struct name *q) {			\
+		struct item *r;						\
 		if (q->dequeue == NULL) {				\
 			if (q->enqueue) {				\
 				q->dequeue = item##_reverse(q->enqueue); \

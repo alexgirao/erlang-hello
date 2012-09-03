@@ -1,10 +1,15 @@
 
-ERLANG_HOME = /usr/local/lib/erlang
-#EI_VSN = 3.6.2
-EI_VSN = 3.6.5
+#
+# . ${BER211_HOME}/profile
+#
+#
 
-CFLAGS = -Wall -I$(ERLANG_HOME)/lib/erl_interface-$(EI_VSN)/include
-LDFLAGS = -L$(ERLANG_HOME)/lib/erl_interface-$(EI_VSN)/lib
+ERL_INTERFACE_INCLUDE = $(shell $(OTP_BIN)/erl -noshell -eval 'io:format("~s~n", [code:lib_dir(erl_interface, include)])' -s init stop)
+ERL_INTERFACE_LIB = $(shell $(OTP_BIN)/erl -noshell -eval 'io:format("~s~n", [code:lib_dir(erl_interface, lib)])' -s init stop)
+
+CFLAGS = -Wall -I$(ERL_INTERFACE_INCLUDE)
+LDFLAGS = -L$(ERL_INTERFACE_LIB)
+
 LIBS = -lbz2 -lz -lrt -lpthread -lm -lc -lerl_interface -lei
 
 all: test t2b b2t eterm.o str.o
@@ -19,4 +24,5 @@ clean:
 	rm -fv *.o
 
 str.o: str.h
-test.o t2b.o b2t.o: eterm.h
+test.o t2b.o b2t.o: eterm.h item.h
+eterm.o: item.h

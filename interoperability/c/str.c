@@ -1,3 +1,27 @@
+/*
+Copyright (c) 2012 Alexandre Girao <alexgirao@gmail.com>.
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+1. Redistributions of source code must retain the above copyright notice(s),
+   this list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright notice(s),
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER(S) ``AS IS'' AND ANY EXPRESS
+OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.  IN NO
+EVENT SHALL THE COPYRIGHT HOLDER(S) BE LIABLE FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -85,7 +109,7 @@ static int sdiffn(const char *s, const char *t, int len)
 /* alloc/free
  */
 
-void str_alloc(STRUCT_STR *x, int n)
+void str_alloc(struct str *x, int n)
 {
   if (x->s) {
     if (n > x->a) {
@@ -106,7 +130,7 @@ void str_alloc(STRUCT_STR *x, int n)
   x->len = 0;
 }
 
-void str_free(STRUCT_STR *x)
+void str_free(struct str *x)
 {
   if (x->s) {
     void *p = x->s;
@@ -121,7 +145,7 @@ void str_free(STRUCT_STR *x)
 /* copy
  */
 
-void str_copyn(STRUCT_STR *sa, const char *s, int n)
+void str_copyn(struct str *sa, const char *s, int n)
 {
   str_alloc(sa, n + 1);
   memcpy(sa->s, s, n);
@@ -129,17 +153,17 @@ void str_copyn(STRUCT_STR *sa, const char *s, int n)
   sa->s[n] = 0;
 }
 
-void str_copy(STRUCT_STR *to, const STRUCT_STR *from)
+void str_copy(struct str *to, const struct str *from)
 {
   str_copyn(to, from->s, from->len);
 }
 
-void str_copyz(STRUCT_STR *sa, const char *s)
+void str_copyz(struct str *sa, const char *s)
 {
   str_copyn(sa, s, strlen(s));
 }
 
-void str_copyc(STRUCT_STR *sa, int c)
+void str_copyc(struct str *sa, int c)
 {
   if (sa->len == 0) {
     str_alloc(sa, 1);
@@ -151,7 +175,7 @@ void str_copyc(STRUCT_STR *sa, int c)
 /* cat
  */
 
-void str_catn(STRUCT_STR *sa, const char *s, int n)
+void str_catn(struct str *sa, const char *s, int n)
 {
   if (!sa->s) {
     str_copyn(sa, s, n);
@@ -163,17 +187,17 @@ void str_catn(STRUCT_STR *sa, const char *s, int n)
   sa->s[sa->len] = 0;
 }
 
-void str_cat(STRUCT_STR *to, const STRUCT_STR *from)
+void str_cat(struct str *to, const struct str *from)
 {
   str_catn(to, from->s, from->len);
 }
 
-void str_catz(STRUCT_STR *sa, const char *s)
+void str_catz(struct str *sa, const char *s)
 {
   str_catn(sa, s, strlen(s));
 }
 
-void str_catc(STRUCT_STR *sa, int c)
+void str_catc(struct str *sa, int c)
 {
   if ((sa->len + 1) >= sa->a) {
     str_alloc(sa, sa->len + 2);
@@ -185,7 +209,7 @@ void str_catc(STRUCT_STR *sa, int c)
 /* format
  */
 
-void str_vformat(STRUCT_STR *sa, int cat, const char *fmt, va_list va)
+void str_vformat(struct str *sa, int cat, const char *fmt, va_list va)
 {
 #if 0 /* old implementation */
   char buf0[0x1fff + 1 /* 8192 */], *buf;
@@ -276,7 +300,7 @@ void str_vformat(STRUCT_STR *sa, int cat, const char *fmt, va_list va)
 /* format time (strftime)
  */
 
-void str_formattime(STRUCT_STR *sa, int cat, const char *fmt, struct tm *tm)
+void str_formattime(struct str *sa, int cat, const char *fmt, struct tm *tm)
 {
   char buf0[0x0fff + 1 /* 4096 */], *buf;
   int buf_len;
@@ -325,7 +349,7 @@ void str_formattime(STRUCT_STR *sa, int cat, const char *fmt, struct tm *tm)
   }
 }
 
-void str_copyf(STRUCT_STR *sa, const char *fmt, ...)
+void str_copyf(struct str *sa, const char *fmt, ...)
 {
   va_list va;
   va_start(va, fmt);
@@ -333,7 +357,7 @@ void str_copyf(STRUCT_STR *sa, const char *fmt, ...)
   va_end(va);
 }
 
-void str_catf(STRUCT_STR *sa, const char *fmt, ...)
+void str_catf(struct str *sa, const char *fmt, ...)
 {
   va_list va;
   va_start(va, fmt);
@@ -341,12 +365,12 @@ void str_catf(STRUCT_STR *sa, const char *fmt, ...)
   va_end(va);
 }
 
-void str_copyftime(STRUCT_STR *sa, const char *fmt, struct tm *tm)
+void str_copyftime(struct str *sa, const char *fmt, struct tm *tm)
 {
   str_formattime(sa, 0, fmt, tm);
 }
 
-void str_catftime(STRUCT_STR *sa, const char *fmt, struct tm *tm)
+void str_catftime(struct str *sa, const char *fmt, struct tm *tm)
 {
   str_formattime(sa, 1, fmt, tm);
 }
@@ -354,7 +378,7 @@ void str_catftime(STRUCT_STR *sa, const char *fmt, struct tm *tm)
 /* diff
  */
 
-int str_diffn(STRUCT_STR *a, char *b, int bl)
+int str_diffn(struct str *a, char *b, int bl)
 {
   int x = a->len - bl;
   int y = 0;
@@ -371,13 +395,13 @@ int str_diffn(STRUCT_STR *a, char *b, int bl)
   return y ? y : x;
 }
 
-int str_diffz(STRUCT_STR *a, char *b)
+int str_diffz(struct str *a, char *b)
 {
   str_catn(a, "\0", 1);
   return sdiffn(a->s, b, a->len--);
 }
 
-int str_diff(STRUCT_STR *a, STRUCT_STR *b)
+int str_diff(struct str *a, struct str *b)
 {
   return str_diffn(a, b->s, b->len);
 }
@@ -385,7 +409,7 @@ int str_diff(STRUCT_STR *a, STRUCT_STR *b)
 /* case change
  */
 
-void str_upper(STRUCT_STR *s)
+void str_upper(struct str *s)
 {
   int i;
   char c;
@@ -397,7 +421,7 @@ void str_upper(STRUCT_STR *s)
   }
 }
 
-void str_lower(STRUCT_STR *s)
+void str_lower(struct str *s)
 {
   int i;
   char c;
@@ -412,7 +436,7 @@ void str_lower(STRUCT_STR *s)
 /* shift
  */
 
-void str_shiftr(STRUCT_STR *s, int start, int end, int n, int pad)
+void str_shiftr(struct str *s, int start, int end, int n, int pad)
 {
   int i, window_size;
   char *ss;
@@ -449,7 +473,7 @@ void str_shiftr(STRUCT_STR *s, int start, int end, int n, int pad)
   }
 }
 
-void str_shiftl(STRUCT_STR *s, int start, int end, int n, int pad)
+void str_shiftl(struct str *s, int start, int end, int n, int pad)
 {
   int i, window_size;
   char *ss;
@@ -483,12 +507,12 @@ void str_shiftl(STRUCT_STR *s, int start, int end, int n, int pad)
   }
 }
 
-void str_shiftr2(STRUCT_STR *s, int start, int n, int pad)
+void str_shiftr2(struct str *s, int start, int n, int pad)
 {
   str_shiftr(s, start, s->len + n, n, pad);
 }
 
-void str_shiftl2(STRUCT_STR *s, int start, int n, int pad)
+void str_shiftl2(struct str *s, int start, int n, int pad)
 {
   str_shiftl(s, start, s->len, n, pad);
 }
@@ -510,7 +534,7 @@ static void *get_file_data(const char *fname, off_t fsz, void *buf)
   return buf;
 }
 
-void str_from_file(STRUCT_STR *s, const char *file)
+void str_from_file(struct str *s, const char *file)
 {
   off_t fsz = get_file_size(file);
   str_alloc(s, fsz + 1);
@@ -519,12 +543,12 @@ void str_from_file(STRUCT_STR *s, const char *file)
   s->len = fsz;
 }
 
-int str_len(STRUCT_STR *x)
+int str_len(struct str *x)
 {
   return x->s ? x->len : 0;
 }
 
-int str_is_empty(STRUCT_STR *x)
+int str_is_empty(struct str *x)
 {
   return str_len(x) == 0;
 }
