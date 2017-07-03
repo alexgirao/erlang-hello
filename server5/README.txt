@@ -1,6 +1,7 @@
+
 based on rabbitmq-server-2.2.0
 
-concurrent accept: how it works? what are the advantages?
+**** concurrent accept: how it works? what are the advantages?
 
     in tcp_listener.erl, there is an option to start multiple acceptor
     processes, such processes will each invoke prim_inet:async_accept
@@ -14,8 +15,14 @@ concurrent accept: how it works? what are the advantages?
     accepts when switch from state TCP_STATE_ACCEPTING to
     TCP_STATE_MULTI_ACCEPTING.
 
-testing on erlang shell
+**** testing on erlang shell
 
-	ERL_LIBS="$(pwd)" erl -boot start_sasl
-        1> make:files([file_handle_cache, rabbit_misc, tcp_acceptor, tcp_acceptor_sup, tcp_listener, tcp_listener_sup, 'test-0', 'test-1']).
-	2> spawn('test-1', main, []).
+    ERL_LIBS="$(pwd)" erl -boot start_sasl
+    1> make:files([file_handle_cache, rabbit_misc, tcp_acceptor, tcp_acceptor_sup, tcp_listener, tcp_listener_sup, 'test-0', 'test-1']).
+    2> spawn('test-1', main, []).
+
+**** testing with escript
+
+    escript test-2.escript
+
+****
